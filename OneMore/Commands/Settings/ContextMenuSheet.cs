@@ -4,6 +4,7 @@
 
 namespace River.OneMoreAddIn.Settings
 {
+	using River.OneMoreAddIn.Helpers.Office;
 	using Resx = River.OneMoreAddIn.Properties.Resources;
 
 
@@ -33,6 +34,7 @@ namespace River.OneMoreAddIn.Settings
 			"ribTrimButton",				// ... Trim Whitespace
 			"ribEditMenu",					// Edit Menu
 			"ribColorizeMenu",				// ... Colorize
+			"ribProofingMenu",				// ... Proofing Language
 			"ribHighlightButton",			// ... Rotating Highlighter
 			"ribNoSpellCheckButton",		// ... No Spell Check
 			"ribSpellCheckButton",			// ... Spell Check
@@ -46,6 +48,11 @@ namespace River.OneMoreAddIn.Settings
 			"ribExpandContentButton",		// ... Expand Outline
 			"ribSaveCollapsedButton",		// ... Save Collapsed Outline
 			"ribRestoreCollapsedButton",	// ... Restore Collapsed Outline
+			"ribWordCountButton",			// ... Word Count
+			"ribRemindersMenu",				// Reminders
+			"ribRemindButton",				// ... Add or update reminder
+			"ribCompleteReminderButton",	// ... Complete reminder
+			"ribDeleteReminderButton",		// ... Delete reminder
 			"ribReplaceButton",				// Search and Replace
 			"ribSnippetsMenu",				// Snippets Menu
 			"ribInsertSingleLineButton",	// ... Single Line
@@ -81,11 +88,19 @@ namespace River.OneMoreAddIn.Settings
 				});
 			}
 
+			var langs = Office.GetEditingLanguages();
+			var noproof = langs == null || langs.Length < 2;
+
 			commandsBox.DisplayMember = "Text";
 
 			commandsBox.Items.Clear();
 			foreach (var key in keys)
 			{
+				if (key == "ribProofingMenu" && noproof)
+				{
+					continue;
+				}
+
 				var text = Resx.ResourceManager.GetString($"{Name}_{key}") ?? key;
 				commandsBox.Items.Add(new MenuItem(key, text));
 			}

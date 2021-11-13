@@ -99,7 +99,7 @@ namespace River.OneMoreAddIn.Commands
 				var parts = meta.Attribute("content").Value.Split(';');
 				var options = parts.Select(p => p.Split('=')).ToDictionary(s => s[0], s => s[1]);
 				var addTopLinks = options.ContainsKey("addTopLinks") && options["addTopLinks"] == "True";
-				var rightAlignTopLinks= options.ContainsKey("rightAlignTopLinks") && options["rightAlignTopLinks"] == "True";
+				var rightAlignTopLinks = options.ContainsKey("rightAlignTopLinks") && options["rightAlignTopLinks"] == "True";
 
 				// remove the containing OE so it can be regenerated
 				meta.Parent.Remove();
@@ -167,13 +167,13 @@ namespace River.OneMoreAddIn.Commands
 			};
 
 			// use the minimum intent level
-			var minlevel = headings.Min(e => e.Style.Index);
+			var minlevel = headings.Min(e => e.Level);
 
 			foreach (var heading in headings)
 			{
 				var text = new StringBuilder();
 				var count = minlevel;
-				while (count < heading.Style.Index)
+				while (count < heading.Level)
 				{
 					text.Append("\t");
 					count++;
@@ -182,16 +182,19 @@ namespace River.OneMoreAddIn.Commands
 				if (!string.IsNullOrEmpty(heading.Link))
 				{
 					var linkColor = dark ? " style='color:#5B9BD5'" : string.Empty;
-					text.Append($"<a href=\"{heading.Link}\"{linkColor}>{heading.Text}</a>");
+					var clean = RemoveHyperlinks(heading.Text);
+					text.Append($"<a href=\"{heading.Link}\"{linkColor}>{clean}</a>");
 				}
 				else
 				{
 					text.Append(heading.Text);
 				}
 
+				//text.Append($"(count:{count}=level:{heading.Level})");
+
 				toc.Add(new Paragraph(text.ToString()).SetStyle($"color:{textColor}"));
 
-				if (addTopLinks)
+				if (addTopLinks && !heading.HasTopLink)
 				{
 					if (rightAlignTopLinks)
 					{
@@ -233,6 +236,23 @@ namespace River.OneMoreAddIn.Commands
 				);
 
 			await one.Update(page);
+		}
+
+
+		private string RemoveHyperlinks(string text)
+		{
+			// removes hyperlinks from the text of a heading so the TOC hyperlink can be applied
+
+			// clean up illegal directives; can be caused by using "Clip to OneNote" from Edge
+			var wrapper = new XCData(text).GetWrapper();
+
+			var links = wrapper.Elements("a").ToList();
+			foreach (var link in links)
+			{
+				link.ReplaceWith(link.Value);
+			}
+
+			return wrapper.ToString(SaveOptions.DisableFormatting);
 		}
 		#endregion InsertHeadingsTable
 

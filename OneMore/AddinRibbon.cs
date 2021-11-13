@@ -9,9 +9,11 @@ namespace River.OneMoreAddIn
 {
 	using Microsoft.Office.Core;
 	using River.OneMoreAddIn.Commands;
+	using River.OneMoreAddIn.Helpers.Office;
 	using River.OneMoreAddIn.Settings;
 	using System;
 	using System.Drawing;
+	using System.Globalization;
 	using System.IO;
 	using System.Linq;
 	using System.Runtime.InteropServices.ComTypes;
@@ -49,6 +51,7 @@ namespace River.OneMoreAddIn
 				ns = root.GetDefaultNamespace();
 
 				AddColorizerCommands(root);
+				AddProofingCommands(root);
 
 				var contextMenus = root.Element(ns + "contextMenus");
 				if (contextMenus == null)
@@ -94,10 +97,9 @@ namespace River.OneMoreAddIn
 					new XAttribute("insertBeforeMso", "Cut")
 					));
 
-				//logger.WriteLine(menu);
-
 				contextMenus.Add(menu);
 
+				//logger.WriteLine(root);
 				return root.ToString(SaveOptions.DisableFormatting);
 			}
 			catch (Exception exc)
@@ -141,6 +143,56 @@ namespace River.OneMoreAddIn
 				logger.WriteLine("error building colorize menu", exc);
 			}
 		}
+
+
+		private void AddProofingCommands(XElement root)
+		{
+			var codes = Office.GetEditingLanguages();
+			if (codes == null || codes.Length < 2)
+			{
+				return;
+			}
+
+			logger.WriteLine("building language proofing commands");
+
+			try
+			{
+				var anchor = root.Descendants(ns + "menu")
+					.FirstOrDefault(e => e.Attribute("id").Value == "ribColorizeMenu");
+
+				if (anchor == null)
+				{
+					return;
+				}
+
+				var item = new XElement(ns + "menu",
+					new XAttribute("id", "ribProofingMenu"),
+					new XAttribute("imageMso", "SetLanguage"),
+					new XAttribute("getLabel", "GetRibbonLabel")
+					);
+
+				foreach (var code in codes)
+				{
+					var name = CultureInfo.GetCultureInfo(code).DisplayName;
+					var id = code.Replace("-", string.Empty);
+
+					item.Add(new XElement(ns + "button",
+						new XAttribute("id", $"ribProof{id}Button"),
+						new XAttribute("imageMso", "Spelling"),
+						new XAttribute("label", name),
+						new XAttribute("tag", code),
+						new XAttribute("onAction", "SetProofingCmd")
+						));
+				}
+
+				anchor.AddAfterSelf(item);
+			}
+			catch (Exception exc)
+			{
+				logger.WriteLine("error building proofing menu", exc);
+			}
+		}
+
 
 		private void AddRibbonBarCommands(SettingsCollection ribbonbar, XElement root)
 		{
@@ -240,6 +292,16 @@ namespace River.OneMoreAddIn
 					continue;
 				}
 
+				// special case to hide Proofing menu if language set is only 1
+				if (key == "ribProofingMenu")
+				{
+					var langs = Office.GetEditingLanguages();
+					if (langs == null || langs.Length < 2)
+					{
+						continue;
+					}
+				}
+
 				var element = root.Descendants()
 					.FirstOrDefault(e => e.Attribute("id")?.Value == key);
 
@@ -261,17 +323,21 @@ namespace River.OneMoreAddIn
 					continue;
 				}
 
-				// special case to avoid collisions between Edit\Colorize and Colorize
-				if (id.Value == "ribEditMenu" && ccommands.Keys.Contains("ribColorizeMenu"))
-				{
-					var sub = item.Elements()
-						.FirstOrDefault(e => e.Attribute("id")?.Value == "ribColorizeMenu");
+				// special case to avoid collisions between a top menu and its submenu, such as
+				// Edit/Colorize and Colorize both chosen; in this case the submenu, Colorize,
+				// will be placed as an item in the context menu but removed from the copy of
+				// Edit menu in the context menu...
 
-					if (sub != null)
+				if (id.Value == "ribEditMenu")
+				{
+					if (ccommands.Keys.Contains("ribColorizeMenu"))
 					{
-						// allows top level context menu Colorize submenu
-						// but removes the context menu Edit\Colorize submenu
-						sub.Remove();
+						item.Elements().Where(e => e.Attribute("id")?.Value == "ribColorizeMenu").Remove();
+					}
+
+					if (ccommands.Keys.Contains("ribProofingMenu"))
+					{
+						item.Elements().Where(e => e.Attribute("id")?.Value == "ribProofingMenu").Remove();
 					}
 				}
 

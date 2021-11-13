@@ -6,9 +6,9 @@
 
 namespace River.OneMoreAddIn.Commands
 {
+	using River.OneMoreAddIn.Helpers.Office;
 	using System;
 	using System.IO;
-	using System.Threading;
 	using System.Windows.Forms;
 	using Resx = River.OneMoreAddIn.Properties.Resources;
 
@@ -24,12 +24,21 @@ namespace River.OneMoreAddIn.Commands
 			Markdown
 		}
 
+
+		private readonly bool wordInstalled;
+		private readonly bool powerPointInstalled;
+
+
 		public ImportDialog()
 		{
 			InitializeComponent();
 
+			wordInstalled = Office.IsWordInstalled();
+			powerPointInstalled = Office.IsPowerPointInstalled();
+
 			wordGroup.Visible = false;
 			powerGroup.Visible = false;
+			notInstalledLabel.Visible = false;
 
 			browseButton.Top = pathBox.Top;
 			browseButton.Height = pathBox.Height;
@@ -49,8 +58,9 @@ namespace River.OneMoreAddIn.Commands
 					"powerAppendButton",
 					"powerCreateButton",
 					"powerSectionButton",
-					"okButton",
-					"cancelButton"
+					"notInstalledLabel",
+					"okButton=word_OK",
+					"cancelButton=word_Cancel"
 				});
 			}
 
@@ -82,30 +92,36 @@ namespace River.OneMoreAddIn.Commands
 
 				switch (ext)
 				{
+					case ".doc":
 					case ".docx":
-						wordGroup.Visible = true;
+						wordGroup.Visible = wordInstalled;
 						powerGroup.Visible = false;
-						okButton.Enabled = true;
+						notInstalledLabel.Visible = !wordInstalled;
+						okButton.Enabled = wordInstalled;
 						Format = Formats.Word;
 						break;
 
 					case ".md":
 						wordGroup.Visible = false;
 						powerGroup.Visible = false;
+						notInstalledLabel.Visible = false;
 						okButton.Enabled = true;
 						Format = Formats.Markdown;
 						break;
 
+					case ".ppt":
 					case ".pptx":
 						wordGroup.Visible = false;
-						powerGroup.Visible = true;
-						okButton.Enabled = true;
+						powerGroup.Visible = powerPointInstalled;
+						notInstalledLabel.Visible = !powerPointInstalled;
+						okButton.Enabled = powerPointInstalled;
 						Format = Formats.PowerPoint;
 						break;
 
 					case ".xml":
 						wordGroup.Visible = false;
 						powerGroup.Visible = false;
+						notInstalledLabel.Visible = false;
 						okButton.Enabled = true;
 						Format = Formats.Xml;
 						break;
@@ -113,12 +129,14 @@ namespace River.OneMoreAddIn.Commands
 					case ".one":
 						wordGroup.Visible = false;
 						powerGroup.Visible = false;
+						notInstalledLabel.Visible = false;
 						okButton.Enabled = true;
 						Format = Formats.OneNote;
 						break;
 
 					default:
 						wordGroup.Visible = powerGroup.Visible = false;
+						notInstalledLabel.Visible = false;
 						okButton.Enabled = false;
 						break;
 				}
@@ -130,14 +148,12 @@ namespace River.OneMoreAddIn.Commands
 		}
 
 
-		private void BrowseFile(object sender, EventArgs e)
+		private async void BrowseFile(object sender, EventArgs e)
 		{
 			try
 			{
-				string path = pathBox.Text;
-
-				// FolderBrowserDialog must run in an STA thread
-				var thread = new Thread(() =>
+				// OpenFileDialog must run in an STA thread
+				var path = await SingleThreaded.Invoke(() =>
 				{
 					using (var dialog = new OpenFileDialog()
 					{
@@ -145,7 +161,7 @@ namespace River.OneMoreAddIn.Commands
 						CheckFileExists = true,
 						DefaultExt = ".docx",
 						Filter = Resx.ImportDialog_OpenFileFilter,
-						InitialDirectory = path,
+						InitialDirectory = pathBox.Text,
 						Multiselect = false,
 						Title = Resx.ImportDialog_OpenFileTitle
 					})
@@ -153,18 +169,17 @@ namespace River.OneMoreAddIn.Commands
 						// cannot use owner parameter here or it will hang! cross-threading
 						if (dialog.ShowDialog() == DialogResult.OK)
 						{
-							path = dialog.FileName;
+							return dialog.FileName;
 						}
 					}
+
+					return null;
 				});
 
-				thread.SetApartmentState(ApartmentState.STA);
-				thread.IsBackground = true;
-				thread.Start();
-				thread.Join();
-
-				pathBox.Text = path;
-
+				if (path != null)
+				{
+					pathBox.Text = path;
+				}
 			}
 			catch (Exception exc)
 			{

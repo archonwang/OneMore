@@ -82,6 +82,11 @@
                 getScreentip="GetRibbonScreentip"
                 onAction="RemoveCitationsCmd"/>
               <button
+                id="ribRemoveInkButton"
+                imageMso="InkDeleteAllInk"
+                getLabel="GetRibbonLabel"
+                onAction="RemoveInkCmd"/>
+              <button
                 id="ribRemoveEmptyButton"
                 imageMso="RecordsDeleteRecord"
                 getLabel="GetRibbonLabel"
@@ -93,6 +98,12 @@
                 getLabel="GetRibbonLabel"
                 getScreentip="GetRibbonScreentip"
                 onAction="RemoveSpacingCmd"/>
+              <button
+                id="ribRemoveTagsButton"
+                imageMso="AdpOutputOperationsTableRemove"
+                getLabel="GetRibbonLabel"
+                getScreentip="GetRibbonScreentip"
+                onAction="RemoveTagsCmd"/>
               <button
                 id="ribToggleDttmButton"
                 imageMso="MessageHeaderToggle"
@@ -171,26 +182,6 @@
                 getScreentip="GetRibbonScreentip"
                 onAction="DecreaseFontSizeCmd"/>
               <button
-                id="ribCollapseContentButton"
-                imageMso="CollapseAll"
-                getLabel="GetRibbonLabel"
-                onAction="CollapseContentCmd"/>
-              <button
-                id="ribExpandContentButton"
-                imageMso="OutlineExpandAll"
-                getLabel="GetRibbonLabel"
-                onAction="ExpandContentCmd"/>
-              <button
-                id="ribSaveCollapsedButton"
-                imageMso="SaveSelectionToFooterGallery"
-                getLabel="GetRibbonLabel"
-                onAction="SaveCollapsedCmd"/>
-              <button
-                id="ribRestoreCollapsedButton"
-                imageMso="OutlineShowDetail"
-                getLabel="GetRibbonLabel"
-                onAction="RestoreCollapsedCmd"/>
-              <button
                 id="ribInvertSelectionButton"
                 imageMso="BlackAndWhiteInverseGrayscale"
                 getLabel="GetRibbonLabel"
@@ -210,6 +201,11 @@
                 imageMso="StylesStyleInspector"
                 getLabel="GetRibbonLabel"
                 onAction="SelectStyleCmd"/>
+              <button
+                id="ribSortListButton"
+                imageMso="Bullets"
+                getLabel="GetRibbonLabel"
+                onAction="SortListCmd"/>
             </menu>
             <menu id="ribImagesMenu" getLabel="GetRibbonLabel" imageMso="ObjectPictureFill">
               <button
@@ -261,8 +257,61 @@
                 getScreentip="GetRibbonScreentip"
                 onAction="RemovePageNumbersCmd"/>
             </menu>
-            <menu id="ribReferencesMenu" getLabel="GetRibbonLabel" imageMso="CrossReferenceInsert">
+            <menu id="ribPageMenu" getLabel="GetRibbonLabel" imageMso="PageOrientationPortrait">
               <button
+                id="ribArrangeContainersButton"
+                imageMso="WindowsArrangeAll"
+                getLabel="GetRibbonLabel"
+                onAction="ArrangeContainersCmd"/>
+              <button
+                id="ribFlagTitleButton"
+                imageMso="DataGraphicIconSet"
+                getLabel="GetRibbonLabel"
+                onAction="AddTitleIconCmd"/>
+              <button
+                id="ribCollapseContentButton"
+                imageMso="CollapseAll"
+                getLabel="GetRibbonLabel"
+                onAction="CollapseContentCmd"/>
+              <button
+                id="ribExpandContentButton"
+                imageMso="OutlineExpandAll"
+                getLabel="GetRibbonLabel"
+                onAction="ExpandContentCmd"/>
+              <button
+                id="ribSaveCollapsedButton"
+                imageMso="SaveSelectionToFooterGallery"
+                getLabel="GetRibbonLabel"
+                onAction="SaveCollapsedCmd"/>
+              <button
+                id="ribRestoreCollapsedButton"
+                imageMso="OutlineShowDetail"
+                getLabel="GetRibbonLabel"
+                onAction="RestoreCollapsedCmd"/>
+              <button
+                id="ribFitGridButton"
+                imageMso="SizeToGridOutlook"
+                getLabel="GetRibbonLabel"
+                onAction="FitGridToTextCmd"/>
+              <button
+                id="ribMergeButton"
+                imageMso="CompareAndCombine"
+                getLabel="GetRibbonLabel"
+                getEnabled="GetMultiPageContext"
+                onAction="MergeCmd"/>
+              <button
+                id="ribSplitButton"
+                imageMso="MasterDocumentSplitSubdocuments"
+                getLabel="GetRibbonLabel"
+                onAction="SplitCmd"/>
+              <button
+                id="ribWordCountButton"
+                imageMso="WordCount"
+                getLabel="GetRibbonLabel"
+                onAction="WordCountCmd"/>
+            </menu>
+            <menu id="ribReferencesMenu" getLabel="GetRibbonLabel" imageMso="CrossReferenceInsert">
+                <button
                 id="ribFootnoteButton"
                 imageMso="FootnoteInsert"
                 getLabel="GetRibbonLabel"
@@ -340,6 +389,28 @@
                 imageMso="PictureReset"
                 getLabel="GetRibbonLabel"
                 onAction="GetImagesCmd"/>
+            </menu>
+            <menu id="ribRemindersMenu" getLabel="GetRibbonLabel" imageMso="ReminderGallery">
+              <button
+                id="ribRemindButton"
+                imageMso="NewTask"
+                getLabel="GetRibbonLabel"
+                onAction="RemindCmd"/>
+              <button
+                id="ribCompleteReminderButton"
+                imageMso="AcceptTask"
+                getLabel="GetRibbonLabel"
+                onAction="CompleteReminderCmd"/>
+              <button
+                id="ribDeleteReminderButton"
+                imageMso="CancelTaskAssignment"
+                getLabel="GetRibbonLabel"
+                onAction="DeleteReminderCmd"/>
+              <button
+                id="ribReportRemindersButton"
+                imageMso="ShowTaskDetailsPage"
+                getLabel="GetRibbonLabel"
+                onAction="ReportRemindersCmd"/>
             </menu>
             <menu id="ribSearchMenu" getLabel="GetRibbonLabel" imageMso="SearchUI">
               <button
@@ -549,11 +620,6 @@
                 getLabel="GetRibbonLabel"
                 onAction="AnalyzeCmd"/>
               <button
-                id="ribFlagTitleButton"
-                imageMso="DataGraphicIconSet"
-                getLabel="GetRibbonLabel"
-                onAction="AddTitleIconCmd"/>
-              <button
                 id="ribCollapsePagesButton"
                 imageMso="CollapseAll"
                 getLabel="GetRibbonLabel"
@@ -570,17 +636,6 @@
                 imageMso="SpeakOnEnter"
                 getEnabled="GetBodyContext"
                 onAction="PronunciateCmd"/>
-              <button
-                id="ribMergeButton"
-                imageMso="CompareAndCombine"
-                getLabel="GetRibbonLabel"
-                getEnabled="GetMultiPageContext"
-                onAction="MergeCmd"/>
-              <button
-                id="ribSplitButton"
-                imageMso="MasterDocumentSplitSubdocuments"
-                getLabel="GetRibbonLabel"
-                onAction="SplitCmd"/>
               <button
                 id="ribSortButton"
                 imageMso="SortUp"
@@ -602,18 +657,12 @@
                 getLabel="GetRibbonLabel"
                 getScreentip="GetRibbonScreentip"
                 onAction="StrikeoutCmd"/>
-              <button
-                id="ribWordCountButton"
-                imageMso="WordCount"
-                getLabel="GetRibbonLabel"
-                onAction="WordCountCmd"/>
             </menu>
             <menuSeparator id="sepTools" getTitle="GetRibbonLabel" />
             <button
               id="ribImportButton"
               imageMso="FileOpen"
               getLabel="GetRibbonLabel"
-              getEnabled="GetOfficeInstalled"
               onAction="ImportCmd"/>
             <button
               id="ribImportWebButton"
@@ -766,6 +815,12 @@
         getScreentip="GetRibbonScreentip"
         onAction="DateStampCmd"
         tag="section"
+        insertBeforeMso="SectionRenameOneNote"/>
+      <button
+        id="ctxSectionColorButton"
+        imageMso="ShapeFillColorPicker"
+        getLabel="GetRibbonLabel"
+        onAction="SectionColorCmd"
         insertBeforeMso="SectionRenameOneNote"/>
       <menuSeparator
         id="omSectionContextMenuSeparator"

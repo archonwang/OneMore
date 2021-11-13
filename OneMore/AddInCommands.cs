@@ -10,6 +10,7 @@ namespace River.OneMoreAddIn
 {
 	using Microsoft.Office.Core;
 	using River.OneMoreAddIn.Commands;
+	using System.Threading;
 	using System.Threading.Tasks;
 
 
@@ -48,6 +49,9 @@ namespace River.OneMoreAddIn
 		public async Task ArchiveCmd(IRibbonControl control)
 			=> await factory.Run<ArchiveCommand>(control.Tag); // tag=scope
 
+		public async Task ArrangeContainersCmd(IRibbonControl control)
+			=> await factory.Run<ArrangeContainersCommand>();
+
 		public async Task BreakingCmd(IRibbonControl control)
 			=> await factory.Run<BreakingCommand>();
 
@@ -65,6 +69,9 @@ namespace River.OneMoreAddIn
 
 		public async Task ColorizeCmd(IRibbonControl control)
 			=> await factory.Run<ColorizeCommand>(control.Tag); // tag=language
+
+		public async Task CompleteReminderCmd(IRibbonControl control)
+			=> await factory.Run<CompleteReminderCommand>();
 
 		public async Task CopyAcrossCmd(IRibbonControl control)
 			=> await factory.Run<FillCellsCommand>(FillCells.CopyAcross);
@@ -87,8 +94,11 @@ namespace River.OneMoreAddIn
 		public async Task DeleteFormulaCmd(IRibbonControl control)
 			=> await factory.Run<DeleteFormulaCommand>();
 
+		public async Task DeleteReminderCmd(IRibbonControl control)
+			=> await factory.Run<DeleteReminderCommand>();
+
 		public async Task DisableSpellCheckCmd(IRibbonControl control)
-			=> await factory.Run<SpellCheckCommand>(false);
+			=> await factory.Run<ProofingCommand>(ProofingCommand.NoLang);
 
 		public async Task EditStylesCmd(IRibbonControl control)
 			=> await factory.Run<EditStylesCommand>();
@@ -97,7 +107,7 @@ namespace River.OneMoreAddIn
 			=> await factory.Run<EmbedSubpageCommand>(false);
 
 		public async Task EnableSpellCheckCmd(IRibbonControl control)
-			=> await factory.Run<SpellCheckCommand>(true);
+			=> await factory.Run<ProofingCommand>(Thread.CurrentThread.CurrentUICulture.Name);
 
 		public async Task ExpandContentCmd(IRibbonControl control)
 			=> await factory.Run<ExpandoCommand>(Expando.Expand);
@@ -110,6 +120,9 @@ namespace River.OneMoreAddIn
 
 		public async Task FinishBiLinkCmd(IRibbonControl control)
 			=> await factory.Run<BiLinkCommand>("link");
+
+		public async Task FitGridToTextCmd(IRibbonControl control)
+			=> await factory.Run<FitGridToTextCommand>();
 
 		public async Task GetImagesCmd(IRibbonControl control)
 			=> await factory.Run<GetImagesCommand>(true);
@@ -252,6 +265,9 @@ namespace River.OneMoreAddIn
 		public async Task RefreshPageLinksCmd(IRibbonControl control)
 			=> await factory.Run<RefreshPageLinksCommand>();
 
+		public async Task RemindCmd(IRibbonControl control)
+			=> await factory.Run<RemindCommand>();
+
 		public async Task RemoveAuthorsCmd(IRibbonControl control)
 			=> await factory.Run<RemoveAuthorsCommand>();
 
@@ -264,6 +280,9 @@ namespace River.OneMoreAddIn
 		public async Task RemoveFootnoteCmd(IRibbonControl control)
 			=> await factory.Run<RemoveFootnoteCommand>();
 
+		public async Task RemoveInkCmd(IRibbonControl control)
+			=> await factory.Run<RemoveInkCommand>();
+
 		public async Task RemovePageNumbersCmd(IRibbonControl control)
 			=> await factory.Run<RemovePageNumbersCommand>();
 
@@ -273,8 +292,14 @@ namespace River.OneMoreAddIn
 		public async Task RemoveSpacingCmd(IRibbonControl control)
 			=> await factory.Run<RemoveSpacingCommand>();
 
+		public async Task RemoveTagsCmd(IRibbonControl control)
+			=> await factory.Run<RemoveTagsCommand>();
+
 		public async Task ReplayCmd(IRibbonControl control)
 			=> await factory.ReplayLastAction();
+
+		public async Task ReportRemindersCmd(IRibbonControl control)
+			=> await factory.Run<ReportRemindersCommand>();
 
 		public async Task ResizeImagesCmd(IRibbonControl control)
 			=> await factory.Run<ResizeImagesCommand>();
@@ -303,11 +328,17 @@ namespace River.OneMoreAddIn
 		public async Task SearchWebCmd(IRibbonControl control)
 			=> await factory.Run<SearchWebCommand>(control.Tag); // tag=engine
 
+		public async Task SectionColorCmd(IRibbonControl control)
+			=> await factory.Run<SectionColorCommand>();
+
 		public async Task SelectImagesCmd(IRibbonControl control)
 			=> await factory.Run<SelectImagesCommand>();
 
 		public async Task SelectStyleCmd(IRibbonControl control)
 			=> await factory.Run<SelectStyleCommand>();
+
+		public async Task SetProofingCmd(IRibbonControl control)
+			=> await factory.Run<ProofingCommand>(control.Tag); // tag=language
 
 		public async Task SettingsCmd(IRibbonControl control)
 			=> await factory.Run<SettingsCommand>(ribbon);
@@ -320,6 +351,9 @@ namespace River.OneMoreAddIn
 
 		public async Task SortCmd(IRibbonControl control)
 			=> await factory.Run<SortCommand>();
+
+		public async Task SortListCmd(IRibbonControl control)
+			=> await factory.Run<SortListCommand>();
 
 		public async Task SplitCmd(IRibbonControl control)
 			=> await factory.Run<SplitCommand>();

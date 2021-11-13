@@ -42,7 +42,8 @@ namespace River.OneMoreAddIn
 			PDF = PublishFormat.pfPDF,
 			Word = PublishFormat.pfWord,
 			XPS = PublishFormat.pfXPS,
-			XML = 1000
+			XML = 1000,
+			Markdown = 1001
 		}
 
 		public enum PageDetail
@@ -67,6 +68,17 @@ namespace River.OneMoreAddIn
 			SectionGroups = 100
 		}
 
+		public class HierarchyInfo
+		{
+			public string PageId;
+			public string SectionId; // immediate owner regardless of depth (e.g. SectionGroups)
+			public string NotebookId;
+			public string Name;
+			public string Path;
+			public string Link;
+		}
+
+
 		public class HyperlinkInfo
 		{
 			public string PageID;       // pageID
@@ -81,6 +93,8 @@ namespace River.OneMoreAddIn
 		public const string Prefix = "one";
 
 		private const int MaxInclusiveHResult = -2146231999;
+		private const int ObjectDoesNotExist = -2147213292;
+
 
 		private IApplication onenote;
 		private readonly ILogger logger;
@@ -202,7 +216,7 @@ namespace River.OneMoreAddIn
 						retries++;
 						var ms = 250 * retries;
 
-						logger.WriteLine($"OneNote is busy, retyring in {ms}ms", exc);
+						logger.WriteLine($"OneNote is busy, retyring in {ms}ms");
 						await Task.Delay(ms);
 					}
 				}
@@ -304,7 +318,9 @@ namespace River.OneMoreAddIn
 			}
 
 			// count pages so we can update countCallback and continue
-			var total = container.Descendants(ns + "Page").Count();
+			var total = container.Descendants(ns + "Page")
+				.Count(e => e.Attribute("isInRecycleBin") == null);
+
 			if (total > 0)
 			{
 				if (countCallback != null)
@@ -345,16 +361,17 @@ namespace River.OneMoreAddIn
 					var name = element.Attribute("name").Value;
 					var link = GetHyperlink(ID, string.Empty);
 					var match = pageEx.Match(link);
-					if (match.Success)
+					var hyperId = match.Groups[1].Value;
+
+					if (match.Success && !hyperlinks.ContainsKey(hyperId))
 					{
 						//logger.WriteLine($"MAP path:{path} fullpath:{full} name:{name}");
-
-						hyperlinks.Add(match.Groups[1].Value,
+						hyperlinks.Add(hyperId,
 							new HyperlinkInfo
 							{
 								PageID = ID,
 								SectionID = null,
-								HyperID = match.Groups[1].Value,
+								HyperID = hyperId,
 								Name = name,
 								Path = path,
 								FullPath = full,
@@ -370,6 +387,13 @@ namespace River.OneMoreAddIn
 			{
 				foreach (var element in root.Elements())
 				{
+					if (element.Attribute("isRecycleBin") != null ||
+						element.Attribute("isInRecycleBin") != null)
+					{
+						//logger.WriteLine("MAP skip recycle bin");
+						continue;
+					}
+
 					if (element.Name.LocalName == "Notebooks" ||
 						element.Name.LocalName == "UnfiledNotes")
 					{
@@ -502,8 +526,26 @@ namespace River.OneMoreAddIn
 		/// <returns></returns>
 		public string GetHyperlink(string pageId, string objectId)
 		{
-			onenote.GetHyperlinkToObject(pageId, objectId, out var hyperlink);
-			return hyperlink;
+			try
+			{
+				onenote.GetHyperlinkToObject(pageId, objectId, out var hyperlink);
+				return hyperlink;
+			}
+			catch (Exception exc)
+			{
+				if (exc.HResult == ObjectDoesNotExist)
+				{
+					// objectIDs are ephemeral, generated on-the-fly from the current machine
+					// so will not exist when viewing the same page on a different machine;
+					// they are consistent on a single machine, probably using some hardware
+					// based heuristics I presume
+					logger.WriteLine("GetHyperlink, object does not exist. Possible cross-machine query");
+					return null;
+				}
+
+				logger.WriteLine("GetHyperlink error", exc);
+				return null;
+			}
 		}
 
 
@@ -640,7 +682,7 @@ namespace River.OneMoreAddIn
 		/// used to build up Favorites
 		/// </summary>
 		/// <returns></returns>
-		public (string Name, string Path, string Link) GetPageInfo(string pageId = null)
+		public HierarchyInfo GetPageInfo(string pageId = null)
 		{
 			if (pageId == null)
 				pageId = CurrentPageId;
@@ -648,33 +690,44 @@ namespace River.OneMoreAddIn
 			var page = GetPage(pageId, PageDetail.Basic);
 			if (page == null)
 			{
-				return (null, null, null);
+				return null;
 			}
 
-			// name
-			var name = page.Root.Attribute("name")?.Value;
+			var info = new HierarchyInfo
+			{
+				PageId = pageId,
+				Name = page.Root.Attribute("name")?.Value,
+				Link = GetHyperlink(page.PageId, string.Empty)
+			};
+
 
 			// path
 			var builder = new StringBuilder();
-			builder.Append($"/{name}");
+			builder.Append($"/{info.Name}");
 
 			string id = pageId;
 			while (!string.IsNullOrEmpty(id = GetParent(id)))
 			{
 				onenote.GetHierarchy(id, HierarchyScope.hsSelf, out var xml, XMLSchema.xs2013);
-				var x = XElement.Parse(xml);
-				var n = x.Attribute("name")?.Value;
+				var parent = XElement.Parse(xml);
+				var parentName = parent.Attribute("name")?.Value;
 
-				if (n != null)
-					builder.Insert(0, $"/{n}");
+				if (parentName != null)
+					builder.Insert(0, $"/{parentName}");
+
+				if (parent.Name.LocalName == "Section" && string.IsNullOrEmpty(info.SectionId))
+				{
+					info.SectionId = parent.Attribute("ID").Value;
+				}
+				else if (parent.Name.LocalName == "Notebook")
+				{
+					info.NotebookId = parent.Attribute("ID").Value;
+				}
 			}
 
-			string path = builder.ToString();
+			info.Path = builder.ToString();
 
-			// link
-			string link = GetHyperlink(page.PageId, string.Empty);
-
-			return (name, path, link);
+			return info;
 		}
 
 
@@ -732,20 +785,24 @@ namespace River.OneMoreAddIn
 		/// used to build up Favorites
 		/// </summary>
 		/// <returns></returns>
-		public (string Name, string Path, string Link) GetSectionInfo()
+		public HierarchyInfo GetSectionInfo()
 		{
 			var section = GetSection();
 			if (section == null)
 			{
-				return (null, null, null);
+				return null;
 			}
 
-			// name
-			var name = section.Attribute("name")?.Value;
+			var info = new HierarchyInfo
+			{
+				SectionId = CurrentSectionId,
+				NotebookId = CurrentNotebookId,
+				Name = section.Attribute("name")?.Value
+			};
 
 			// path
 			var builder = new StringBuilder();
-			builder.Append($"/{name}");
+			builder.Append($"/{info.Name}");
 
 			string id = CurrentSectionId;
 			while (!string.IsNullOrEmpty(id = GetParent(id)))
@@ -758,17 +815,15 @@ namespace River.OneMoreAddIn
 					builder.Insert(0, $"/{n}");
 			}
 
-			string path = builder.ToString();
+			info.Path = builder.ToString();
 
-			// link
-			string link = null;
 			var sectionId = section.Attribute("ID")?.Value;
 			if (sectionId != null)
 			{
-				link = GetHyperlink(sectionId, string.Empty);
+				info.Link = GetHyperlink(sectionId, string.Empty);
 			}
 
-			return (name, path, link);
+			return info;
 		}
 
 
@@ -967,7 +1022,7 @@ namespace River.OneMoreAddIn
 					break;
 			}
 
-			dialog.AddButton(Resx.OK, restriction, restriction, false);
+			dialog.AddButton(Resx.word_OK, restriction, restriction, false);
 
 			dialog.Run(new FilingCallback(callback));
 		}
@@ -1075,12 +1130,24 @@ namespace River.OneMoreAddIn
 			}
 			else
 			{
-				await InvokeWithRetry(() =>
-				{
-					// must be an ID
-					onenote.NavigateTo(uri);
-				});
+				// must be an ID
+				await NavigateTo(uri, string.Empty);
 			}
+		}
+
+
+		/// <summary>
+		/// Forces OneNote to jump to a specific object on a given page.
+		/// </summary>
+		/// <param name="pageId">The page ID</param>
+		/// <param name="objectId">The object ID</param>
+		/// <returns></returns>
+		public async Task NavigateTo(string pageId, string objectId)
+		{
+			await InvokeWithRetry(() =>
+			{
+				onenote.NavigateTo(pageId, objectId);
+			});
 		}
 
 
@@ -1115,8 +1182,10 @@ namespace River.OneMoreAddIn
 		/// </summary>
 		/// <param name="nodeId">The root node: notebook, section, or page</param>
 		/// <param name="name">The search string, meta key name</param>
+		/// <param name="includeRecycleBin">True to include recycle bin section groups</param>
 		/// <returns>A hierarchy XML starting at the given node.</returns>
-		public async Task<XElement> SearchMeta(string nodeId, string name)
+		public async Task<XElement> SearchMeta(
+			string nodeId, string name, bool includeRecycleBin = false)
 		{
 			string xml = null;
 
@@ -1125,7 +1194,27 @@ namespace River.OneMoreAddIn
 				onenote.FindMeta(nodeId, name, out xml, false, XMLSchema.xs2013);
 			});
 
-			return XElement.Parse(xml);
+			if (xml == null)
+			{
+				// only case was immediately after an Office upgrade but...
+				return null;
+			}
+
+			var hierarchy = XElement.Parse(xml);
+
+			if (includeRecycleBin)
+			{
+				return hierarchy;
+			}
+
+			// ignore recycle bins
+			var ns = hierarchy.GetNamespaceOfPrefix(Prefix);
+			hierarchy.Elements(ns + "Notebook").Elements(ns + "SectionGroup")
+				.Where(e => e.Attribute("isRecycleBin") != null)
+				.ToList()
+				.ForEach(e => e.Remove());
+
+			return hierarchy;
 		}
 
 
@@ -1133,20 +1222,20 @@ namespace River.OneMoreAddIn
 		/// Special helper for DiagnosticsCommand
 		/// </summary>
 		/// <param name="builder"></param>
-		public void ReportWindowDiagnostics(StringBuilder builder)
+		public void ReportWindowDiagnostics(ILogger logger)
 		{
 			var win = onenote.Windows.CurrentWindow;
 
-			builder.AppendLine($"CurrentNotebookId: {win.CurrentNotebookId}");
-			builder.AppendLine($"CurrentPageId....: {win.CurrentPageId}");
-			builder.AppendLine($"CurrentSectionId.: {win.CurrentSectionId}");
-			builder.AppendLine($"CurrentSecGrpId..: {win.CurrentSectionGroupId}");
-			builder.AppendLine($"DockedLocation...: {win.DockedLocation}");
-			builder.AppendLine($"IsFullPageView...: {win.FullPageView}");
-			builder.AppendLine($"IsSideNote.......: {win.SideNote}");
-			builder.AppendLine();
+			logger.WriteLine($"CurrentNotebookId: {win.CurrentNotebookId}");
+			logger.WriteLine($"CurrentPageId....: {win.CurrentPageId}");
+			logger.WriteLine($"CurrentSectionId.: {win.CurrentSectionId}");
+			logger.WriteLine($"CurrentSecGrpId..: {win.CurrentSectionGroupId}");
+			logger.WriteLine($"DockedLocation...: {win.DockedLocation}");
+			logger.WriteLine($"IsFullPageView...: {win.FullPageView}");
+			logger.WriteLine($"IsSideNote.......: {win.SideNote}");
+			logger.WriteLine();
 
-			builder.AppendLine($"Windows ({onenote.Windows.Count})");
+			logger.WriteLine($"Windows ({onenote.Windows.Count})");
 
 			var e = onenote.Windows.GetEnumerator();
 			while (e.MoveNext())
@@ -1157,13 +1246,13 @@ namespace River.OneMoreAddIn
 					(IntPtr)window.WindowHandle,
 					out var processId);
 
-				builder.Append($"- window [processId:{processId}, threadId:{threadId}]");
-				builder.Append($" handle:{window.WindowHandle:x} active:{window.Active}");
+				logger.Write($"- window [pid:{processId}, tid:{threadId}]");
+				logger.Write($" handle:{window.WindowHandle:x} active:{window.Active}");
 
-				if (window.WindowHandle == onenote.Windows.CurrentWindow.WindowHandle)
-				{
-					builder.AppendLine(" (current)");
-				}
+				logger.WriteLine(
+					window.WindowHandle == onenote.Windows.CurrentWindow.WindowHandle
+					? " (current)"
+					: string.Empty);
 			}
 		}
 	}

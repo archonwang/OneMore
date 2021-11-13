@@ -18,12 +18,12 @@ namespace River.OneMoreAddIn.Commands
 	internal partial class ResizeImagesDialog : UI.LocalizableForm
 	{
 		private readonly SettingsProvider settings;
+		private readonly Image image;
 		private readonly string tempfile;
 		private readonly int currentWidth;
 		private readonly int currentHeight;
 		private int originalWidth;
 		private int originalHeight;
-		private Image image;
 		private bool suspended;
 
 
@@ -108,8 +108,8 @@ namespace River.OneMoreAddIn.Commands
 					"origLabel",
 					"allLabel",
 					"qualBox.Text",
-					"okButton",
-					"cancelButton"
+					"okButton=word_OK",
+					"cancelButton=word_Cancel"
 				});
 			}
 		}

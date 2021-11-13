@@ -31,17 +31,27 @@ namespace River.OneMoreAddIn.Commands
 
 		public override async Task Execute(params object[] args)
 		{
+			if (!HttpClientFactory.IsNetworkAvailable())
+			{
+				UIHelper.ShowInfo(Properties.Resources.NetwordConnectionUnavailable);
+				return;
+			}
+
 			using (one = new OneNote())
 			{
 				var context = SynchronizationContext.Current;
 
 				var results = await one.SearchMeta(string.Empty, "omKeyboardShortcuts");
+				if (results == null)
+				{
+					UIHelper.ShowInfo(one.Window, "Could not show page at this time. Restart OneNote");
+					return;
+				}
+
 				var ns = one.GetNamespace(results);
 
 				var pageId = results?.Descendants(ns + "Meta")
-					.Where(e =>
-						e.Attribute("name").Value == "omKeyboardShortcuts" &&
-						e.Parent.Attribute("isInRecycleBin") == null)
+					.Where(e => e.Attribute("name").Value == "omKeyboardShortcuts")
 					.Select(e => e.Parent.Attribute("ID").Value)
 					.FirstOrDefault();
 

@@ -47,7 +47,7 @@ namespace River.OneMoreAddIn.Commands
 					"indexButton",
 					"moveButton",
 					"copyButton",
-					"cancelButton"
+					"cancelButton=word_Cancel"
 				});
 
 				scopeBox.Items.Clear();
@@ -250,7 +250,7 @@ namespace River.OneMoreAddIn.Commands
 				case 2: scopeId = one.CurrentSectionId; break;
 			}
 
-			var results = await one.SearchMeta(scopeId, Page.TaggingMetaName);
+			var results = await one.SearchMeta(scopeId, MetaNames.TaggingLabels);
 			var ns = one.GetNamespace(results);
 
 			// remove recyclebin nodes
@@ -262,7 +262,7 @@ namespace River.OneMoreAddIn.Commands
 
 			// filter
 			var metas = results.Descendants(ns + "Meta")
-				.Where(m => m.Attribute("name").Value == Page.TaggingMetaName);
+				.Where(m => m.Attribute("name").Value == MetaNames.TaggingLabels);
 
 			if (metas == null)
 			{

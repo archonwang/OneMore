@@ -167,8 +167,12 @@ namespace River.OneMoreAddIn
 
 				// command listener for Refresh links
 				new CommandService(factory).Startup();
+				// reminder task scanner
+				new Commands.ReminderService().Startup();
+
 				// hotkeys
 				RegisterHotkeys();
+
 				// activate enablers and update check
 				Task.Run(async () => { await SetGeneralOptions(); });
 
@@ -192,7 +196,14 @@ namespace River.OneMoreAddIn
 
 			if (settings.Get("checkUpdates", false))
 			{
-				await factory.Run<Commands.UpdateCommand>();
+				try
+				{
+					await factory.Run<Commands.UpdateCommand>();
+				}
+				catch (Exception exc)
+				{
+					logger.WriteLine("error checking for updates", exc);
+				}
 			}
 		}
 

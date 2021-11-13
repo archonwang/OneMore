@@ -17,16 +17,21 @@ namespace OneMoreProtocolHandler
 
 	class Program
 	{
+		private const int SUCCESS = 0;
+		private const int FAILURE = 1;
 		private const string KeyPath = @"River.OneMoreAddIn\CLSID";
-		private static Logger logger;
 
-		private static RegistryRights rights =
+		private static readonly RegistryRights rights =
 			RegistryRights.CreateSubKey |
 			RegistryRights.EnumerateSubKeys |
 			RegistryRights.QueryValues |
 			RegistryRights.ReadKey |
 			RegistryRights.SetValue |
 			RegistryRights.WriteKey;
+
+
+		private static Logger logger;
+		private static int step;
 
 
 		static void Main(string[] args)
@@ -41,14 +46,11 @@ namespace OneMoreProtocolHandler
 
 			if (args[0] == "--register")
 			{
-				Register();
-				return;
+				Environment.Exit(Register());
 			}
-
-			if (args[0] == "--unregister")
+			else if (args[0] == "--unregister")
 			{
-				Unregister();
-				return;
+				Environment.Exit(Unregister());
 			}
 
 			SendCommand(args[0]);
@@ -99,28 +101,44 @@ namespace OneMoreProtocolHandler
 		#region Registration
 		// = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-		static void Register()
+		static int Register()
 		{
 			// protocol handler...
 			// Registers this program as the handler for the onemore:// protocol
 
 			logger.WriteLine(string.Empty);
-			logger.WriteLine("Register...");
+			logger.WriteLine($"Register... version {AssemblyInfo.Version}");
 
-			var sid = WindowsIdentity.GetCurrent().User.Value;
-			var username = new SecurityIdentifier(sid).Translate(typeof(NTAccount)).ToString();
+			try
+			{
+				var sid = WindowsIdentity.GetCurrent().User.Value;
+				var username = new SecurityIdentifier(sid).Translate(typeof(NTAccount)).ToString();
 
-			var elevated = new WindowsPrincipal(
-				WindowsIdentity.GetCurrent()).IsInRole(WindowsBuiltInRole.Administrator);
+				var elevated = new WindowsPrincipal(
+					WindowsIdentity.GetCurrent()).IsInRole(WindowsBuiltInRole.Administrator);
 
-			logger.WriteLine($"running as user {username} ({sid}) {(elevated ? "elevated" : string.Empty)}");
+				logger.WriteLine($"running as user {username} ({sid}) {(elevated ? "elevated" : string.Empty)}");
 
-			RegisterProtocolHandler();
-			RegisterTrustedProtocol();
+				if (RegisterProtocolHandler() &&
+					RegisterTrustedProtocol())
+				{
+					logger.WriteLine("completed successfully");
+					return SUCCESS;
+				}
+
+				return SUCCESS;
+				//return FAILURE;
+			}
+			catch (Exception exc)
+			{
+				logger.WriteLine("error registering");
+				logger.WriteLine(exc);
+				return FAILURE;
+			}
 		}
 
 
-		static void RegisterProtocolHandler()
+		static bool RegisterProtocolHandler()
 		{
 			/*
 			[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\onemore]
@@ -138,12 +156,12 @@ namespace OneMoreProtocolHandler
 			var onemorePath = "onemore";
 			var path = $@"{classesPath}\{onemorePath}";
 
-			logger.WriteLine($@"opening HKLM:\{path}");
+			logger.WriteLine($@"step {step++}: opening HKLM:\{path}");
 			var hive = Registry.LocalMachine;
 			var parent = hive.OpenSubKey(path, RegistryKeyPermissionCheck.ReadWriteSubTree, rights);
 			if (parent == null)
 			{
-				logger.WriteLine($@"creating HKLM:\{path}");
+				logger.WriteLine($@"step {step++}: creating HKLM:\{path}");
 				try
 				{
 					parent = hive.CreateSubKey(path, true);
@@ -152,26 +170,26 @@ namespace OneMoreProtocolHandler
 				{
 					logger.WriteLine("error creating onemore parent key");
 					logger.WriteLine(exc);
-					return;
+					return false;
 				}
 
 				if (parent == null)
 				{
 					logger.WriteLine("could not create onemore parent key, unknown reason");
-					return;
+					return false;
 				}
 			}
 
-			logger.WriteLine($@"setting properties of HKLM:\{path}");
+			logger.WriteLine($@"step {step++}: setting properties of HKLM:\{path}");
 			parent.SetValue(string.Empty, "URL:OneMore Protocol Handler");
 			parent.SetValue("URL Protocol", string.Empty);
 
 			var cmdpath = @"shell\open\command";
-			logger.WriteLine($@"opening HKLM:\{path}\{cmdpath}");
+			logger.WriteLine($@"step {step++}: opening HKLM:\{path}\{cmdpath}");
 			var key = parent.OpenSubKey(cmdpath, RegistryKeyPermissionCheck.ReadWriteSubTree, rights);
 			if (key == null)
 			{
-				logger.WriteLine($@"creating HKLM:\{path}\{cmdpath}");
+				logger.WriteLine($@"step {step++}: creating HKLM:\{path}\{cmdpath}");
 				try
 				{
 					key = parent.CreateSubKey(cmdpath, true);
@@ -180,17 +198,17 @@ namespace OneMoreProtocolHandler
 				{
 					logger.WriteLine("error creating onemore command");
 					logger.WriteLine(exc);
-					return;
+					return false;
 				}
 
 				if (key == null)
 				{
 					logger.WriteLine("could not create onemore command, unknown reason");
-					return;
+					return false;
 				}
 			}
 
-			logger.WriteLine($@"setting properties of HKLM:\{path}\{cmdpath}");
+			logger.WriteLine($@"step {step++}: setting properties of HKLM:\{path}\{cmdpath}");
 			var cmd = $"\"{Assembly.GetExecutingAssembly().Location}\" %1 %2 %3";
 			key.SetValue(string.Empty, cmd);
 			key.Dispose();
@@ -198,6 +216,7 @@ namespace OneMoreProtocolHandler
 			parent.Dispose();
 
 			// confirm
+			var verified = true;
 			using (key = hive.OpenSubKey($@"{path}\{cmdpath}", false))
 			{
 				if (key != null)
@@ -205,22 +224,26 @@ namespace OneMoreProtocolHandler
 					var value = key.GetValue(string.Empty, string.Empty) as string;
 					if (value == cmd)
 					{
-						logger.WriteLine($"key created {key.Name}");
+						logger.WriteLine($"verified: key created {key.Name}");
 					}
 					else
 					{
 						logger.WriteLine("coult not get command value");
+						verified = false;
 					}
 				}
 				else
 				{
 					logger.WriteLine("key not created");
+					verified = false;
 				}
 			}
+
+			return verified;
 		}
 
 
-		static void RegisterTrustedProtocol()
+		static bool RegisterTrustedProtocol()
 		{
 			// Declares the onemore: protocol as trusted so OneNote doesn't show a security dialog
 
@@ -236,7 +259,7 @@ namespace OneMoreProtocolHandler
 			var policyPath = $@"Microsoft\Office\{version}\Common\Security\Trusted Protocols\All Applications\onemore:";
 			var path = $@"{policiesPath}\{policyPath}";
 
-			logger.WriteLine($@"opening HKCU:\{path}");
+			logger.WriteLine($@"step {step++}: opening HKCU:\{path}");
 
 			// running as a custom action from the installer, this will run under an elevated
 			// context as the System account (S-1-5-18) so we need to impersonate the current
@@ -250,10 +273,10 @@ namespace OneMoreProtocolHandler
 				{
 					key.Dispose();
 					logger.WriteLine("key already exists");
-					return;
+					return true;
 				}
 
-				logger.WriteLine($@"creating HKCU:\{path}");
+				logger.WriteLine($@"step {step++}: creating HKCU:\{path}");
 				try
 				{
 					using (var polKey = hive.OpenSubKey(policiesPath,
@@ -263,7 +286,7 @@ namespace OneMoreProtocolHandler
 						if (key == null)
 						{
 							logger.WriteLine("key not created, returned null");
-							return;
+							return false;
 						}
 
 						key.Dispose();
@@ -273,10 +296,11 @@ namespace OneMoreProtocolHandler
 				{
 					logger.WriteLine("error registering trusted protocol");
 					logger.WriteLine(exc);
-					return;
+					return false;
 				}
 
 				// confirm
+				var verified = true;
 				using (key = hive.OpenSubKey(path, false))
 				{
 					if (key != null)
@@ -286,19 +310,70 @@ namespace OneMoreProtocolHandler
 					else
 					{
 						logger.WriteLine("key not created");
+						verified = false;
 					}
 				}
+
+				return verified;
 			}
 		}
 
 
 		static string GetUserSid(string note)
 		{
+			var domain = Environment.GetEnvironmentVariable("USERDOMAIN");
 			var username = Environment.GetEnvironmentVariable("USERNAME");
-			var account = new NTAccount(username);
-			var sid = ((SecurityIdentifier)account.Translate(typeof(SecurityIdentifier))).ToString();
-			logger.WriteLine($"{note} for user {username} ({sid})");
-			return sid;
+
+			var userdom = domain != null 
+				? $@"{domain.ToUpper()}\{username.ToLower()}"
+				: username.ToLower();
+
+			logger.WriteLine($"translating user {userdom} to SID");
+
+			var tries = 0;
+			while (tries <= 2)
+			{
+				try
+				{
+					var account = new NTAccount(userdom);
+					var sid = ((SecurityIdentifier)account.Translate(typeof(SecurityIdentifier))).ToString();
+					logger.WriteLine($"{note} for user {userdom} ({sid})");
+					return sid;
+				}
+				catch (Exception exc)
+				{
+					tries++;
+					logger.WriteLine(exc);
+					logger.WriteLine($"error translating, retrying {tries} of 2");
+					System.Threading.Thread.Sleep(200 * tries);
+				}
+			}
+
+			logger.WriteLine("fallback to search username in HKEY_USERS");
+
+			foreach (var sid in Registry.Users.GetSubKeyNames())
+			{
+				var key = Registry.Users.OpenSubKey($@"{sid}\Volatile Environment");
+				if (key != null)
+				{
+					var vname = key.GetValue("USERNAME") as string;
+					if (!string.IsNullOrEmpty(vname))
+					{
+						var vdomain = key.GetValue("USERDOMAIN") as string;
+						
+						var candidate = !string.IsNullOrEmpty(vdomain)
+							? $@"{vdomain.ToUpper()}\{vname.ToLower()}"
+							: vname.ToLower();
+
+						if (candidate == userdom)
+						{
+							return sid;
+						}
+					}
+				}
+			}
+
+			return null;
 		}
 
 
@@ -325,29 +400,61 @@ namespace OneMoreProtocolHandler
 
 		// = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-		static void Unregister()
+		static int Unregister()
 		{
 			logger.WriteLine(string.Empty);
-			logger.WriteLine("Unregister...");
+			logger.WriteLine($"Unregister... version {AssemblyInfo.Version}");
 
+			try
+			{
+				// unregister is more lenient than register...
+				// if it doesn't succeed, it still completely with SUCCESS
+
+				var ok1 = UnregisterProtocolHandler();
+				var ok2 = UnregisterTrustedProtocol();
+
+				if (ok1 && ok2)
+				{
+					logger.WriteLine("completed successfully");
+				}
+				else
+				{
+					logger.WriteLine("completed with warnings");
+				}
+
+				return SUCCESS;
+			}
+			catch (Exception exc)
+			{
+				logger.WriteLine("error unregistering");
+				logger.WriteLine(exc);
+				return FAILURE;
+			}
+		}
+
+
+		static bool UnregisterProtocolHandler()
+		{
 			// protocol handler...
 			using (var hive = RegistryKey.OpenBaseKey(
 				RegistryHive.LocalMachine, RegistryView.Default))
 			{
 				var path = @"Software\Classes\onemore";
-				logger.WriteLine($@"deleting HKLM:\{path}");
+				logger.WriteLine($@"step {step++}: deleting HKLM:\{path}");
 
 				try
 				{
-					hive.DeleteSubKeyTree(path, true);
+					hive.DeleteSubKeyTree(path, false);
 				}
 				catch (Exception exc)
 				{
-					logger.WriteLine("error deleting protocol class");
+					logger.WriteLine("warning deleting protocol class");
 					logger.WriteLine(exc);
+					return false;
 				}
 
 				// confirm
+				var verified = true;
 				using (var key = hive.OpenSubKey(path, false))
 				{
 					if (key == null)
@@ -357,10 +464,17 @@ namespace OneMoreProtocolHandler
 					else
 					{
 						logger.WriteLine("key not deleted");
+						verified = false;
 					}
 				}
-			}
 
+				return verified;
+			}
+		}
+
+
+		static bool UnregisterTrustedProtocol()
+		{
 			// trusted protocol...
 
 			var sid = GetUserSid("unregistering trusted protocol");
@@ -370,19 +484,21 @@ namespace OneMoreProtocolHandler
 				var path = $@"Software\Policies\Microsoft\Office\{version}\Common\Security\" +
 					@"Trusted Protocols\All Applications\onemore:";
 
-				logger.WriteLine($@"deleting HKCU:\{path}");
+				logger.WriteLine($@"step {step++}: deleting HKCU:\{path}");
 
 				try
 				{
-					hive.DeleteSubKey(path, true);
+					hive.DeleteSubKey(path, false);
 				}
 				catch (Exception exc)
 				{
-					logger.WriteLine("error deleting trusted protocol");
+					logger.WriteLine("warning deleting trusted protocol");
 					logger.WriteLine(exc);
+					return false;
 				}
 
 				// confirm
+				var verified = true;
 				using (var key = hive.OpenSubKey(path, false))
 				{
 					if (key == null)
@@ -392,8 +508,11 @@ namespace OneMoreProtocolHandler
 					else
 					{
 						logger.WriteLine("key not deleted");
+						verified = false;
 					}
 				}
+
+				return verified;
 			}
 		}
 		#endregion Registration

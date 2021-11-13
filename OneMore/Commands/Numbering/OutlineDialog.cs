@@ -42,8 +42,8 @@ namespace River.OneMoreAddIn.Commands
 					"indentTagBox",
 					"removeTagsBox",
 					"tagLabel",
-					"okButton",
-					"cancelButton"
+					"okButton=word_OK",
+					"cancelButton=word_Cancel"
 				});
 			}
 
@@ -174,6 +174,8 @@ namespace River.OneMoreAddIn.Commands
 				location.X + tagButton.Bounds.Location.X - tagButton.Width,
 				location.Y + tagButton.Bounds.Location.Y))
 			{
+				dialog.Select(TagSymbol);
+
 				if (dialog.ShowDialog(this) == DialogResult.OK)
 				{
 					var glyph = dialog.GetGlyph();

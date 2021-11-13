@@ -12,7 +12,8 @@ namespace River.OneMoreAddIn
 	{
 		private void RegisterHotkeys()
 		{
-			logger.WriteLine("defining hotkeys");
+			var locale = System.Threading.Thread.CurrentThread.CurrentCulture.KeyboardLayoutId;
+			logger.WriteLine($"defining hotkeys for input locale {locale}");
 
 			HotkeyManager.Initialize();
 
@@ -31,8 +32,16 @@ namespace River.OneMoreAddIn
 			HotkeyManager.RegisterHotKey(async () => await HighlightCmd(null),
 				Keys.H, Hotmods.ControlShift);
 
-			HotkeyManager.RegisterHotKey(async () => await IncreaseFontSizeCmd(null),
-				Keys.Oemplus, Hotmods.ControlAlt);
+			// this is an awful hack to avoid a conflict with Italian keyboards that use AltGr
+			// as Ctrl+Alt. This means users pressing AltGr+OemPlus to get a square bracket would
+			// instead end up increasing the font size of the page when they didn't mean to!
+			// So here we only register these hot keys for the US keyboard input layout.
+			// This seem to apply to FIGS languages and probably UK.
+			if (locale == 1033)
+			{
+				HotkeyManager.RegisterHotKey(async () => await IncreaseFontSizeCmd(null),
+					Keys.Oemplus, Hotmods.ControlAlt);
+			}
 
 			HotkeyManager.RegisterHotKey(async () => await InsertCodeBlockCmd(null),
 				Keys.F6);
@@ -64,6 +73,9 @@ namespace River.OneMoreAddIn
 			HotkeyManager.RegisterHotKey(async () => await ReplayCmd(null),
 				Keys.R, Hotmods.AltShift);
 
+			HotkeyManager.RegisterHotKey(async () => await RemindCmd(null),
+				Keys.F8);
+
 			HotkeyManager.RegisterHotKey(async () => await SearchCmd(null),
 				Keys.F, Hotmods.Alt);
 
@@ -91,7 +103,7 @@ namespace River.OneMoreAddIn
 				Keys.X, Hotmods.ControlAltShift);
 
 			HotkeyManager.RegisterHotKey(async () => await factory.Run<DiagnosticsCommand>(),
-				Keys.F8);
+				Keys.F8, Hotmods.Shift);
 
 			HotkeyManager.RegisterHotKey(async () => await factory.Run<ClearLogCommand>(),
 				Keys.F8, Hotmods.Control);
