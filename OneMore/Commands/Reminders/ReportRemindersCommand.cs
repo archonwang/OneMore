@@ -15,7 +15,7 @@ namespace River.OneMoreAddIn.Commands
 
 	internal class ReportRemindersCommand : Command
 	{
-		private class Item
+		private sealed class Item
 		{
 			public XElement Meta;
 			public Reminder Reminder;
@@ -65,7 +65,7 @@ namespace River.OneMoreAddIn.Commands
 					return;
 				}
 
-				string pageId = null;
+				string pageId;
 				if (args.Length > 0 && args[0] is string refreshArg && refreshArg == "refresh")
 				{
 					page = one.GetPage();
@@ -218,7 +218,6 @@ namespace River.OneMoreAddIn.Commands
 			}
 
 			var current = one.GetPageInfo();
-			var target = one.GetPageInfo(pageId);
 
 			await one.NavigateTo(pageId, string.Empty);
 			// absurd but NavigateTo needs time to settle down
@@ -240,7 +239,10 @@ namespace River.OneMoreAddIn.Commands
 
 		private void ClearContent()
 		{
-			var chalkOutlines = page.Root.Elements(ns + "Outline");
+			var chalkOutlines = page.Root.Elements(ns + "Outline")
+				.Where(e => !e.Elements(ns + "Meta")
+					.Any(m => m.Attribute("name").Value == MetaNames.TaggingBank));
+
 			if (chalkOutlines != null)
 			{
 				// assume the first outline is the report, reuse it as our container
@@ -278,7 +280,7 @@ namespace River.OneMoreAddIn.Commands
 			var row = table[0];
 			row.SetShading(HeaderShading);
 			row[0].SetContent(new Paragraph(Resx.ReminderReport_ReminderColumn).SetStyle(HeaderCss));
-			row[1].SetContent(new Paragraph(Resx.RemindDialog_statusLabel_Text).SetStyle(HeaderCss));
+			row[1].SetContent(new Paragraph(Resx.word_Status).SetStyle(HeaderCss));
 			row[2].SetContent(new Paragraph(Resx.RemindDialog_startDateLabel_Text).SetStyle(HeaderCss));
 			row[3].SetContent(new Paragraph(Resx.RemindDialog_dueDateLabel_Text).SetStyle(HeaderCss));
 			row[4].SetContent(new Paragraph(Resx.RemindDialog_priorityLabel_Text).SetStyle(HeaderCss));
@@ -373,7 +375,7 @@ namespace River.OneMoreAddIn.Commands
 			var row = table[0];
 			row.SetShading(HeaderShading);
 			row[0].SetContent(new Paragraph(Resx.ReminderReport_ReminderColumn).SetStyle(HeaderCss));
-			row[1].SetContent(new Paragraph(Resx.RemindDialog_statusLabel_Text).SetStyle(HeaderCss));
+			row[1].SetContent(new Paragraph(Resx.word_Status).SetStyle(HeaderCss));
 			row[2].SetContent(new Paragraph(Resx.word_Planned).SetStyle(HeaderCss));
 			row[3].SetContent(new Paragraph(Resx.word_Actual).SetStyle(HeaderCss));
 			row[4].SetContent(new Paragraph(Resx.RemindDialog_priorityLabel_Text).SetStyle(HeaderCss));

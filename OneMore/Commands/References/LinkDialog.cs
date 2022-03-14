@@ -24,9 +24,13 @@ namespace River.OneMoreAddIn.Commands
 					"notebooksRadio",
 					"notebookRadio",
 					"sectionRadio",
+					"synopsisBox",
+					"unindexedBox",
 					"okButton=word_OK",
 					"cancelButton=word_Cancel"
 				});
+
+				tooltip.SetToolTip(unindexedBox, Resx.LinkDialog_unindexedBox_Tooltip);
 			}
 		}
 
@@ -40,5 +44,11 @@ namespace River.OneMoreAddIn.Commands
 				return OneNote.Scope.Pages;
 			}
 		}
+
+
+		public bool Synopsis => synopsisBox.Checked;
+
+
+		public bool Unindexed => unindexedBox.Checked;
 	}
 }

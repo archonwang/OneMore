@@ -8,6 +8,7 @@ namespace River.OneMoreAddIn.Commands
 	using System;
 	using System.Collections.Generic;
 	using System.Linq;
+	using System.Text.RegularExpressions;
 	using System.Threading.Tasks;
 	using System.Xml.Linq;
 
@@ -23,9 +24,15 @@ namespace River.OneMoreAddIn.Commands
 		{
 			using (var one = new OneNote(out var page, out var ns))
 			{
-				var dark = page.GetPageColor(out _, out _).GetBrightness() < 0.5;
+				var pageColor = page.GetPageColor(out var automatic, out var black);
+				var dark = black || pageColor.GetBrightness() < 0.5;
+				var theme = dark ? "dark" : "light";
+				//logger.WriteLine($"theme: {theme} (color:{pageColor} automatic:{automatic} black:{black})");
 
-				var colorizer = new Colorizer(args[0] as string, dark ? "dark" : "light");
+				var colorizer = new Colorizer(
+					args[0] as string,
+					theme,
+					automatic || (black && theme == "dark"));
 
 				var runs = page.Root.Descendants(ns + "T")
 					.Where(e => e.Attributes().Any(a => a.Name == "selected" && a.Value == "all"));
@@ -46,21 +53,22 @@ namespace River.OneMoreAddIn.Commands
 					if (cdata.Value.Contains("<br>"))
 					{
 						// special handling to expand soft line breaks (Shift + Enter) into
-						// hard breaks, splitting the line into multiple ines...
+						// hard breaks, splitting the line into multiple ines.
+						// presume that br is always followed by newline...
 
-						var text = cdata.Value;
-						var lines = text.Split(new string[] { "<br>" }, StringSplitOptions.None);
+						var text = cdata.GetWrapper().Value;
+						text = Regex.Replace(text, @"\r\n", "\n");
+
+						var lines = text.Split(new string[] { "\n" }, StringSplitOptions.None);
 
 						// update current cdata with first line
-						cdata.Value = colorizer.ColorizeOne(
-							new XCData(lines[0]).GetWrapper().Value);
+						cdata.Value = colorizer.ColorizeOne(lines[0]);
 
 						// collect subsequent lines from soft-breaks
 						var elements = new List<XElement>();
 						for (int i = 1; i < lines.Length; i++)
 						{
-							var colorized = colorizer.ColorizeOne(
-								new XCData(lines[i]).GetWrapper().Value);
+							var colorized = colorizer.ColorizeOne(lines[i]);
 
 							elements.Add(new XElement(ns + "OE",
 								run.Parent.Attributes(),

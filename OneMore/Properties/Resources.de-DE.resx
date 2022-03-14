@@ -499,7 +499,7 @@
     <comment>Ribbon OneMore menu item, search and replace</comment>
   </data>
   <data name="ribResizeImagesButton_Label" xml:space="preserve">
-    <value>Größe ändern</value>
+    <value>Größe ändern und anpassen</value>
     <comment>Ribbon OneMore menu item, Resize selected image(s)</comment>
   </data>
   <data name="ribSnippetsMenu_Label" xml:space="preserve">
@@ -614,10 +614,6 @@
     <value>Status:</value>
     <comment>status label</comment>
   </data>
-  <data name="FormulaDialog_status_OK" xml:space="preserve">
-    <value>OK</value>
-    <comment>label</comment>
-  </data>
   <data name="ReorderDialog.Text" xml:space="preserve">
     <value>Benutzerdefinierte Stile neu anordnen</value>
     <comment>dialog title</comment>
@@ -627,7 +623,7 @@
     <comment>instructions</comment>
   </data>
   <data name="ResizeImagesDialog.Text" xml:space="preserve">
-    <value>Bildgröße anpassen</value>
+    <value>Größe ändern und einstellen</value>
     <comment>dialog title</comment>
   </data>
   <data name="ResizeImagesDialog_absRadio.Text" xml:space="preserve">
@@ -635,44 +631,16 @@
     <comment>radio button</comment>
   </data>
   <data name="ResizeImagesDialog_allLabel.Text" xml:space="preserve">
-    <value>alle Bilder auf Seite</value>
+    <value>alle Bilder auf dieser Seite</value>
     <comment>info label</comment>
-  </data>
-  <data name="ResizeImagesDialog_aspectBox.Text" xml:space="preserve">
-    <value>Seitenverhältnis beibehalten</value>
-    <comment>checkbox</comment>
-  </data>
-  <data name="ResizeImagesDialog_currentLabel.Text" xml:space="preserve">
-    <value>Gelten</value>
-    <comment>label</comment>
-  </data>
-  <data name="ResizeImagesDialog_currentLabelSize.Text" xml:space="preserve">
-    <value>Momentane Größe</value>
-    <comment>label</comment>
   </data>
   <data name="ResizeImagesDialog_heightLabel.Text" xml:space="preserve">
     <value>Höhe</value>
     <comment>label</comment>
   </data>
-  <data name="ResizeImagesDialog_origLabel.Text" xml:space="preserve">
-    <value>Originalgröße</value>
-    <comment>label</comment>
-  </data>
-  <data name="ResizeImagesDialog_origSizeLink.Text" xml:space="preserve">
-    <value>{0} x {1}</value>
-    <comment>width x height</comment>
-  </data>
-  <data name="ResizeImagesDialog_pctLabel.Text" xml:space="preserve">
-    <value>%.</value>
-    <comment>percent sign</comment>
-  </data>
   <data name="ResizeImagesDialog_pctRadio.Text" xml:space="preserve">
     <value>Prozentsatz</value>
     <comment>radio</comment>
-  </data>
-  <data name="ResizeImagesDialog_presetLabel.Text" xml:space="preserve">
-    <value>Breite</value>
-    <comment>label</comment>
   </data>
   <data name="ResizeImagesDialog_presetRadio.Text" xml:space="preserve">
     <value>Voreinstellung</value>
@@ -681,10 +649,6 @@
   <data name="ResizeImagesDialog_sizeLink.Text" xml:space="preserve">
     <value>{0} x {1}</value>
     <comment>width x height</comment>
-  </data>
-  <data name="ResizeImagesDialog_widthLabel.Text" xml:space="preserve">
-    <value>Breite</value>
-    <comment>label</comment>
   </data>
   <data name="SearchAndReplaceDialog_matchBox.Text" xml:space="preserve">
     <value>Match Case</value>
@@ -726,16 +690,15 @@
     <value>Datum geändert</value>
     <comment>radio</comment>
   </data>
-  <data name="SortDialog_nameButton.Text" xml:space="preserve">
-    <value>Name</value>
-    <comment>radio</comment>
-  </data>
   <data name="SortDialog_pinNotesBox.Text" xml:space="preserve">
     <value>Pin Notizen nach oben und\n</value>
     <comment>checkbox</comment>
   </data>
   <data name="SortDialog_scopeBox.Items" xml:space="preserve">
-    <value>Seiten in diesem Abschnitt\n</value>
+    <value>Kinder der aktuellen Seite
+Seiten in diesem Abschnitt
+Abschnitte in diesem Notizbuch
+Notizbücher</value>
     <comment>scope dropdown, one per line</comment>
   </data>
   <data name="SortDialog_scopeLabel.Text" xml:space="preserve">
@@ -1126,14 +1089,6 @@
     <value>Zum Großbuchstaben</value>
     <comment>Context menu</comment>
   </data>
-  <data name="ProgressDialog.Text" xml:space="preserve">
-    <value>Einer noch</value>
-    <comment>dialog title</comment>
-  </data>
-  <data name="ProgressDialog_cancelButton.Text" xml:space="preserve">
-    <value>Stornieren</value>
-    <comment>cancel button</comment>
-  </data>
   <data name="ribRemoveCitationsButton_Label" xml:space="preserve">
     <value>Entfernen Sie eingefügte Zitate</value>
     <comment>Ribbon OneMore menu item</comment>
@@ -1197,14 +1152,6 @@
   <data name="Refresh" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>images\refresh.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
-  <data name="SearchEngineDialog_cancelButton.Text" xml:space="preserve">
-    <value>Stornieren</value>
-    <comment>cancel button</comment>
-  </data>
-  <data name="SearchEngineDialog_deleteButton.Text" xml:space="preserve">
-    <value>Löschen</value>
-    <comment>delete button</comment>
-  </data>
   <data name="SearchEngineDialog_deleteLabel.Text" xml:space="preserve">
     <value>Löschen:</value>
     <comment>delete label</comment>
@@ -1220,14 +1167,6 @@
   <data name="SearchEngineDialog_iconColumn.HeaderText" xml:space="preserve">
     <value>Symbol</value>
     <comment>icon col</comment>
-  </data>
-  <data name="SearchEngineDialog_nameColumn.HeaderText" xml:space="preserve">
-    <value>Name</value>
-    <comment>name col</comment>
-  </data>
-  <data name="SearchEngineDialog_okButton.Text" xml:space="preserve">
-    <value>OK</value>
-    <comment>ok button</comment>
   </data>
   <data name="SearchEngineDialog_refreshButton.Text" xml:space="preserve">
     <value>Symbole aktualisieren</value>
@@ -1271,7 +1210,7 @@
   </data>
   <data name="ribCalendarButton_Label" xml:space="preserve">
     <value>Kalender</value>
-    <comment>Ribbon OneMore menu item, snippets</comment>
+    <comment>Ribbon OneMore-Calendar command</comment>
   </data>
   <data name="CustomStyle_Screentip" xml:space="preserve">
     <value>{0} (Strg + Alt + Umschalt + {1})</value>
@@ -1529,10 +1468,6 @@
   <data name="SectionMask" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>images\sectionmask.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
-  <data name="SearchDialog_copyButton.Text" xml:space="preserve">
-    <value>Kopieren</value>
-    <comment>button</comment>
-  </data>
   <data name="SearchDialog_findLabel.Text" xml:space="preserve">
     <value>Finden:</value>
     <comment>label</comment>
@@ -1540,10 +1475,6 @@
   <data name="SearchDialog_introLabel.Text" xml:space="preserve">
     <value>Geben Sie ein oder mehrere Schlüsselwörter, \"zitierte Phrasen\", ein und verwenden Sie UND und ODER in Großbuchstaben</value>
     <comment>intro label</comment>
-  </data>
-  <data name="SearchDialog_moveButton.Text" xml:space="preserve">
-    <value>Bewegung</value>
-    <comment>button</comment>
   </data>
   <data name="SearchDialog_Title" xml:space="preserve">
     <value>Suchen und Verschieben / Kopieren</value>
@@ -1796,10 +1727,6 @@
     <value>Standard (Schwarz)</value>
     <comment>menu item</comment>
   </data>
-  <data name="StyleDialog_deleteButton.Text" xml:space="preserve">
-    <value>Löschen</value>
-    <comment>button</comment>
-  </data>
   <data name="StyleDialog_FileMenu.Text" xml:space="preserve">
     <value>Datei</value>
     <comment>menu item</comment>
@@ -1821,7 +1748,7 @@
     <comment>label</comment>
   </data>
   <data name="StyleDialog_newStyleButton.Text" xml:space="preserve">
-    <value>Neuer Stil</value>
+    <value>Neu</value>
     <comment>button</comment>
   </data>
   <data name="StyleDialog_NewText" xml:space="preserve">
@@ -1886,10 +1813,6 @@ Absatz - ganzer Absatz
     <value>Hell:</value>
     <comment>radio</comment>
   </data>
-  <data name="SearchEngineSheet_deleteButton.Text" xml:space="preserve">
-    <value>Löschen</value>
-    <comment>button</comment>
-  </data>
   <data name="SearchEngineSheet_deleteLabel.Text" xml:space="preserve">
     <value>Löschen:</value>
     <comment>label</comment>
@@ -1901,10 +1824,6 @@ Absatz - ganzer Absatz
   <data name="SearchEngineSheet_introLabel.Text" xml:space="preserve">
     <value>URL-Muster müssen ein Zeichenfolgenersetzungstoken enthalten, z. B. &amp;q={0}</value>
     <comment>label</comment>
-  </data>
-  <data name="SearchEngineSheet_refreshButton.Text" xml:space="preserve">
-    <value>Aktualisierung</value>
-    <comment>button</comment>
   </data>
   <data name="SearchEngineSheet_upButton.Text" xml:space="preserve">
     <value>Bewegen Sie sich nach oben</value>
@@ -1948,17 +1867,9 @@ In diesem Abschnitt</value>
     <value>Alles löschen</value>
     <comment>clear tags link label</comment>
   </data>
-  <data name="TaggedDialog_copyButton.Text" xml:space="preserve">
-    <value>Kopieren</value>
-    <comment>button</comment>
-  </data>
   <data name="TaggedDialog_indexButton.Text" xml:space="preserve">
     <value>Index</value>
     <comment>index button</comment>
-  </data>
-  <data name="TaggedDialog_moveButton.Text" xml:space="preserve">
-    <value>Bewegung</value>
-    <comment>button</comment>
   </data>
   <data name="TaggedDialog_scopeBox.Items" xml:space="preserve">
     <value>In allen Notizbüchern
@@ -1975,7 +1886,7 @@ In diesem Abschnitt</value>
     <comment>dialog title</comment>
   </data>
   <data name="ribSearchMenu_Label" xml:space="preserve">
-    <value>Suche</value>
+    <value>Seach und Tag.</value>
     <comment>ribbon menu item</comment>
   </data>
   <data name="ribTaggedButton_Label" xml:space="preserve">
@@ -2095,14 +2006,6 @@ ISO-code then comma then language name</comment>
     <value>OneMore XML</value>
     <comment>dialog title</comment>
   </data>
-  <data name="ShowXmlDialog_currNotebookButton.Text" xml:space="preserve">
-    <value>Aktuelles Notizbuch</value>
-    <comment>hier button</comment>
-  </data>
-  <data name="ShowXmlDialog_currSectionButton.Text" xml:space="preserve">
-    <value>Aktueller Abschnitt</value>
-    <comment>hier button</comment>
-  </data>
   <data name="ShowXmlDialog_hideBox.Text" xml:space="preserve">
     <value>Bearbeitete Attribute ausblenden (zum Bearbeiten der Seite deaktivieren)</value>
     <comment>checkbox</comment>
@@ -2110,14 +2013,6 @@ ISO-code then comma then language name</comment>
   <data name="ShowXmlDialog_hideLFBox.Text" xml:space="preserve">
     <value>Entfernen Sie LF von CDATA</value>
     <comment>checkbox</comment>
-  </data>
-  <data name="ShowXmlDialog_hierTab.Text" xml:space="preserve">
-    <value>Hierarchie</value>
-    <comment>tab</comment>
-  </data>
-  <data name="ShowXmlDialog_notebooksHierButton.Text" xml:space="preserve">
-    <value>Notizbücher</value>
-    <comment>hier button</comment>
   </data>
   <data name="ShowXmlDialog_okButton.Text" xml:space="preserve">
     <value>Seite aktualisieren</value>
@@ -2135,17 +2030,9 @@ ISO-code then comma then language name</comment>
     <value>Pfad:</value>
     <comment>label</comment>
   </data>
-  <data name="ShowXmlDialog_pagesHierButton.Text" xml:space="preserve">
-    <value>Seiten</value>
-    <comment>hier button</comment>
-  </data>
   <data name="ShowXmlDialog_pageTab.Text" xml:space="preserve">
     <value>Seite</value>
     <comment>tab</comment>
-  </data>
-  <data name="ShowXmlDialog_sectionsHierButton.Text" xml:space="preserve">
-    <value>Abschnitte</value>
-    <comment>hier button</comment>
   </data>
   <data name="ShowXmlDialog_selectButton.Text" xml:space="preserve">
     <value>Wählen Sie Alle</value>
@@ -2223,20 +2110,12 @@ ISO-code then comma then language name</comment>
     <value>Ort</value>
     <comment>settings table column header</comment>
   </data>
-  <data name="FavoritesSheet_nameColumn.HeaderText" xml:space="preserve">
-    <value>Name</value>
-    <comment>settings table column header</comment>
-  </data>
   <data name="FavoritesSheet_Text" xml:space="preserve">
     <value>Favoriten verwalten</value>
     <comment>settings</comment>
   </data>
   <data name="SettingsDialog_favoritesNode.Text" xml:space="preserve">
     <value>Favoriten</value>
-    <comment>settings</comment>
-  </data>
-  <data name="FavoritesSheet_optionsBox.Text" xml:space="preserve">
-    <value>Optionen</value>
     <comment>settings</comment>
   </data>
   <data name="FavoritesSheet_shortcutsBox.Text" xml:space="preserve">
@@ -2399,57 +2278,21 @@ ISO-code then comma then language name</comment>
     <value>Meine Plugins verwalten</value>
     <comment>sheet title</comment>
   </data>
-  <data name="PluginsSheet_cmdColumn.HeaderText" xml:space="preserve">
-    <value>Befehl</value>
-    <comment>plugins sheet columns</comment>
-  </data>
   <data name="PluginsSheet_ConfirmDelete" xml:space="preserve">
     <value>Plugin "{0}" löschen</value>
     <comment>question</comment>
-  </data>
-  <data name="PluginsSheet_nameColumn.HeaderText" xml:space="preserve">
-    <value>Name</value>
-    <comment>plugins sheet column</comment>
-  </data>
-  <data name="SnippetsSheet_nameColumn.HeaderText" xml:space="preserve">
-    <value>Name</value>
-    <comment>snippets sheet column</comment>
   </data>
   <data name="SettingsDialog_pluginsNode.Text" xml:space="preserve">
     <value>Plugins</value>
     <comment>tree node</comment>
   </data>
-  <data name="PluginsSheet_cancelButton.Text" xml:space="preserve">
-    <value>Stornieren</value>
-    <comment>button</comment>
-  </data>
-  <data name="PluginsSheet_deleteLabel.Text" xml:space="preserve">
-    <value>Löschen</value>
-    <comment>toolstrip label</comment>
-  </data>
   <data name="PluginsSheet_introLabel.Text" xml:space="preserve">
     <value>Verwalte meine Plugins</value>
     <comment>label</comment>
   </data>
-  <data name="PluginsSheet_okButton.Text" xml:space="preserve">
-    <value>in Ordnung</value>
-    <comment>button</comment>
-  </data>
   <data name="PluginDialog_newItem" xml:space="preserve">
     <value>(Neu)</value>
     <comment>combobox item</comment>
-  </data>
-  <data name="ResizeImageDialog_qualBox.Text" xml:space="preserve">
-    <value>Lager</value>
-    <comment>group box</comment>
-  </data>
-  <data name="ResizeImageDialog_qualBox_Size" xml:space="preserve">
-    <value>Speicher: {0}</value>
-    <comment>group box</comment>
-  </data>
-  <data name="ResizeImageDialog_qualLabel.Text" xml:space="preserve">
-    <value>{0}% Qualität</value>
-    <comment>label</comment>
   </data>
   <data name="PluginDialog_pluginsLabel.Text" xml:space="preserve">
     <value>Plugins</value>
@@ -2458,10 +2301,6 @@ ISO-code then comma then language name</comment>
   <data name="PluginDialog_editText" xml:space="preserve">
     <value>Plugin bearbeiten</value>
     <comment>dialog title</comment>
-  </data>
-  <data name="PluginDialog_nameLabel.Text" xml:space="preserve">
-    <value>Name</value>
-    <comment>label</comment>
   </data>
   <data name="ribBreakingButton_Label" xml:space="preserve">
     <value>Satzabstand ändern</value>
@@ -2910,22 +2749,6 @@ ISO-code then comma then language name</comment>
     <value>Stile laden</value>
     <comment>ribbon item</comment>
   </data>
-  <data name="ChangePageColorDialog_applyBox" xml:space="preserve">
-    <value>Wenden Sie das Stilthema auf diese Seite an</value>
-    <comment>checkbox</comment>
-  </data>
-  <data name="ChangePageColorDialog_currentLabel" xml:space="preserve">
-    <value>Aktuelles Thema:</value>
-    <comment>label</comment>
-  </data>
-  <data name="ChangePageColorDialog_loadLink" xml:space="preserve">
-    <value>Laden Sie ein Stilthema</value>
-    <comment>hyperlink</comment>
-  </data>
-  <data name="ChangePageColorDialog_themeIntroLabel" xml:space="preserve">
-    <value>Laden Sie optional eines der vordefinierten Stilthemen oder passen Sie Ihr eigenes Thema an, damit alle Inhalte genug Kontrast haben, um sichtbar zu sein.</value>
-    <comment>label</comment>
-  </data>
   <data name="ribPageColorButton_Label" xml:space="preserve">
     <value>Seitenthema ändern</value>
     <comment>Ribbon Custom Styles menu item, set page background color</comment>
@@ -2953,10 +2776,6 @@ ISO-code then comma then language name</comment>
   <data name="ChangePageColorDialog.Text" xml:space="preserve">
     <value>Seitenthema ändern</value>
     <comment>dialog title</comment>
-  </data>
-  <data name="PluginDialog_cmdLabel.Text" xml:space="preserve">
-    <value>Befehl</value>
-    <comment>label</comment>
   </data>
   <data name="ExportDialog_formatBox.Text" xml:space="preserve">
     <value>HTML-Datei (*.htm)
@@ -3150,21 +2969,9 @@ OneNote-Datei (*.one)</value>
     <value>Es gibt keine Überschriften auf dieser Seite</value>
     <comment>message</comment>
   </data>
-  <data name="InsertTocCommand_Refresh" xml:space="preserve">
-    <value>Aktualisierung</value>
-    <comment>refresh link</comment>
-  </data>
-  <data name="EmbedSubpageCommand_Refresh" xml:space="preserve">
-    <value>Aktualisierung</value>
-    <comment>link</comment>
-  </data>
   <data name="LinkedReferencesCommand_Title" xml:space="preserve">
     <value>Verknüpfte Referenzen</value>
     <comment>title text</comment>
-  </data>
-  <data name="AddFootnoteCommand_Refresh" xml:space="preserve">
-    <value>Aktualisierung</value>
-    <comment>refresh link</comment>
   </data>
   <data name="ribInsertTimerButton_Label" xml:space="preserve">
     <value>Timer einfügen</value>
@@ -3270,10 +3077,6 @@ OneNote-Datei (*.one)</value>
     <value>Standardmäßig wird die aktuelle Liste oder nur Aufzählungslisten der obersten Ebene sortiert</value>
     <comment>intro label</comment>
   </data>
-  <data name="SortListDialog_optionsBox.Text" xml:space="preserve">
-    <value>Optionen</value>
-    <comment>group box</comment>
-  </data>
   <data name="SortListDialog_thisListButton.Text" xml:space="preserve">
     <value>Nur die aktuelle Liste sortieren</value>
     <comment>radio</comment>
@@ -3314,10 +3117,6 @@ OneNote-Datei (*.one)</value>
     <value>Erinnerung</value>
     <comment>dialog title</comment>
   </data>
-  <data name="RemindDialog_completedLabel.Text" xml:space="preserve">
-    <value>Vollendet</value>
-    <comment>label</comment>
-  </data>
   <data name="RemindDialog_dueDateLabel.Text" xml:space="preserve">
     <value>Geburtstermin</value>
     <comment>label</comment>
@@ -3340,10 +3139,6 @@ Hoch</value>
     <value>Startdatum</value>
     <comment>label</comment>
   </data>
-  <data name="RemindDialog_startedLabel.Text" xml:space="preserve">
-    <value>Gestartet</value>
-    <comment>label</comment>
-  </data>
   <data name="RemindDialog_statusBox.Text" xml:space="preserve">
     <value>Nicht angefangen
 Im Gange
@@ -3351,10 +3146,6 @@ Vollendet
 Auf jemand anderen warten
 Aufgeschoben</value>
     <comment>combobox</comment>
-  </data>
-  <data name="RemindDialog_statusLabel.Text" xml:space="preserve">
-    <value>Status</value>
-    <comment>label</comment>
   </data>
   <data name="RemindDialog_subjectLabel.Text" xml:space="preserve">
     <value>Gegenstand</value>
@@ -3514,10 +3305,6 @@ Aufgeschoben</value>
     <value>Schlummert bis {0}</value>
     <comment>report</comment>
   </data>
-  <data name="RemindDialog_optionsBox.Text" xml:space="preserve">
-    <value>Optionen</value>
-    <comment>group box</comment>
-  </data>
   <data name="RemindDialog_snoozeBox.Items" xml:space="preserve">
     <value>Nicht dösen
 5 Minuten
@@ -3612,5 +3399,407 @@ Aufgeschoben</value>
   <data name="ImportDialog_notInstalledLabel.Text" xml:space="preserve">
     <value>Das erforderliche Office-Produkt ist nicht installiert</value>
     <comment>label</comment>
+  </data>
+  <data name="MapDialog_synopsisBox.Text" xml:space="preserve">
+    <value>Fügen Sie eine Zusammenfassung jeder Seite hinzu</value>
+    <comment>checkbox</comment>
+  </data>
+  <data name="ImportOutlookTasksDialog.Text" xml:space="preserve">
+    <value>Aufgaben aus Outlook importieren</value>
+    <comment>dialog title</comment>
+  </data>
+  <data name="ImportOutlookTasksDialog_introBox.Text" xml:space="preserve">
+    <value>Wählen Sie einen ganzen Ordner oder einzelne Aufgaben aus, die Sie aus Outlook in OneNote importieren möchten. </value>
+    <comment>text box</comment>
+  </data>
+  <data name="ImportOutlookTasksDialog_warningBox.Text" xml:space="preserve">
+    <value>Beachten Sie, dass OneNote nicht vollständig an Aufgaben bindet, die sich nicht im Outlook-Aufgabenordner befinden. </value>
+    <comment>rich text box</comment>
+  </data>
+  <data name="ImportOutlookTasksDialog_listButton.Text" xml:space="preserve">
+    <value>Aufgabenliste erstellen</value>
+    <comment>radio</comment>
+  </data>
+  <data name="ImportOutlookTasksDialog_tableButton.Text" xml:space="preserve">
+    <value>Aufgabendetailtabelle erstellen</value>
+    <comment>radio</comment>
+  </data>
+  <data name="OutlookTaskReport_Importance" xml:space="preserve">
+    <value>Bedeutung</value>
+    <comment>report</comment>
+  </data>
+  <data name="OutlookTaskReport_importances" xml:space="preserve">
+    <value>Niedrig
+Mittel
+Hoch</value>
+    <comment>report</comment>
+  </data>
+  <data name="OutlookTaskReport_Percent" xml:space="preserve">
+    <value>% Vollständig</value>
+    <comment>report</comment>
+  </data>
+  <data name="OutlookTaskReport_statuses" xml:space="preserve">
+    <value>Nicht angefangen
+In Bearbeitung
+Vollendet
+Warten
+Aufgeschoben</value>
+    <comment>report</comment>
+  </data>
+  <data name="OutlookTaskReport_Task" xml:space="preserve">
+    <value>Aufgabe</value>
+    <comment>report</comment>
+  </data>
+  <data name="OutlookTaskReport_Week" xml:space="preserve">
+    <value>Woche {0}</value>
+    <comment>report</comment>
+  </data>
+  <data name="OutlookTaskReport_Title" xml:space="preserve">
+    <value>Outlook-Aufgaben</value>
+    <comment>report</comment>
+  </data>
+  <data name="OutlookTaskReport_DateDue" xml:space="preserve">
+    <value>Fällig/Abgeschlossen</value>
+    <comment>report</comment>
+  </data>
+  <data name="OutlookTaskReport_DateStarted" xml:space="preserve">
+    <value>Startdatum</value>
+    <comment>report</comment>
+  </data>
+  <data name="LinkDialog_unindexedBox.Text" xml:space="preserve">
+    <value>Nicht indizierte Seiten in die Abfrage einschließen</value>
+    <comment>checkbox</comment>
+  </data>
+  <data name="LinkDialog_unindexedBox.Tooltip" xml:space="preserve">
+    <value>Aktivieren, um neueren Text zu durchsuchen, der noch nicht von OneNote indiziert wurde. </value>
+    <comment>tooltip on checkbox</comment>
+  </data>
+  <data name="LinkReferencesCommand_noref" xml:space="preserve">
+    <value>Keine Referenzen gefunden. </value>
+    <comment>message</comment>
+  </data>
+  <data name="ImportOutlookTasksDialog_noorphans" xml:space="preserve">
+    <value>Es wurden keine verwaisten Aufgaben gefunden</value>
+    <comment>message box</comment>
+  </data>
+  <data name="ImportOutlookTasksDialog_reset" xml:space="preserve">
+    <value>{0} verwaiste Aufgabe(n) zurücksetzen</value>
+    <comment>message box</comment>
+  </data>
+  <data name="ExportDialog_underBox.Text" xml:space="preserve">
+    <value>Ersetzen Sie Sonderzeichen in dem Dateinamen mit Unterstrichen</value>
+    <comment>checkbox</comment>
+  </data>
+  <data name="ribFileMenu_Label" xml:space="preserve">
+    <value>Datei</value>
+    <comment>ribbon menu</comment>
+  </data>
+  <data name="ribInsertCalendarButton_Label" xml:space="preserve">
+    <value>Kalender</value>
+    <comment>ribbon button</comment>
+  </data>
+  <data name="GeneralSheet_langLabel.Text" xml:space="preserve">
+    <value>Anzeigesprache (OneNote muss neu gestartet werden)</value>
+    <comment>label</comment>
+  </data>
+  <data name="CropImageDialog_printout" xml:space="preserve">
+    <value>Dieses Bild stammt von einem Ausdruck. Wenn es beschnitten wird, ist es nicht mehr mit dieser Originaldatei verknüpft. Möchten Sie mit dem Zuschneiden fortfahren?</value>
+    <comment>message box, question</comment>
+  </data>
+  <data name="ribImportOutlookTasksButton_Label" xml:space="preserve">
+    <value>Importieren Sie Aufgaben aus Outlook</value>
+    <comment>ribbon Reminders item</comment>
+  </data>
+  <data name="ribSortNotebooksButton_Label" xml:space="preserve">
+    <value>Notizbücher sortieren</value>
+    <comment>ribbon/context menu</comment>
+  </data>
+  <data name="ribSortNotebookSectionsButton_Label" xml:space="preserve">
+    <value>Abschnitte im Notizbuch sortieren</value>
+    <comment>ribbon/context menu</comment>
+  </data>
+  <data name="ribSortPageButton_Label" xml:space="preserve">
+    <value>Untergeordnete Seiten sortieren</value>
+    <comment>ribbon/context menu</comment>
+  </data>
+  <data name="ribSortPagesButton_Label" xml:space="preserve">
+    <value>Seiten im Abschnitt sortieren</value>
+    <comment>ribbon/context menu</comment>
+  </data>
+  <data name="ribSortSectionPagesButton_Label" xml:space="preserve">
+    <value>Seiten im Abschnitt sortieren</value>
+    <comment>ribbon/context menu</comment>
+  </data>
+  <data name="KeyboardSheet_introLabel.Text" xml:space="preserve">
+    <value>Verwalten Sie meine benutzerdefinierten Tastenkombinationen. Wählen Sie einen Befehl aus und drücken Sie eine Tastenfolge.</value>
+    <comment>label</comment>
+  </data>
+  <data name="KeyboardSheet_keyColumn.HeaderText" xml:space="preserve">
+    <value>Schlüsselfolge</value>
+    <comment>gridview column</comment>
+  </data>
+  <data name="ClearLogCommand" xml:space="preserve">
+    <value>Protokolldatei löschen</value>
+  </data>
+  <data name="DiagnosticsCommand" xml:space="preserve">
+    <value>Dump Diagnostics to Log</value>
+  </data>
+  <data name="ApplyStyle1Command" xml:space="preserve">
+    <value>Stil 1 anwenden</value>
+  </data>
+  <data name="ApplyStyle2Command" xml:space="preserve">
+    <value>Stil 2 anwenden</value>
+  </data>
+  <data name="ApplyStyle3Command" xml:space="preserve">
+    <value>Stil 3 anwenden</value>
+  </data>
+  <data name="ApplyStyle4Command" xml:space="preserve">
+    <value>Stil 4 anwenden</value>
+  </data>
+  <data name="ApplyStyle5Command" xml:space="preserve">
+    <value>Stil 5 anwenden</value>
+  </data>
+  <data name="ApplyStyle6Command" xml:space="preserve">
+    <value>Stil 6 anwenden</value>
+  </data>
+  <data name="ApplyStyle7Command" xml:space="preserve">
+    <value>Stil 7 anwenden</value>
+  </data>
+  <data name="ApplyStyle8Command" xml:space="preserve">
+    <value>Stil 8 anwenden</value>
+  </data>
+  <data name="ApplyStyle9Command" xml:space="preserve">
+    <value>Stil 9 anwenden</value>
+  </data>
+  <data name="KeyboardSheet_clearButton.Text" xml:space="preserve">
+    <value>Klar</value>
+    <comment>toolstrip button</comment>
+  </data>
+  <data name="KeyboardSheet_resetAllButton.Text" xml:space="preserve">
+    <value>Alles zurücksetzen</value>
+    <comment>toolstrip button</comment>
+  </data>
+  <data name="KeyboardSheet_resetButton.Text" xml:space="preserve">
+    <value>Zurücksetzen</value>
+    <comment>toolstrip button</comment>
+  </data>
+  <data name="SettingsDialog_keyboardNode.Text" xml:space="preserve">
+    <value>Klaviatur</value>
+    <comment>treenode</comment>
+  </data>
+  <data name="KeyboardSheet.Text" xml:space="preserve">
+    <value>Klaviatur</value>
+    <comment>sheet</comment>
+  </data>
+  <data name="ResizeImagesDialog_preserveBox.Text" xml:space="preserve">
+    <value>Speichergröße beibehalten</value>
+    <comment>checkbox</comment>
+  </data>
+  <data name="word_Preview" xml:space="preserve">
+    <value>Vorschau</value>
+  </data>
+  <data name="word_Opacity" xml:space="preserve">
+    <value>Opazität</value>
+  </data>
+  <data name="word_PercentSymbol" xml:space="preserve">
+    <value>%</value>
+  </data>
+  <data name="word_Brightness" xml:space="preserve">
+    <value>Helligkeit</value>
+  </data>
+  <data name="word_Contrast" xml:space="preserve">
+    <value>Kontrast</value>
+  </data>
+  <data name="word_Width" xml:space="preserve">
+    <value>Breite</value>
+  </data>
+  <data name="word_Grayscale" xml:space="preserve">
+    <value>Graustufen</value>
+  </data>
+  <data name="ResizeImagesDialog_noImages" xml:space="preserve">
+    <value>Auf dieser Seite wurden keine Bilder gefunden</value>
+    <comment>message box</comment>
+  </data>
+  <data name="ResizeImagesDialog_viewSizeLabel.Text" xml:space="preserve">
+    <value>Größe anzeigen</value>
+    <comment>label</comment>
+  </data>
+  <data name="ResizeImagesDialog_imageSizeLabel.Text" xml:space="preserve">
+    <value>Bildgröße</value>
+    <comment>label</comment>
+  </data>
+  <data name="word_Quality" xml:space="preserve">
+    <value>Qualität</value>
+  </data>
+  <data name="word_Stylize" xml:space="preserve">
+    <value>Stilisieren</value>
+  </data>
+  <data name="ResizeImagesDialog_appliesTo" xml:space="preserve">
+    <value>Gilt für</value>
+    <comment>label override</comment>
+  </data>
+  <data name="ResizeImagesDialog_styleBox.Text" xml:space="preserve">
+    <value>Original
+Graue Skala
+Sepia
+Polaroid</value>
+    <comment>combobox</comment>
+  </data>
+  <data name="word_Storage" xml:space="preserve">
+    <value>Lager</value>
+  </data>
+  <data name="word_Saturation" xml:space="preserve">
+    <value>Sättigung</value>
+  </data>
+  <data name="word_Name" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="NameStyleDialog_NewStyle" xml:space="preserve">
+    <value>Neuer Stil</value>
+    <comment>dialog title</comment>
+  </data>
+  <data name="NameStyleDialog_nameLabel.Text" xml:space="preserve">
+    <value>Stilname</value>
+    <comment>label</comment>
+  </data>
+  <data name="NameStyleDialog_errorLabel.Text" xml:space="preserve">
+    <value>Name existiert. Wählen Sie einen anderen Namen.</value>
+    <comment>label</comment>
+  </data>
+  <data name="NameStyleDialog_RenameStyle" xml:space="preserve">
+    <value>Umbenennen Stil</value>
+    <comment>dialog title</comment>
+  </data>
+  <data name="StyleDialog_renameButton.Text" xml:space="preserve">
+    <value>Umbenennen</value>
+    <comment>toolstrip button</comment>
+  </data>
+  <data name="Error_NoAttachments" xml:space="preserve">
+    <value>Keine Anhänge auf der Seite gefunden</value>
+  </data>
+  <data name="ribCaptionAttachmentsButton_Label" xml:space="preserve">
+    <value>Beschriftungsanhänge</value>
+    <comment>ribbon item</comment>
+  </data>
+  <data name="InsertTocDialog_previewBox.Text" xml:space="preserve">
+    <value>Fügen Sie die Textvorschau der jeder Seite ein</value>
+    <comment>checkbox</comment>
+  </data>
+  <data name="TaggingDialog.Text" xml:space="preserve">
+    <value>Seite Tags</value>
+    <comment>dialog title</comment>
+  </data>
+  <data name="TaggingDialog_clearLabel.Text" xml:space="preserve">
+    <value>Alles entfernen</value>
+    <comment>linklabel</comment>
+  </data>
+  <data name="TaggingDialog_commonGroup.Text" xml:space="preserve">
+    <value>Häufige Wörter auf dieser Seite</value>
+    <comment>groupbox</comment>
+  </data>
+  <data name="TaggingDialog_introLabel.Text" xml:space="preserve">
+    <value>Separate Tags mit Kommas</value>
+    <comment>intro label</comment>
+  </data>
+  <data name="TaggingDialog_recentGroup.Text" xml:space="preserve">
+    <value>Kürzlich benutzt</value>
+    <comment>groupbox</comment>
+  </data>
+  <data name="TaggingDialog_tagLabel.Text" xml:space="preserve">
+    <value>Seite Tags</value>
+    <comment>header label</comment>
+  </data>
+  <data name="word_Add" xml:space="preserve">
+    <value>Hinzufügen</value>
+  </data>
+  <data name="word_Suggestions" xml:space="preserve">
+    <value>Anregungen</value>
+  </data>
+  <data name="word_Command" xml:space="preserve">
+    <value>Befehl</value>
+  </data>
+  <data name="word_Copy" xml:space="preserve">
+    <value>Kopieren</value>
+  </data>
+  <data name="word_Delete" xml:space="preserve">
+    <value>Löschen</value>
+  </data>
+  <data name="word_Move" xml:space="preserve">
+    <value>Umzug</value>
+  </data>
+  <data name="ChangePageColorDialog_themeIntroLabel.Text" xml:space="preserve">
+    <value>Laden Sie optional eines der vordefinierten Stilthemen oder anpassen Sie Ihr eigenes Design, sodass alle Inhalte genügend Kontrast auf sichtbar sind, um sichtbar zu sein.</value>
+    <comment>label</comment>
+  </data>
+  <data name="ChangePageColorDialog_applyBox.Text" xml:space="preserve">
+    <value>Wenden Sie das Design auf dieser Seite an</value>
+    <comment>checkbox</comment>
+  </data>
+  <data name="ChangePageColorDialog_currentLabel.Text" xml:space="preserve">
+    <value>Aktuelles Thema:</value>
+    <comment>label</comment>
+  </data>
+  <data name="ChangePageColorDialog_loadLink.Text" xml:space="preserve">
+    <value>Laden Sie ein Stilthema</value>
+    <comment>hyperlink</comment>
+  </data>
+  <data name="ChangePageColorDialog_customLink.Text" xml:space="preserve">
+    <value>Wählte eine benutzerdefinierte Farbe</value>
+    <comment>linklabel</comment>
+  </data>
+  <data name="ShowXmlDialog_manualLabel.Text" xml:space="preserve">
+    <value>Manuelle objectid</value>
+    <comment>label</comment>
+  </data>
+  <data name="word_Options" xml:space="preserve">
+    <value>Optionen</value>
+  </data>
+  <data name="word_Status" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="ribCrawlWebPageButton_Label" xml:space="preserve">
+    <value>Hyperlinks importieren.</value>
+    <comment>ribbon item</comment>
+  </data>
+  <data name="CrawlWebPageDialog_introBox.Text" xml:space="preserve">
+    <value>Wählen Sie Links, um als Unterseiten zu importieren. Diese werden von dieser Seite wieder hergestellt.</value>
+    <comment>label</comment>
+  </data>
+  <data name="CrawlWebPageDialog_Text" xml:space="preserve">
+    <value>Web-Subseiten importieren</value>
+    <comment>dialog title</comment>
+  </data>
+  <data name="CrawlWebCommand_NoHyperlinks" xml:space="preserve">
+    <value>Keine Hyperlinks in Reichweite gefunden</value>
+    <comment>message box</comment>
+  </data>
+  <data name="ShowXmlDialog_sectionTab.Text" xml:space="preserve">
+    <value>Abschnitt</value>
+    <comment>tab</comment>
+  </data>
+  <data name="ShowXmlDialog_nbPagesTab.Text" xml:space="preserve">
+    <value>Notebook mit Seiten.</value>
+    <comment>tab</comment>
+  </data>
+  <data name="ShowXmlDialog_manualTab.Text" xml:space="preserve">
+    <value>Manuelle Suche</value>
+    <comment>tab</comment>
+  </data>
+  <data name="ShowXmlDialog_nbSectionsTab.Text" xml:space="preserve">
+    <value>Notizbuch mit Abschnitten.</value>
+    <comment>tab</comment>
+  </data>
+  <data name="ShowXmlDialog_hidePidBox.Text" xml:space="preserve">
+    <value>PID ausblenden</value>
+    <comment>checkbox</comment>
+  </data>
+  <data name="ShowXmlDialog_notebooksTab.Text" xml:space="preserve">
+    <value>Notebooks</value>
+    <comment>tab EDIT</comment>
+  </data>
+  <data name="TaggedDialog_opBox.Items" xml:space="preserve">
+    <value>Alle
+Beliebig</value>
+    <comment>listbox</comment>
   </data>
 </root>

@@ -2,6 +2,8 @@
 // Copyright © 2020 Steven M. Cohn. All Rights Reserved.
 //************************************************************************************************
 
+#pragma warning disable S3267 // Loops should be simplified with "LINQ" expressions
+
 namespace River.OneMoreAddIn.Settings
 {
 	using Microsoft.Office.Core;
@@ -19,6 +21,7 @@ namespace River.OneMoreAddIn.Settings
 			Context,
 			Favorites,
 			Highlight,
+			Keyboard,
 			Lines,
 			Plugins,
 			Ribbon,
@@ -52,6 +55,7 @@ namespace River.OneMoreAddIn.Settings
 				navTree.Nodes["contextNode"].Text = Resx.SettingsDialog_contextNode_Text;
 				navTree.Nodes["favoritesNode"].Text = Resx.SettingsDialog_favoritesNode_Text;
 				navTree.Nodes["highlightNode"].Text = Resx.SettingsDialog_highlightNode_Text;
+				navTree.Nodes["keyboardNode"].Text = Resx.SettingsDialog_keyboardNode_Text;
 				navTree.Nodes["linesNode"].Text = Resx.SettingsDialog_linesNode_Text;
 				navTree.Nodes["pluginsNode"].Text = Resx.SettingsDialog_pluginsNode_Text;
 				navTree.Nodes["ribbonNode"].Text = Resx.SettingsDialog_ribbonNode_Text;
@@ -67,6 +71,15 @@ namespace River.OneMoreAddIn.Settings
 			navTree.Focus();
 
 			restart = false;
+		}
+
+
+		private void InitializeLoad(object sender, EventArgs e)
+		{
+			// width and height will be correct at this point; otherwise,
+			// we would need to calculate them based on screen scaling
+			MinimumSize = new System.Drawing.Size(Width, Height);
+			FormBorderStyle = FormBorderStyle.Sizable;
 		}
 
 
@@ -99,10 +112,11 @@ namespace River.OneMoreAddIn.Settings
 					case 1: sheet = new ContextMenuSheet(provider); break;
 					case 2: sheet = new FavoritesSheet(provider, ribbon); break;
 					case 3: sheet = new HighlightsSheet(provider); break;
-					case 4: sheet = new LinesSheet(provider); break;
-					case 5: sheet = await PluginsSheet.Create(provider, ribbon); break;
-					case 6: sheet = new RibbonBarSheet(provider); break;
-					case 7: sheet = new SearchEngineSheet(provider); break;
+					case 4: sheet = new KeyboardSheet(provider, ribbon); break;
+					case 5: sheet = new LinesSheet(provider); break;
+					case 6: sheet = await PluginsSheet.Create(provider, ribbon); break;
+					case 7: sheet = new RibbonBarSheet(provider); break;
+					case 8: sheet = new SearchEngineSheet(provider); break;
 					default: sheet = new SnippetsSheet(provider, ribbon); break;
 				}
 

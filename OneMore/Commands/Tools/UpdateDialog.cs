@@ -89,20 +89,33 @@ namespace River.OneMoreAddIn.Commands
 
 		private string FormatDate(string value)
 		{
-			if (value.Length == 8)
+			try
 			{
-				if (DateTime.TryParseExact(value, new string[] { "yyyyMMdd" },
-					CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
+				if (string.IsNullOrEmpty(value))
 				{
-					return date.ToShortDateString();
+					return "unknown";
+				}
+
+				if (value.Length == 8)
+				{
+					if (DateTime.TryParseExact(value, new string[] { "yyyyMMdd" },
+						CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
+					{
+						return date.ToShortDateString();
+					}
+				}
+				else
+				{
+					if (DateTime.TryParse(value, out var date))
+					{
+						return date.ToShortDateString();
+					}
 				}
 			}
-			else
+			catch (Exception exc)
 			{
-				if (DateTime.TryParse(value, out var date))
-				{
-					return date.ToShortDateString();
-				}
+				logger.WriteLine($"error formatting date {value}", exc);
+				value = "unknown";
 			}
 
 			return value;

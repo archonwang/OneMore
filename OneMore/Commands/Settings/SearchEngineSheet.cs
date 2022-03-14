@@ -20,7 +20,7 @@ namespace River.OneMoreAddIn.Settings
 
 	internal partial class SearchEngineSheet : SheetBase
 	{
-		private class SearchEngine
+		private sealed class SearchEngine
 		{
 			public Image Image { get; set; }
 			public string Name { get; set; }
@@ -45,15 +45,13 @@ namespace River.OneMoreAddIn.Settings
 					"introLabel",
 					"upButton",
 					"downButton",
-					"refreshButton",
+					"refreshButton=word_Refresh",
 					"deleteLabel",
-					"deleteButton",
-					"okButton",
-					"cancelButton"
+					"deleteButton=word_Delete"
 				});
 
 				iconColumn.HeaderText = Resx.SearchEngineDialog_iconColumn_HeaderText;
-				nameColumn.HeaderText = Resx.SearchEngineDialog_nameColumn_HeaderText;
+				nameColumn.HeaderText = Resx.word_Name;
 				urlColumn.HeaderText = Resx.SearchEngineDialog_urlColumn_HeaderText;
 			}
 
@@ -112,8 +110,7 @@ namespace River.OneMoreAddIn.Settings
 
 		private static void RefreshImage(SearchEngine engine)
 		{
-			ServicePointManager.SecurityProtocol =
-				SecurityProtocolType.Tls12 | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls;
+			ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
 
 			try
 			{

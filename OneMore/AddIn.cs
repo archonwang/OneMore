@@ -56,11 +56,12 @@ namespace River.OneMoreAddIn
 			UIHelper.PrepareUI();
 
 			var thread = System.Threading.Thread.CurrentThread;
-			Culture = thread.CurrentUICulture;
 
-			//Culture = CultureInfo.GetCultureInfo("en-GB");
-			//thread.CurrentCulture = Culture;
-			//thread.CurrentUICulture = Culture;
+			var settings = new SettingsProvider().GetCollection("GeneralSheet");
+			var lang = settings.Get("language", thread.CurrentUICulture.Name);
+			Culture = CultureInfo.GetCultureInfo(lang);
+			thread.CurrentCulture = Culture;
+			thread.CurrentUICulture = Culture;
 
 			GetCurrentClockSpeed();
 
@@ -70,6 +71,13 @@ namespace River.OneMoreAddIn
 				$"{thread.CurrentCulture.Name}/{thread.CurrentUICulture.Name}, " +
 				$"v{AssemblyInfo.Version}, OneNote {Office.GetOneNoteVersion()}, " +
 				$"Office {Office.GetOfficeVersion()}");
+
+			var hostproc = Process.GetProcessesByName("ONENOTE");
+			if (hostproc.Length > 0)
+			{
+				var module = hostproc[0].MainModule;
+				logger.WriteLine($"{module.FileName} ({module.FileVersionInfo.ProductVersion})");
+			}
 		}
 
 
@@ -125,48 +133,35 @@ namespace River.OneMoreAddIn
 			// do not grab a reference to Application here as it tends to prevent OneNote
 			// from shutting down. Instead, use our ApplicationManager only as needed.
 
-			int count = custom == null ? 0 : custom.Length;
-			logger.WriteLine($"OnConnection(ConnectionMode:{ConnectMode},{count})");
+			var cude = DescribeCustom(custom);
+			logger.WriteLine($"OnConnection(ConnectionMode:{ConnectMode},custom[{cude}])");
 		}
 
 
 		public void OnAddInsUpdate(ref Array custom)
 		{
-			int count = custom == null ? 0 : custom.Length;
-			logger.WriteLine($"OneAddInsUpdate(custom[]:{count})");
+			var cude = DescribeCustom(custom);
+			logger.WriteLine($"OneAddInsUpdate(custom[{cude}])");
 		}
 
 
 		public void OnStartupComplete(ref Array custom)
 		{
-			int count = custom == null ? 0 : custom.Length;
-			logger.WriteLine($"OnStartupComplete(custom[]:{count})");
+			var cude = DescribeCustom(custom);
+			logger.WriteLine($"OnStartupComplete(custom[{cude}])");
 
 			try
 			{
 				using (var one = new OneNote())
 				{
-					var folders = one.GetFolders();
-					logger.WriteLine($"OneNote backup folder:: {folders.backupFolder}");
-					logger.WriteLine($"OneNote default folder: {folders.defaultFolder}");
-					logger.WriteLine($"OneNote unfiled folder: {folders.unfiledFolder}");
-
 					factory = new CommandFactory(logger, ribbon, trash,
 						// looks complicated but necessary for this to work
 						new Win32WindowHandle(new IntPtr((long)one.WindowHandle)));
 				}
 
-
-				var mainproc = Process.GetProcessesByName("ONENOTE");
-				if (mainproc.Length > 0)
-				{
-					var module = mainproc[0].MainModule;
-					logger.WriteLine(
-						$"OneNote process module: {module.FileName} ({module.FileVersionInfo.ProductVersion})");
-				}
-
 				// command listener for Refresh links
 				new CommandService(factory).Startup();
+
 				// reminder task scanner
 				new Commands.ReminderService().Startup();
 
@@ -217,8 +212,8 @@ namespace River.OneMoreAddIn
 
 		public void OnBeginShutdown(ref Array custom)
 		{
-			int count = custom == null ? 0 : custom.Length;
-			logger.Start($"OnBeginShutdown({count})");
+			var cude = DescribeCustom(custom);
+			logger.Start($"OnBeginShutdown(custom[{cude}])");
 
 			try
 			{
@@ -237,8 +232,8 @@ namespace River.OneMoreAddIn
 
 		public void OnDisconnection(ext_DisconnectMode RemoveMode, ref Array custom)
 		{
-			int count = custom == null ? 0 : custom.Length;
-			logger.WriteLine($"OnDisconnection(RemoveMode:{RemoveMode},{count})");
+			var cude = DescribeCustom(custom);
+			logger.WriteLine($"OnDisconnection(RemoveMode:{RemoveMode},custom:[{cude}])");
 
 			try
 			{
@@ -269,6 +264,24 @@ namespace River.OneMoreAddIn
 
 			// this is a hack, modeless dialogs seem to keep OneNote open :-(
 			Environment.Exit(0);
+		}
+
+
+		private string DescribeCustom(Array custom)
+		{
+			var description = string.Empty;
+			if (custom != null)
+			{
+				// custom is a base-1 array
+				for (var i = custom.GetLowerBound(0); i <= custom.GetUpperBound(0); i++)
+				{
+					if (description.Length > 0) description = $"{description},";
+					var value = custom.GetValue(i);
+					description = $"{description}{value}:{value.GetType().Name}";
+				}
+			}
+
+			return description;
 		}
 	}
 }

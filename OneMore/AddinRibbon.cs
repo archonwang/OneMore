@@ -153,7 +153,7 @@ namespace River.OneMoreAddIn
 				return;
 			}
 
-			logger.WriteLine("building language proofing commands");
+			logger.WriteLine("building ribbon language proofing commands");
 
 			try
 			{
@@ -189,7 +189,7 @@ namespace River.OneMoreAddIn
 			}
 			catch (Exception exc)
 			{
-				logger.WriteLine("error building proofing menu", exc);
+				logger.WriteLine("error building ribbon proofing menu", exc);
 			}
 		}
 
@@ -249,7 +249,7 @@ namespace River.OneMoreAddIn
 				new XAttribute("image", "NoSpellCheck"),
 				new XAttribute("getLabel", "GetRibbonLabel"),
 				new XAttribute("getScreentip", "GetRibbonScreentip"),
-				new XAttribute("onAction", "NoSpellCheckCmd")
+				new XAttribute("onAction", "DisableSpellCheckCmd")
 				);
 
 			if (!showLabel)
@@ -436,7 +436,12 @@ namespace River.OneMoreAddIn
 		/// <returns></returns>
 		public string GetFavoritesContent(IRibbonControl control)
 		{
-			//logger.WriteLine($"GetFavoritesContent({control.Id})");
+			//logger.WriteLine($"GetFavoritesContent({control.Id}) culture:{AddIn.Culture.Name}");
+
+			// TODO: this doesn't seem to work!
+			System.Threading.Thread.CurrentThread.CurrentCulture = AddIn.Culture;
+			System.Threading.Thread.CurrentThread.CurrentUICulture = AddIn.Culture;
+
 			var favorites = new FavoritesProvider(ribbon).LoadFavoritesMenu();
 
 			var sep = favorites.Elements()
@@ -467,7 +472,7 @@ namespace River.OneMoreAddIn
 		/// <param name="ribbon">The Ribbon</param>
 		public void RibbonLoaded(IRibbonUI ribbon)
 		{
-			logger.WriteLine("RibbonLoaded()");
+			//logger.WriteLine("RibbonLoaded()");
 			this.ribbon = ribbon;
 		}
 

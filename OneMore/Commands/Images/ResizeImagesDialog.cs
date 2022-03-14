@@ -10,21 +10,23 @@ namespace River.OneMoreAddIn.Commands
 	using River.OneMoreAddIn.Settings;
 	using System;
 	using System.Drawing;
-	using System.IO;
 	using System.Windows.Forms;
 	using Resx = River.OneMoreAddIn.Properties.Resources;
 
 
 	internal partial class ResizeImagesDialog : UI.LocalizableForm
 	{
-		private readonly SettingsProvider settings;
 		private readonly Image image;
-		private readonly string tempfile;
-		private readonly int currentWidth;
-		private readonly int currentHeight;
+		private readonly int viewWidth;
+		private readonly int viewHeight;
+		private SettingsProvider settings;
+		private MagicScaling scaling;
 		private int originalWidth;
 		private int originalHeight;
-		private bool suspended;
+		private Image preview;
+		private int storageSize;
+		private bool suspended = true;
+		private bool mruWidth = true;
 
 
 		/// <summary>
@@ -35,22 +37,32 @@ namespace River.OneMoreAddIn.Commands
 		{
 			Initialize();
 
+			FormBorderStyle = FormBorderStyle.FixedDialog;
+			MaximizeBox = false;
+
 			originalWidth = originalHeight = 1;
 
-			// disable controls that do not apply...
+			// hide controls that do not apply...
 
-			currentLabel.Text = Resx.ResizeImagesDialog_currentLabel_Text;
-			allLabel.Left = sizeLink.Left;
+			imageSizeLabel.Text = Resx.ResizeImagesDialog_appliesTo;
+			allLabel.Location = imageSizeLink.Location;
 			allLabel.Visible = true;
-			origLabel.Visible = sizeLink.Visible = origSizeLink.Visible = false;
+
+			viewSizeLabel.Visible = viewSizeLink.Visible
+				= imageSizeLink.Visible
+				= storageLabel.Visible = storedSizeLabel.Visible = false;
+
+			lockButton.Checked = true;
+			lockButton.Enabled = false;
+			heightBox.Enabled = false;
+
+			previewGroup.Visible = false;
+			Width -= (previewGroup.Width + Padding.Right);
 
 			presetRadio.Checked = true;
-			Radio_Click(presetRadio, null);
-			pctRadio.Enabled = false;
-			absRadio.Enabled = false;
+			RadioClick(presetRadio, null);
 
-			settings = new SettingsProvider();
-			presetUpDown.Value = settings.GetImageWidth();
+			scaling = null;
 		}
 
 
@@ -62,28 +74,28 @@ namespace River.OneMoreAddIn.Commands
 		{
 			Initialize();
 
+			MinimumSize = new Size(Width, Height);
+
 			this.image = image;
-			tempfile = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
 
-			suspended = true;
-			currentWidth = viewWidth;
-			currentHeight = viewHeight;
+			this.viewWidth = viewWidth;
+			this.viewHeight = viewHeight;
 
-			sizeLink.Text = string.Format(
-				Resx.ResizeImagesDialog_sizeLink_Text, currentWidth, currentHeight);
+			viewSizeLink.Text = string.Format(
+				Resx.ResizeImagesDialog_sizeLink_Text, this.viewWidth, this.viewHeight);
 
-			widthUpDown.Value = originalWidth = image.Width;
-			heightUpDown.Value = originalHeight = image.Height;
+			originalWidth = image.Width;
+			originalHeight = image.Height;
 
-			origSizeLink.Text = string.Format(
+			imageSizeLink.Text = string.Format(
 				Resx.ResizeImagesDialog_sizeLink_Text, originalWidth, originalHeight);
 
-			settings = new SettingsProvider();
-			presetUpDown.Value = settings.GetImageWidth();
+			widthBox.Value = viewWidth;
+			heightBox.Value = viewHeight;
 
-			suspended = false;
+			scaling = new MagicScaling(image.HorizontalResolution, image.VerticalResolution);
 
-			EstimateStorage();
+			DrawPreview();
 		}
 
 
@@ -97,54 +109,465 @@ namespace River.OneMoreAddIn.Commands
 
 				Localize(new string[]
 				{
-					"pctRadio",
-					"absRadio",
-					"presetRadio",
-					"presetLabel",
-					"pctLabel",
-					"aspectBox",
-					"widthLabel",
-					"heightLabel",
-					"origLabel",
+					"viewSizeLabel",
+					"imageSizeLabel",
+					"storageLabel=word_Storage",
 					"allLabel",
-					"qualBox.Text",
+					"pctRadio",
+					"pctLabel=word_PercentSymbol",
+					"absRadio",
+					"widthLabel=word_Width",
+					"heightLabel",
+					"presetRadio",
+					"presetLabel=word_Width",
+					"opacityLabel=word_Opacity",
+					"brightnessLabel=word_Brightness",
+					"contrastLabel=word_Contrast",
+					"saturationLabel=word_Saturation",
+					"styleLabel=word_Stylize",
+					"styleBox",
+					"qualityLabel=word_Quality",
+					"preserveBox",
+					"previewGroup=word_Preview",
 					"okButton=word_OK",
 					"cancelButton=word_Cancel"
 				});
 			}
+
+			settings = new SettingsProvider();
+			presetBox.Value = settings.GetCollection("images").Get("mruWidth", 500);
+
+			//lockButton.AutoSize = false;
+			//lockButton.Size = new Size(28, 28);
+
+			//var (fx, fy) = UIHelper.GetScalingFactors();
+			//logger.WriteLine($"fx {fx} fy {fy}");
+
+			styleBox.SelectedIndex = 0;
+		}
+
+
+		protected override void OnLoad(EventArgs e)
+		{
+			base.OnLoad(e);
+			suspended = false;
 		}
 
 
 		// = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-		public decimal HeightPixels => heightUpDown.Value;
+		public decimal ImageHeight => heightBox.Value;
 
 
-		public decimal WidthPixels => widthUpDown.Value;
+		public decimal ImageWidth => widthBox.Value;
 
 
-		public bool PreserveSize => preserveBox.Checked;
+		public bool LockAspect => lockButton.Checked;
 
 
-		public int Quality => qualBar.Value;
+		public bool NeedsRewrite =>
+			!preserveBox.Checked ||
+			opacityBox.Value < 100 ||
+			brightnessBox.Value != 0 ||
+			contrastBox.Value != 0 ||
+			saturationBox.Value != 0 ||
+			styleBox.SelectedIndex != 0 ||
+			qualBar.Value < 100;
 
 
+		public decimal Percent => pctRadio.Checked ? percentBox.Value : 0;
+
+
+
+		/// <summary>
+		/// Gets a new image after applying the desired modifications to the source image.
+		/// </summary>
+		/// <returns>A new image</returns>
 		public Image GetImage()
 		{
-			if (!string.IsNullOrEmpty(tempfile) && File.Exists(tempfile))
-			{
-				return Image.FromFile(tempfile);
-			}
+			previewBox.Image = null;
+			preview.Dispose();
 
-			return null;
+			preview = ImageWidth == image.Width && ImageHeight == image.Height
+				? (Image)image.Clone()
+				: image.Resize((int)ImageWidth, (int)ImageHeight);
+
+			return Adjust(preview);
 		}
 
 
-		public void SetOriginalSize(Size size)
+		public Image Adjust(Image image)
 		{
-			origSizeLink.Text = string.Format(Resx.ResizeImagesDialog_origSizeLink_Text, size.Width, size.Height);
-			originalWidth = size.Width;
-			originalHeight = size.Height;
+			var adjusted = image;
+
+			if (qualBar.Value < 100)
+			{
+				using (var p = adjusted)
+					adjusted = p.SetQuality(qualBar.Value);
+			}
+
+			if (brightnessBox.Value != 0 || contrastBox.Value != 0)
+			{
+				using (var p = adjusted)
+					adjusted = p.SetBrightnessContrast(
+						(float)brightnessBox.Value / 100f,
+						(float)contrastBox.Value / 100f);
+			}
+
+			if (saturationBox.Value != 0)
+			{
+				using (var p = adjusted)
+					adjusted = p.SetSaturation((float)saturationBox.Value / 100f);
+			}
+
+			if (styleBox.SelectedIndex == 1)
+			{
+				using (var p = adjusted)
+					adjusted = p.ToGrayscale();
+			}
+			else if (styleBox.SelectedIndex == 2)
+			{
+				using (var p = adjusted)
+					adjusted = p.ToSepia();
+			}
+			else if (styleBox.SelectedIndex == 3)
+			{
+				using (var p = adjusted)
+					adjusted = p.ToPolaroid();
+			}
+
+			// opacity must be set last
+			if (opacityBox.Value < 100)
+			{
+				using (var p = adjusted)
+					adjusted = p.SetOpacity((float)(opacityBox.Value / 100));
+			}
+
+			return adjusted;
+		}
+
+
+		private void DrawPreview()
+		{
+			previewBox.Image = null;
+			preview?.Dispose();
+
+			// NOTE: OneNote's zoom factor skews viewable images, e.g. on a HDPI display at
+			// 150% scaling, an image displayed at 80% zoom is equivalent to the raw painting
+			// of an image at 100% of its size...
+
+			//var ratio = scaling.GetRatio(image, previewBox.Width, previewBox.Height, 0);
+			var width = Math.Round(ImageWidth * (decimal)scaling.FactorX); //(decimal)ratio);
+			var height = Math.Round(ImageHeight * (decimal)scaling.FactorY); // (decimal)ratio);
+
+			int w;
+			int h;
+
+			if (width <= previewBox.Width && height <= previewBox.Height)
+			{
+				w = (int)width;
+				h = (int)height;
+			}
+			else
+			{
+				w = previewBox.Width;
+				h = previewBox.Height;
+				if (width > w && height > h)
+				{
+					if (width > height)
+					{
+						h = (int)(height * (w / width));
+					}
+					else
+					{
+						w = (int)(width * (h / height));
+					}
+				}
+				else if (width > w)
+				{
+					h = (int)(height * (w / width));
+				}
+				else
+				{
+					w = (int)(width * (h / height));
+				}
+			}
+
+			preview = Adjust(image.Resize(w, h));
+			previewBox.Image = preview;
+
+			if (storageSize == 0 || !preserveBox.Checked)
+			{
+				storageSize = ((byte[])new ImageConverter().ConvertTo(preview, typeof(byte[]))).Length;
+				var size = storageSize.ToBytes(1);
+				storedSizeLabel.Text = size;
+
+				//logger.WriteTime($"estimated {ImageWidth} x {ImageHeight} = {size}");
+			}
+		}
+
+
+		private void DrawOnSizeChanged(object sender, EventArgs e)
+		{
+			base.OnSizeChanged(e);
+			if (image != null)
+			{
+				DrawPreview();
+			}
+		}
+
+
+		private void ViewSizeClicked(object sender, LinkLabelLinkClickedEventArgs e)
+		{
+			RadioClick(absRadio, null);
+			absRadio.Checked = true;
+			percentBox.Value = 100;
+			widthBox.Value = viewWidth;
+			heightBox.Value = viewHeight;
+			mruWidth = true;
+
+			if (image != null)
+				DrawPreview();
+		}
+
+
+		private void OriginalSizeClicked(object sender, LinkLabelLinkClickedEventArgs e)
+		{
+			RadioClick(absRadio, null);
+			absRadio.Checked = true;
+			percentBox.Value = (decimal)originalWidth / viewWidth * 100;
+			widthBox.Value = originalWidth;
+			heightBox.Value = originalHeight;
+			mruWidth = true;
+
+			if (image != null)
+				DrawPreview();
+		}
+
+
+		private void RadioClick(object sender, EventArgs e)
+		{
+			percentBox.Enabled = sender == pctRadio;
+
+			var abs = sender == absRadio;
+			lockButton.Enabled = abs;
+			widthBox.Enabled = abs;
+			heightBox.Enabled = abs && image != null;
+			presetBox.Enabled = sender == presetRadio;
+			mruWidth = true;
+		}
+
+
+		private void RadioKeyDown(object sender, KeyEventArgs e)
+		{
+			if (e.KeyCode == Keys.Enter)
+			{
+				e.Handled = true;
+				OK(this, e);
+			}
+		}
+
+
+		private void PercentValueChanged(object sender, EventArgs e)
+		{
+			if (suspended)
+				return;
+
+			var w = (int)(viewWidth * (percentBox.Value / 100));
+			var h = (int)(viewHeight * (percentBox.Value / 100));
+
+			if (w > 0 && h > 0)
+			{
+				suspended = true;
+				widthBox.Value = w;
+				heightBox.Value = h;
+				mruWidth = true;
+
+				if (image != null)
+					DrawPreview();
+
+				suspended = false;
+			}
+		}
+
+
+		private void LockAspectCheckedChanged(object sender, EventArgs e)
+		{
+			lockButton.BackgroundImage = lockButton.Checked ? Resx.Locked : Resx.Unlocked;
+
+			if (image == null)
+			{
+				heightBox.Enabled = !lockButton.Checked;
+				if (!heightBox.Enabled)
+				{
+					heightBox.Value = 0;
+				}
+				return;
+			}
+
+			if (!lockButton.Checked)
+			{
+				return;
+			}
+
+			suspended = true;
+			decimal aspect;
+			if (mruWidth)
+			{
+				aspect = widthBox.Value < viewWidth
+					? widthBox.Value / viewWidth
+					: viewWidth / widthBox.Value;
+
+				heightBox.Value = (int)(viewHeight * aspect);
+			}
+			else
+			{
+				aspect = heightBox.Value < viewHeight
+					? heightBox.Value / viewHeight
+					: viewHeight / heightBox.Value;
+
+				widthBox.Value = (int)(viewWidth * aspect);
+			}
+
+			percentBox.Value = widthBox.Value / viewWidth * 100;
+
+			DrawPreview();
+
+			suspended = false;
+		}
+
+
+		private void WidthValueChanged(object sender, EventArgs e)
+		{
+			if (suspended || !widthBox.Enabled)
+			{
+				return;
+			}
+
+			suspended = true;
+
+			if (image != null)
+			{
+				if (lockButton.Checked)
+				{
+					heightBox.Value = (int)(viewHeight * (widthBox.Value / viewWidth));
+				}
+
+				percentBox.Value = heightBox.Value / viewHeight * 100;
+			}
+
+			suspended = false;
+			mruWidth = true;
+
+			if (image != null)
+				DrawPreview();
+		}
+
+
+		private void HeightValueChanged(object sender, EventArgs e)
+		{
+			if (suspended || !heightBox.Enabled)
+			{
+				return;
+			}
+
+			suspended = true;
+
+			if (image != null)
+			{
+				if (lockButton.Checked)
+				{
+					widthBox.Value = (int)(viewWidth * (heightBox.Value / viewHeight));
+				}
+
+				percentBox.Value = widthBox.Value / viewWidth * 100;
+			}
+
+			suspended = false;
+			mruWidth = false;
+
+			if (image != null)
+				DrawPreview();
+		}
+
+
+		private void PresetValueChanged(object sender, EventArgs e)
+		{
+			if (suspended)
+				return;
+
+			suspended = true;
+			widthBox.Value = (int)presetBox.Value;
+
+			if (image != null)
+			{
+				heightBox.Value = (int)(viewHeight * (widthBox.Value / viewWidth));
+				percentBox.Value = widthBox.Value / viewWidth * 100;
+			}
+
+			mruWidth = true;
+
+			if (image != null)
+				DrawPreview();
+
+			suspended = false;
+		}
+
+
+		private void SlideValueChanged(object sender, EventArgs e)
+		{
+			if (sender == opacityBox) opacityBar.Value = (int)opacityBox.Value;
+			else if (sender == opacityBar) opacityBox.Value = opacityBar.Value;
+			else if (sender == brightnessBox) brightnessBar.Value = (int)brightnessBox.Value;
+			else if (sender == brightnessBar) brightnessBox.Value = brightnessBar.Value;
+			else if (sender == contrastBox) contrastBar.Value = (int)contrastBox.Value;
+			else if (sender == contrastBar) contrastBox.Value = contrastBar.Value;
+			else if (sender == saturationBox) saturationBar.Value = (int)saturationBox.Value;
+			else if (sender == saturationBar) saturationBox.Value = saturationBar.Value;
+
+			if (image != null)
+			{
+				DrawPreview();
+			}
+		}
+
+
+		private void ResetDoubleClick(object sender, EventArgs e)
+		{
+			if (sender == opacityLabel) opacityBox.Value = 100;
+			else if (sender == brightnessLabel) brightnessBox.Value = 0;
+			else if (sender == contrastLabel) contrastBox.Value = 0;
+			else if (sender == saturationLabel) saturationBox.Value = 0;
+			else if (sender == qualityLabel) qualBox.Value = 100;
+
+			if (image != null)
+			{
+				DrawPreview();
+			}
+		}
+
+
+
+		private void StylizeSelectedIndexChanged(object sender, EventArgs e)
+		{
+			if (image != null)
+			{
+				DrawPreview();
+			}
+		}
+
+
+		private void EstimateStorage(object sender, EventArgs e)
+		{
+			if (sender == qualBar)
+				qualBox.Value = qualBar.Value;
+			else
+				qualBar.Value = (int)qualBox.Value;
+
+			storageSize = 0;
+
+			if (image != null)
+				DrawPreview();
 		}
 
 
@@ -152,12 +575,17 @@ namespace River.OneMoreAddIn.Commands
 		{
 			if (presetRadio.Checked)
 			{
-				settings.SetImageWidth((int)(presetUpDown.Value));
+				var collection = settings.GetCollection("images");
+				collection.Add("mruWidth", (int)presetBox.Value);
+				settings.SetCollection(collection);
 				settings.Save();
 
 				suspended = true;
-				widthUpDown.Value = presetUpDown.Value;
-				heightUpDown.Value = (int)(originalHeight * (widthUpDown.Value / originalWidth));
+				widthBox.Value = presetBox.Value;
+
+				heightBox.Value = image == null
+					? 0
+					: viewHeight * (widthBox.Value / viewWidth);
 			}
 
 			DialogResult = DialogResult.OK;
@@ -168,153 +596,6 @@ namespace River.OneMoreAddIn.Commands
 		{
 			DialogResult = DialogResult.Cancel;
 			Close();
-		}
-
-
-		private void Radio_Click(object sender, EventArgs e)
-		{
-			pctUpDown.Enabled = sender == pctRadio;
-
-			var abs = sender == absRadio;
-			aspectBox.Enabled = abs;
-			widthUpDown.Enabled = abs;
-			heightUpDown.Enabled = abs;
-
-			presetUpDown.Enabled = sender == presetRadio;
-		}
-
-
-		private void ResetCurrentSize(object sender, LinkLabelLinkClickedEventArgs e)
-		{
-			Radio_Click(absRadio, null);
-			absRadio.Checked = true;
-			widthUpDown.Value = currentWidth;
-			heightUpDown.Value = currentHeight;
-			EstimateStorage();
-		}
-
-
-		private void ResetOriginalSize(object sender, LinkLabelLinkClickedEventArgs e)
-		{
-			Radio_Click(absRadio, null);
-			absRadio.Checked = true;
-			widthUpDown.Value = originalWidth;
-			heightUpDown.Value = originalHeight;
-			EstimateStorage();
-		}
-
-
-		private void pctUpDown_ValueChanged(object sender, EventArgs e)
-		{
-			suspended = true;
-			widthUpDown.Value = (int)(originalWidth * (pctUpDown.Value / 100));
-			heightUpDown.Value = (int)(originalHeight * (pctUpDown.Value / 100));
-			EstimateStorage();
-			
-			suspended = false;
-		}
-
-
-		private void aspectBox_CheckedChanged(object sender, EventArgs e)
-		{
-			if (aspectBox.Checked)
-			{
-				var aspect = widthUpDown.Value < originalWidth 
-					? widthUpDown.Value / originalWidth
-					: originalWidth / widthUpDown.Value;
-
-				heightUpDown.Value = (int)(originalHeight * aspect);
-			}
-		}
-
-
-		private void widthUpDown_ValueChanged(object sender, EventArgs e)
-		{
-			if (suspended)
-				return;
-
-			if (widthUpDown.Enabled)
-			{
-				if (aspectBox.Checked)
-				{
-					suspended = true;
-					heightUpDown.Value = (int)(originalHeight * (widthUpDown.Value / originalWidth));
-					EstimateStorage();
-					
-					suspended = false;
-				}
-			}
-		}
-
-
-		private void heightUpDown_ValueChanged(object sender, EventArgs e)
-		{
-			if (suspended)
-				return;
-
-			if (heightUpDown.Enabled)
-			{
-				if (aspectBox.Checked)
-				{
-					suspended = true;
-					widthUpDown.Value = (int)(originalWidth * (heightUpDown.Value / originalHeight));
-					EstimateStorage();
-					
-					suspended = false;
-				}
-			}
-		}
-
-
-		private void presetUpDown_ValueChanged(object sender, EventArgs e)
-		{
-			suspended = true;
-			widthUpDown.Value = (int)presetUpDown.Value;
-			heightUpDown.Value = (int)(originalHeight * (widthUpDown.Value / originalWidth));
-			EstimateStorage();
-
-			suspended = false;
-		}
-
-
-		private void EstimateStorage(object sender, EventArgs e)
-		{
-			qualLabel.Text = string.Format(Resx.ResizeImageDialog_qualLabel_Text, qualBar.Value);
-			EstimateStorage();
-		}
-
-
-		private void EstimateStorage()
-		{
-			if (image != null)
-			{
-				logger.StartClock();
-
-				int rewidth;
-				int reheight;
-
-				if (preserveBox.Checked)
-				{
-					rewidth = originalWidth;
-					reheight = originalHeight;
-				}
-				else
-				{
-					rewidth = (int)WidthPixels;
-					reheight = (int)HeightPixels;
-				}
-
-				// resize image without disposing it, use a temp variable 'resized' to dispose
-				using (var resized = image.Resize(rewidth, reheight, Quality))
-				{
-					resized.Save(tempfile);
-				}
-
-				logger.WriteTime("resized image");
-
-				var size = new FileInfo(tempfile).Length;
-				qualBox.Text = string.Format(Resx.ResizeImageDialog_qualBox_Size, size.ToBytes(1));
-			}
 		}
 	}
 }

@@ -4,6 +4,7 @@
 
 namespace River.OneMoreAddIn.Commands
 {
+	using Microsoft.Win32;
 	using River.OneMoreAddIn.Models;
 	using System;
 	using System.IO;
@@ -21,6 +22,8 @@ namespace River.OneMoreAddIn.Commands
 
 		public void Startup()
 		{
+			logger.WriteLine("starting reminder service");
+
 			var thread = new Thread(async () =>
 			{
 				// 'errors' allows repeated consecutive exceptions but limits that to 5 so we
@@ -135,7 +138,7 @@ namespace River.OneMoreAddIn.Commands
 				{
 					Send(
 						string.Format(
-							Resx.Reminder_PastDue, 
+							Resx.Reminder_PastDue,
 							reminder.Due.ToShortFriendlyString(),
 							reminder.Subject
 							),
@@ -187,15 +190,35 @@ namespace River.OneMoreAddIn.Commands
 			}
 
 			reminders.Remove(orphan);
-			page.SetMeta(MetaNames.Reminder, serializer.EncodeContent(reminders)); 
+			page.SetMeta(MetaNames.Reminder, serializer.EncodeContent(reminders));
 			await one.Update(page);
 
 			return false;
 		}
 
 
+		private bool warned;
 		private void Send(string message, string args)
 		{
+			// this is for debugging; if SilentReminders value exists then only log
+			using (var key = Registry.ClassesRoot.OpenSubKey(@"River.OneMoreAddIn", false))
+			{
+				if (key != null)
+				{
+					if (!warned)
+					{
+						logger.WriteLine("HKCR::River.OneMoreAddin SilientReminders is set to true");
+						warned = true;
+					}
+
+					if ((string)key.GetValue("SilentReminders") == "true")
+					{
+						logger.WriteLine($"Toast: {message}");
+						return;
+					}
+				}
+			}
+
 			/*
 			<toast launch="onemore://RemindCommand/{pageid};{objectid}" activationType="protocol">
 			  <visual>

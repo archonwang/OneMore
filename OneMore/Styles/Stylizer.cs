@@ -28,9 +28,9 @@ namespace River.OneMoreAddIn.Styles
 	{
 		public enum Clearing
 		{
-			None,		// don't remove color styling
-			All,		// remove all color styling
-			Gray		// only gray color styling
+			None,       // don't remove color styling
+			All,        // remove all color styling
+			Gray        // only gray color styling
 		}
 
 		private readonly Style style;
@@ -160,8 +160,9 @@ namespace River.OneMoreAddIn.Styles
 		/// </summary>
 		/// <param name="element">An OE or T node</param>
 		/// <param name="clearing">Exactly which color stylings to remove</param>
-		public void Clear(XElement element, Clearing clearing)
+		public bool Clear(XElement element, Clearing clearing)
 		{
+			var cleared = false;
 			var attr = element.Attribute("style");
 			if (attr != null)
 			{
@@ -169,6 +170,7 @@ namespace River.OneMoreAddIn.Styles
 				{
 					// discard all styling
 					attr.Remove();
+					cleared = true;
 				}
 				else if (clearing == Clearing.Gray)
 				{
@@ -183,6 +185,8 @@ namespace River.OneMoreAddIn.Styles
 						// no explicit colors so discard everything else
 						attr.Remove();
 					}
+
+					cleared = true;
 				}
 			}
 
@@ -190,55 +194,31 @@ namespace River.OneMoreAddIn.Styles
 			{
 				foreach (var child in element.Elements())
 				{
-					Clear(child, clearing);
+					cleared |= Clear(child, clearing);
 				}
 			}
 
-			// CData
+			// CData...
 
-			var data = element.Nodes()
-				.Where(n => n.NodeType == XmlNodeType.CDATA && ((XCData)n).Value.Contains("span"))
-				.Cast<XCData>();
+			var data = element.Nodes().OfType<XCData>()
+				.Where(c => c.Value.Contains("span"));
 
-			if (data?.Any() == true)
+			if (data == null || !data.Any())
 			{
-				var builder = new StringBuilder();
+				return cleared;
+			}
 
-				foreach (var cdata in data)
+			foreach (var cdata in data)
+			{
+				var wrapper = cdata.GetWrapper();
+				if (Clear(wrapper, clearing))
 				{
-					var wrapper = cdata.GetWrapper();
-
-					foreach (var node in wrapper.Nodes())
-					{
-						if (node.NodeType == XmlNodeType.Element)
-						{
-							var e = node as XElement;
-							if (e.Name.LocalName == "span")
-							{
-								// presume spans within cdata are flat and only contain text
-
-								if (clearing == Clearing.All)
-								{
-									// discard all styling
-									builder.Append(e.Value);
-								}
-								else
-								{
-									// TODO: edit e.Value
-									builder.Append(e.Value);
-								}
-							}
-						}
-						if (node.NodeType == XmlNodeType.Text)
-						{
-							// handle text, whitespace, significant-whitespace, et al?
-							builder.Append(((XText)node).Value);
-						}
-					}
-
-					// TODO: replace cdata.value here?
+					cdata.Value = wrapper.ToString(SaveOptions.DisableFormatting);
+					cleared = true;
 				}
 			}
+
+			return cleared;
 		}
 
 

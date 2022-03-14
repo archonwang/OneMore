@@ -20,9 +20,13 @@ namespace River.OneMoreAddIn.Commands
 		// OE meta for linked references paragraph
 		private const string LinkRefsMeta = "omLinkedReferences";
 
+		// TODO: deprecated
+		private const string SynopsisMeta = "omShowSynopsis";
+
 		// temporary attributes used for in-memory processing, not stored
 		private const string NameAttr = "omName";
 		private const string LinkedAttr = "omLinked";
+		private const string SynopsisAttr = "omSynopsis";
 
 		private const string RefreshStyle = "font-style:italic;font-size:9.0pt;color:#808080";
 
@@ -30,6 +34,9 @@ namespace River.OneMoreAddIn.Commands
 		private OneNote.Scope scope;
 		private Page page;
 		private XNamespace ns;
+		private bool refreshing;
+		private bool synopses;
+		private bool unindexed;
 
 
 		public LinkReferencesCommand()
@@ -39,13 +46,14 @@ namespace River.OneMoreAddIn.Commands
 
 		public override async Task Execute(params object[] args)
 		{
-			var prompt = true;
 			if (args.Length > 0 && args[0] is string refresh && refresh == "refresh")
 			{
-				prompt = !Refresh();
+				synopses = args.Any(a => a as string == "synopsis");
+				unindexed = args.Any(a => a as string == "unindexed");
+				refreshing = Refresh();
 			}
 
-			if (prompt)
+			if (!refreshing)
 			{
 				using (var dialog = new LinkDialog())
 				{
@@ -55,6 +63,8 @@ namespace River.OneMoreAddIn.Commands
 					}
 
 					scope = dialog.Scope;
+					synopses = dialog.Synopsis;
+					unindexed = dialog.Unindexed;
 				}
 			}
 
@@ -67,6 +77,8 @@ namespace River.OneMoreAddIn.Commands
 		{
 			using (one = new OneNote(out page, out ns))
 			{
+				// find linked references content block...
+
 				var meta = page.Root.Descendants(ns + "Meta")
 					.FirstOrDefault(e => e.Attribute("name").Value == LinkRefsMeta);
 
@@ -78,6 +90,19 @@ namespace River.OneMoreAddIn.Commands
 				if (!Enum.TryParse(meta.Attribute("content").Value, out scope))
 				{
 					scope = OneNote.Scope.Pages;
+				}
+
+				// TODO: deprecated; determine options... if not on refresh URI
+
+				if (!synopses && !unindexed)
+				{
+					var meta2 = meta.Parent.Elements(ns + "Meta")
+						.FirstOrDefault(e => e.Attribute("name").Value == SynopsisMeta);
+
+					if (meta2 != null)
+					{
+						bool.TryParse(meta2.Attribute("content").Value, out synopses);
+					}
 				}
 
 				// remove the containing OE so it can be regenerated
@@ -115,7 +140,7 @@ namespace River.OneMoreAddIn.Commands
 				}
 
 				logger.WriteLine($"searching for '{title}'");
-				var results = one.Search(startId, title);
+				var results = one.Search(startId, title, unindexed);
 
 				if (token.IsCancellationRequested)
 				{
@@ -130,7 +155,7 @@ namespace River.OneMoreAddIn.Commands
 				var total = referals.Count();
 				if (total == 0)
 				{
-					logger.WriteLine("no referals found");
+					UIHelper.ShowInfo(Resx.LinkReferencesCommand_noref);
 					return;
 				}
 
@@ -169,6 +194,7 @@ namespace River.OneMoreAddIn.Commands
 					{
 						await one.Update(refpage);
 						referal.SetAttributeValue(LinkedAttr, "true");
+						referal.SetAttributeValue(SynopsisAttr, GetSynopsis(refpage));
 						updates++;
 					}
 					else
@@ -218,15 +244,15 @@ namespace River.OneMoreAddIn.Commands
 			var pages = results.Descendants(ns + "Page")
 				.Where(e => e.Attribute("ID").Value != pageId);
 
-			foreach (var page in pages)
+			foreach (var pg in pages)
 			{
 				// add omName attribute to page with its notebook/section/page path
 
-				page.Add(new XAttribute(NameAttr,
-					page.Ancestors().InDocumentOrder()
+				pg.Add(new XAttribute(NameAttr,
+					pg.Ancestors().InDocumentOrder()
 						.Where(e => e.Name.LocalName != "Notebooks")
 						.Aggregate(string.Empty, (a, b) => a + b.Attribute("name").Value + "/")
-						+ page.Attribute("name").Value
+						+ pg.Attribute("name").Value
 					));
 			}
 
@@ -234,14 +260,37 @@ namespace River.OneMoreAddIn.Commands
 		}
 
 
+		private string GetSynopsis(Page page)
+		{
+			var body = page.Root
+				.Elements(ns + "Outline")
+				.FirstOrDefault(e => !e.Parent.Elements(ns + "Meta")
+					.Any(m => m.Attribute("name").Value.Equals(MetaNames.TaggingBank)));
+
+			if (body == null)
+			{
+				return null;
+			}
+
+			var synopsis = body.TextValue();
+			return synopsis.Length < 111 ? synopsis : synopsis.Substring(0, 110);
+		}
+
+
 		private void AppendReferalBlock(Page page, IEnumerable<XElement> referals)
 		{
 			var children = new XElement(ns + "OEChildren");
+			var citeStyle = page.GetQuickStyle(Styles.StandardStyles.Citation);
 
-			var refresh = "<a href=\"onemore://LinkReferencesCommand/refresh\">" +
-				$"<span style='{RefreshStyle}'>{Resx.InsertTocCommand_Refresh}</span></a>";
+			PageNamespace.Set(ns);
 
-			var block = new XElement(ns + "OE",
+			var cmd = "onemore://LinkReferencesCommand/refresh";
+			if (synopses) cmd = $"{cmd}/synopsis";
+			if (unindexed) cmd = $"{cmd}/unindexed";
+
+			var refresh = $"<a href=\"{cmd}\"><span style='{RefreshStyle}'>{Resx.word_Refresh}</span></a>";
+
+			var block = new Paragraph(
 				new Meta(LinkRefsMeta, scope.ToString()),
 				new XElement(ns + "T", new XCData(
 					$"<span style='font-weight:bold'>{Resx.LinkedReferencesCommand_Title}</span> " +
@@ -254,15 +303,42 @@ namespace River.OneMoreAddIn.Commands
 			{
 				var link = one.GetHyperlink(referal.Attribute("ID").Value, string.Empty);
 				var name = referal.Attribute(NameAttr) ?? referal.Attribute("name");
+				var synopsis = referal.Attribute(SynopsisAttr).Value ?? string.Empty;
 
-				children.Add(new XElement(ns + "OE",
-					new XElement(ns + "List", new XElement(ns + "Bullet", new XAttribute("bullet", "2"))),
-					new XElement(ns + "T", new XCData($"<a href=\"{link}\">{name.Value}</a>"))
+				children.Add(
+					new Paragraph(
+						new XElement(ns + "List", new XElement(ns + "Bullet", new XAttribute("bullet", "2"))),
+						new XElement(ns + "T", new XCData($"<a href=\"{link}\">{name.Value}</a>"))
 					));
+
+				if (synopses)
+				{
+					children.Add(
+						new Paragraph(synopsis).SetQuickStyle(citeStyle.Index),
+						new Paragraph(string.Empty)
+						);
+				}
+			}
+
+			// double-check if there is an existing block and replace it
+			var existing = page.Root.Descendants(ns + "Meta")
+				.Where(e => e.Attribute("name").Value == LinkRefsMeta)
+				.Select(e => e.Parent)
+				.FirstOrDefault();
+
+			if (existing != null)
+			{
+				existing.ReplaceWith(block);
+				return;
 			}
 
 			var container = page.EnsureContentContainer();
-			container.Add(new XElement(ns + "OE", new XElement(ns + "T", new XCData(string.Empty))));
+
+			if (!refreshing)
+			{
+				container.Add(new Paragraph(string.Empty));
+			}
+
 			container.Add(block);
 		}
 	}

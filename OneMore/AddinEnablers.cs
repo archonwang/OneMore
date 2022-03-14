@@ -58,6 +58,12 @@ namespace River.OneMoreAddIn
 		{
 			if (EnablersEnabled)
 			{
+				// special hook to force setbodycontext earlier
+				if (control.Id == "ribFootnoteButton")
+				{
+					SetBodyContext(control);
+				}
+
 				//logger.WriteLine($"GetBodyContext({control.Id}) bodyContext:{bodyContext}");
 				ribbon.Invalidate();
 				return bodyContext;
@@ -123,6 +129,20 @@ namespace River.OneMoreAddIn
 
 				return count > 1;
 			}
+		}
+
+
+
+		/// <summary>
+		/// Gets a Boolean value indicating whether Word or PowerPoint is installed.
+		/// </summary>
+		/// <param name="control"></param>
+		/// <returns></returns>
+		public bool GetOfficeInstalled(IRibbonControl control)
+		{
+			//logger.WriteLine($"GetOfficeInstalled({control.Id})");
+
+			return Office.IsInstalled("Word") || Office.IsInstalled("PowerPoint");
 		}
 	}
 }

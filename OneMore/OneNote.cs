@@ -125,8 +125,9 @@ namespace River.OneMoreAddIn
 		public OneNote(out Page page, out XNamespace ns, PageDetail detail = PageDetail.Selection)
 			: this()
 		{
+			// page may be null if in an empty section
 			page = GetPage(detail);
-			ns = page.Namespace;
+			ns = page?.Namespace;
 		}
 
 
@@ -256,12 +257,12 @@ namespace River.OneMoreAddIn
 			XElement container;
 			if (scope == Scope.Notebooks)
 			{
-				container = GetNotebooks(Scope.Pages);
+				container = await GetNotebooks(Scope.Pages);
 			}
 			else if (scope == Scope.Sections || scope == Scope.Pages)
 			{
 				// get the notebook even if scope if Pages so we can infer the full path
-				container = GetNotebook(Scope.Pages);
+				container = await GetNotebook(Scope.Pages);
 			}
 			else
 			{
@@ -326,8 +327,6 @@ namespace River.OneMoreAddIn
 				if (countCallback != null)
 					await countCallback(total);
 
-				pageEx = new Regex(@"page-id=({[^}]+?})");
-
 				await BuildHyperlinkMap(hyperlinks, container, rootPath, null, token, stepCallback);
 			}
 
@@ -360,10 +359,9 @@ namespace River.OneMoreAddIn
 					var ID = element.Attribute("ID").Value;
 					var name = element.Attribute("name").Value;
 					var link = GetHyperlink(ID, string.Empty);
-					var match = pageEx.Match(link);
-					var hyperId = match.Groups[1].Value;
+					var hyperId = GetHyperKey(link);
 
-					if (match.Success && !hyperlinks.ContainsKey(hyperId))
+					if (hyperId != null && !hyperlinks.ContainsKey(hyperId))
 					{
 						//logger.WriteLine($"MAP path:{path} fullpath:{full} name:{name}");
 						hyperlinks.Add(hyperId,
@@ -426,6 +424,23 @@ namespace River.OneMoreAddIn
 		}
 
 
+		/// <summary>
+		/// Reads the page-id part of the given onenote:// hyperlink URI
+		/// </summary>
+		/// <param name="uri">A onenote:// hyperlink URI</param>
+		/// <returns>The page-id value or null if not found</returns>
+		public string GetHyperKey(string uri)
+		{
+			if (pageEx == null)
+			{
+				pageEx = new Regex(@"page-id=({[^}]+?})");
+			}
+
+			var match = pageEx.Match(uri);
+			return match.Success ? match.Groups[1].Value : null;
+		}
+
+
 		// = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 		// Create...
 
@@ -445,10 +460,10 @@ namespace River.OneMoreAddIn
 		/// </summary>
 		/// <param name="name">The name of the new section</param>
 		/// <returns>The Section element</returns>
-		public XElement CreateSection(string name)
+		public async Task<XElement> CreateSection(string name)
 		{
 			// find the current section in this notebook (may be in section group)
-			var notebook = GetNotebook();
+			var notebook = await GetNotebook();
 			var ns = GetNamespace(notebook);
 			var current = notebook.Descendants(ns + "Section")
 				.FirstOrDefault(e => e.Attribute("isCurrentlyViewed")?.Value == "true");
@@ -564,9 +579,9 @@ namespace River.OneMoreAddIn
 		/// Gets the current notebook with a hierarchy of sections
 		/// </summary>
 		/// <returns>A Notebook element with Section children</returns>
-		public XElement GetNotebook(Scope scope = Scope.Sections)
+		public async Task<XElement> GetNotebook(Scope scope = Scope.Sections)
 		{
-			return GetNotebook(CurrentNotebookId, scope);
+			return await GetNotebook(CurrentNotebookId, scope);
 		}
 
 
@@ -575,18 +590,25 @@ namespace River.OneMoreAddIn
 		/// </summary>
 		/// <param name="id">The ID of the notebook</param>
 		/// <returns>A Notebook element with Section children</returns>
-		public XElement GetNotebook(string id, Scope scope = Scope.Sections)
+		public async Task<XElement> GetNotebook(string id, Scope scope = Scope.Sections)
 		{
-			if (!string.IsNullOrEmpty(id))
+			if (string.IsNullOrEmpty(id))
+			{
+				return null;
+			}
+
+			XElement root = null;
+
+			await InvokeWithRetry(() =>
 			{
 				onenote.GetHierarchy(id, (HierarchyScope)scope, out var xml, XMLSchema.xs2013);
 				if (!string.IsNullOrEmpty(xml))
 				{
-					return XElement.Parse(xml);
+					root = XElement.Parse(xml);
 				}
-			}
+			});
 
-			return null;
+			return root;
 		}
 
 
@@ -594,18 +616,22 @@ namespace River.OneMoreAddIn
 		/// Gets a root note containing Notebook elements
 		/// </summary>
 		/// <returns>A Notebooks element with Notebook children</returns>
-		public XElement GetNotebooks(Scope scope = Scope.Notebooks)
+		public async Task<XElement> GetNotebooks(Scope scope = Scope.Notebooks)
 		{
-			// find the ID of the current notebook
-			onenote.GetHierarchy(
+			XElement root = null;
+
+			await InvokeWithRetry(() =>
+			{
+				onenote.GetHierarchy(
 				string.Empty, (HierarchyScope)scope, out var xml, XMLSchema.xs2013);
 
-			if (!string.IsNullOrEmpty(xml))
-			{
-				return XElement.Parse(xml);
-			}
+				if (!string.IsNullOrEmpty(xml))
+				{
+					root = XElement.Parse(xml);
+				}
+			});
 
-			return null;
+			return root;
 		}
 
 
@@ -705,8 +731,8 @@ namespace River.OneMoreAddIn
 			var builder = new StringBuilder();
 			builder.Append($"/{info.Name}");
 
-			string id = pageId;
-			while (!string.IsNullOrEmpty(id = GetParent(id)))
+			var id = GetParent(pageId);
+			while (!string.IsNullOrEmpty(id))
 			{
 				onenote.GetHierarchy(id, HierarchyScope.hsSelf, out var xml, XMLSchema.xs2013);
 				var parent = XElement.Parse(xml);
@@ -723,6 +749,8 @@ namespace River.OneMoreAddIn
 				{
 					info.NotebookId = parent.Attribute("ID").Value;
 				}
+
+				id = GetParent(id);
 			}
 
 			info.Path = builder.ToString();
@@ -804,8 +832,8 @@ namespace River.OneMoreAddIn
 			var builder = new StringBuilder();
 			builder.Append($"/{info.Name}");
 
-			string id = CurrentSectionId;
-			while (!string.IsNullOrEmpty(id = GetParent(id)))
+			var id = GetParent(CurrentSectionId);
+			while (!string.IsNullOrEmpty(id))
 			{
 				onenote.GetHierarchy(id, HierarchyScope.hsSelf, out var xml, XMLSchema.xs2013);
 				var x = XElement.Parse(xml);
@@ -813,6 +841,8 @@ namespace River.OneMoreAddIn
 
 				if (n != null)
 					builder.Insert(0, $"/{n}");
+
+				id = GetParent(id);
 			}
 
 			info.Path = builder.ToString();
@@ -1028,7 +1058,7 @@ namespace River.OneMoreAddIn
 		}
 
 
-		private class FilingCallback : IQuickFilingDialogCallback
+		private sealed class FilingCallback : IQuickFilingDialogCallback
 		{
 			private readonly SelectLocationCallback userCallback;
 
@@ -1057,7 +1087,7 @@ namespace River.OneMoreAddIn
 		{
 			try
 			{
-				onenote.Publish(pageId, path, (PublishFormat)format, string.Empty);
+				onenote.Publish(pageId, path, (PublishFormat)format);
 				return true;
 			}
 			catch (Exception exc)
@@ -1159,10 +1189,11 @@ namespace River.OneMoreAddIn
 		/// or CurrentPageId
 		/// </param>
 		/// <param name="query">The search string</param>
+		/// <param name="unindexed">True to include unindexed pages in query</param>
 		/// <returns>An hierarchy of pages whose content matches the search string</returns>
-		public XElement Search(string nodeId, string query)
+		public XElement Search(string nodeId, string query, bool unindexed = false)
 		{
-			onenote.FindPages(nodeId, query, out var xml, false, false, XMLSchema.xs2013);
+			onenote.FindPages(nodeId, query, out var xml, unindexed, false, XMLSchema.xs2013);
 
 			var results = XElement.Parse(xml);
 

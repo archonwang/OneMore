@@ -18,7 +18,7 @@ namespace River.OneMoreAddIn.Settings
 
 	internal partial class FavoritesSheet : SheetBase
 	{
-		private class Favorite
+		private sealed class Favorite
 		{
 			public int Index { get; set; }
 			public XElement Root { get; set; }
@@ -46,18 +46,16 @@ namespace River.OneMoreAddIn.Settings
 				Localize(new string[]
 				{
 					"introLabel",
-					"optionsBox",
+					"optionsBox=word_Options",
 					"shortcutsBox",
 					"sortButton",
 					"upButton",
 					"downButton",
 					"deleteLabel",
-					"deleteButton",
-					"okButton",
-					"cancelButton"
+					"deleteButton"
 				});
 
-				nameColumn.HeaderText = Resx.FavoritesSheet_nameColumn_HeaderText;
+				nameColumn.HeaderText = Resx.word_Name;
 				locationColumn.HeaderText = Resx.FavoritesSheet_locationColumn_HeaderText;
 			}
 

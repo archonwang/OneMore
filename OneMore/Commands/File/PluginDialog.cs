@@ -41,8 +41,8 @@ namespace River.OneMoreAddIn.Commands
 				Localize(new string[]
 				{
 					"pluginsLabel",
-					"nameLabel",
-					"cmdLabel",
+					"nameLabel=word_Name",
+					"cmdLabel=word_Command",
 					"argsLabel",
 					"timeoutLabel",
 					"updateRadio",
@@ -105,7 +105,7 @@ namespace River.OneMoreAddIn.Commands
 		public string PageName { set; private get; }
 
 
-		protected async override void OnLoad(EventArgs e)
+		protected override async void OnLoad(EventArgs e)
 		{
 			base.OnLoad(e);
 

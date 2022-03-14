@@ -39,32 +39,47 @@ namespace River.OneMoreAddIn.Commands.Tools.Updater
 		{
 			// get current installed info...
 
-			var path = Environment.Is64BitProcess
-				? @"Software\Microsoft\Windows\CurrentVersion\Uninstall"
-				: @"SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall";
+			//var path = Environment.Is64BitProcess
+			//	? @"Software\Microsoft\Windows\CurrentVersion\Uninstall"
+			//	: @"SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall";
 
-			var root = Registry.LocalMachine.OpenSubKey(path);
-			if (root != null)
+			// since we only deploy a 64-bit installer now...
+			var path = @"Software\Microsoft\Windows\CurrentVersion\Uninstall";
+
+			using (var hive = RegistryKey
+				.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64))
 			{
-				foreach (var subName in root.GetSubKeyNames())
+				using (var root = hive.OpenSubKey(path))
 				{
-					var key = root.OpenSubKey(subName);
-					if (key != null)
+					if (root != null)
 					{
-						var name = key.GetValue("DisplayName") as string;
-						if (name == "OneMoreAddIn")
+						foreach (var subName in root.GetSubKeyNames())
 						{
-							var cmd = key.GetValue("UninstallString") as string;
-							if (!string.IsNullOrEmpty(cmd))
+							using (var key = root.OpenSubKey(subName))
 							{
-								productCode = cmd.Substring(cmd.IndexOf('{'));
+								if (key?.GetValue("DisplayName") is string name &&
+									name == "OneMoreAddIn")
+								{
+									if (key.GetValue("UninstallString") is string cmd &&
+										!string.IsNullOrEmpty(cmd))
+									{
+										productCode = cmd.Substring(cmd.IndexOf('{'));
+									}
+
+									if (key.GetValue("InstallDate") is string indate)
+									{
+										InstalledDate = indate;
+									}
+
+									// found the OneMore key so our job is done here
+									break;
+								}
 							}
-
-							InstalledDate = key.GetValue("InstallDate") as string;
-
-							// found the OneMore key so our job is done here
-							break;
 						}
+					}
+					else
+					{
+						Logger.Current.WriteLine($"updater: Registry key not found HKLM::{path}");
 					}
 				}
 			}
@@ -78,7 +93,9 @@ namespace River.OneMoreAddIn.Commands.Tools.Updater
 		{
 			var client = HttpClientFactory.Create();
 			if (!client.DefaultRequestHeaders.Contains("User-Agent"))
+			{
 				client.DefaultRequestHeaders.Add("User-Agent", "OneMore");
+			}
 
 			try
 			{
@@ -117,7 +134,9 @@ namespace River.OneMoreAddIn.Commands.Tools.Updater
 			}
 
 			// presume the msi has one of these two keywords in its name
-			var key = Environment.Is64BitProcess ? "x64" : "x86";
+			// NOTE that only the x64 installer is released as of Dec 2021 so this will
+			// still fail if the user's computer is 32-bit. But seriously, who still has one?!
+			var key = Environment.Is64BitOperatingSystem ? "x64" : "x86";
 
 			var asset = release.assets.FirstOrDefault(a => a.browser_download_url.Contains(key));
 			if (asset == null)

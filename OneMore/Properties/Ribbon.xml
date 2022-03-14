@@ -49,7 +49,7 @@
             imageMso="EditLinks"
             getContent="GetFavoritesContent" />
 
-          <menu id="ribOneMoreMenu" getLabel="GetRibbonLabel" size="large" getImage="GetOneMoreRibbonImage">
+          <menu id="ribOneMoreMenu" getLabel="GetRibbonLabel" size="large" showImage="true" getImage="GetOneMoreRibbonImage">
             <button
               id="ribReplayButton"
               imageMso="MoviePlayAutomatically"
@@ -57,7 +57,7 @@
               getScreentip="GetRibbonScreentip"
               getEnabled="SetBodyContext"
               onAction="ReplayCmd"/>
-            <menu id="ribCleanMenu" getLabel="GetRibbonLabel" imageMso="Clear">
+            <menu id="ribCleanMenu" getLabel="GetRibbonLabel" imageMso="Clear" showImage="true">
               <button
                 id="ribBreakingButton"
                 imageMso="CharacterSpacingGallery"
@@ -123,7 +123,7 @@
                 getScreentip="GetRibbonScreentip"
                 onAction="TrimLeadingCmd"/>
             </menu>
-            <menu id="ribEditMenu" getLabel="GetRibbonLabel" imageMso="EditComposePage">
+            <menu id="ribEditMenu" getLabel="GetRibbonLabel" imageMso="EditComposePage" showImage="true">
               <menu
                 id="ribColorizeMenu"
                 imageMso="SmartArtChangeColorsGallery"
@@ -139,6 +139,12 @@
                 getLabel="GetRibbonLabel"
                 getScreentip="GetRibbonScreentip"
                 onAction="PasteRtfCmd"/>
+              <button
+                id="ribPasteTextButton"
+                imageMso="PasteAlternative"
+                getLabel="GetRibbonLabel"
+                getScreentip="GetRibbonScreentip"
+                onAction="PasteTextCmd"/>
               <button
                 id="ribSpellCheckButton"
                 imageMso="Spelling"
@@ -207,7 +213,35 @@
                 getLabel="GetRibbonLabel"
                 onAction="SortListCmd"/>
             </menu>
-            <menu id="ribImagesMenu" getLabel="GetRibbonLabel" imageMso="ObjectPictureFill">
+            <menu id="ribFileMenu" getLabel="GetRibbonLabel" imageMso="FileOpen" showImage="true">
+              <button
+                id="ribImportButton"
+                imageMso="FileOpen"
+                getLabel="GetRibbonLabel"
+                onAction="ImportCmd"/>
+              <button
+                id="ribImportWebButton"
+                imageMso="ImportHtmlDocument"
+                getLabel="GetRibbonLabel"
+                onAction="ImportWebCmd"/>
+              <button
+                id="ribCrawlWebPageButton"
+                imageMso="FileNewWebPage"
+                getLabel="GetRibbonLabel"
+                onAction="CrawlWebPageCmd"/>
+              <button
+                id="ribExportButton"
+                imageMso="FileSave"
+                getLabel="GetRibbonLabel"
+                getScreentip="GetRibbonScreentip"
+                onAction="ExportCmd"/>
+              <button
+                id="ribPluginButton"
+                imageMso="ComAddInsDialog"
+                getLabel="GetRibbonLabel"
+                onAction="RunPluginCmd"/>
+            </menu>
+            <menu id="ribImagesMenu" getLabel="GetRibbonLabel" imageMso="ObjectPictureFill" showImage="true">
               <button
                 id="ribCaptionButton"
                 imageMso="CaptionInsert"
@@ -226,7 +260,7 @@
                 getLabel="GetRibbonLabel"
                 onAction="ResizeImagesCmd"/>
             </menu>
-            <menu id="ribNumberingMenu" getLabel="GetRibbonLabel" imageMso="Numbering">
+            <menu id="ribNumberingMenu" getLabel="GetRibbonLabel" imageMso="Numbering" showImage="true">
               <button
                 id="ribOutlineButton"
                 imageMso="OutlineShowDetail"
@@ -257,7 +291,7 @@
                 getScreentip="GetRibbonScreentip"
                 onAction="RemovePageNumbersCmd"/>
             </menu>
-            <menu id="ribPageMenu" getLabel="GetRibbonLabel" imageMso="PageOrientationPortrait">
+            <menu id="ribPageMenu" getLabel="GetRibbonLabel" imageMso="PageOrientationPortrait" showImage="true">
               <button
                 id="ribArrangeContainersButton"
                 imageMso="WindowsArrangeAll"
@@ -268,6 +302,11 @@
                 imageMso="DataGraphicIconSet"
                 getLabel="GetRibbonLabel"
                 onAction="AddTitleIconCmd"/>
+              <button
+                id="ribCaptionAttachmentsButton"
+                imageMso="CaptionInsert"
+                getLabel="GetRibbonLabel"
+                onAction="CaptionAttachmentsCmd"/>
               <button
                 id="ribCollapseContentButton"
                 imageMso="CollapseAll"
@@ -310,7 +349,7 @@
                 getLabel="GetRibbonLabel"
                 onAction="WordCountCmd"/>
             </menu>
-            <menu id="ribReferencesMenu" getLabel="GetRibbonLabel" imageMso="CrossReferenceInsert">
+            <menu id="ribReferencesMenu" getLabel="GetRibbonLabel" imageMso="CrossReferenceInsert" showImage="true">
                 <button
                 id="ribFootnoteButton"
                 imageMso="FootnoteInsert"
@@ -390,7 +429,7 @@
                 getLabel="GetRibbonLabel"
                 onAction="GetImagesCmd"/>
             </menu>
-            <menu id="ribRemindersMenu" getLabel="GetRibbonLabel" imageMso="ReminderGallery">
+            <menu id="ribRemindersMenu" getLabel="GetRibbonLabel" imageMso="ReminderGallery" showImage="true">
               <button
                 id="ribRemindButton"
                 imageMso="NewTask"
@@ -411,8 +450,19 @@
                 imageMso="ShowTaskDetailsPage"
                 getLabel="GetRibbonLabel"
                 onAction="ReportRemindersCmd"/>
+              <button
+                id="ribImportOutlookTasksButton"
+                imageMso="ImportOutlook"
+                getLabel="GetRibbonLabel"
+                onAction="ImportOutlookTasksCmd"/>
+              <button
+                id="ribStrikeoutTasksButton"
+                imageMso="Strikethrough"
+                getLabel="GetRibbonLabel"
+                getScreentip="GetRibbonScreentip"
+                onAction="StrikeoutCmd"/>
             </menu>
-            <menu id="ribSearchMenu" getLabel="GetRibbonLabel" imageMso="SearchUI">
+            <menu id="ribSearchMenu" getLabel="GetRibbonLabel" imageMso="SearchUI" showImage="true">
               <button
                 id="ribReplaceButton"
                 imageMso="ReplaceDialog"
@@ -436,7 +486,7 @@
                 getLabel="GetRibbonLabel"
                 onAction="TaggedCmd"/>
             </menu>
-            <menu id="ribSnippetsMenu" getLabel="GetRibbonLabel" imageMso="GroupInsertShapes" getEnabled="GetBodyContext">
+            <menu id="ribSnippetsMenu" getLabel="GetRibbonLabel" imageMso="GroupInsertShapes" showImage="true">
               <button
                 id="ribInsertSingleLineButton"
                 imageMso="HorizontalLineInsert"
@@ -462,7 +512,7 @@
                 getLabel="GetRibbonLabel"
                 onAction="InsertBreadcrumbCmd"/>
               <button
-                id="ribCalendarButton"
+                id="ribInsertCalendarButton"
                 imageMso="CalendarInsert"
                 getLabel="GetRibbonLabel"
                 getEnabled="GetBodyContext"
@@ -536,7 +586,7 @@
                 getEnabled="GetBodyContext"
                 onAction="InsertBlueStatusCmd"/>
             </menu>
-            <menu id="ribTableMenu" getLabel="GetRibbonLabel" imageMso="TableInsert" getEnabled="GetBodyContext">
+            <menu id="ribTableMenu" getLabel="GetRibbonLabel" imageMso="TableInsert" showImage="true" enabled="true">
               <button
                 id="ribAddFormulaButton"
                 imageMso="TableFormulaDialog"
@@ -554,14 +604,12 @@
                 id="ribHighlightFormulaButton"
                 imageMso="PivotTableListFormulas"
                 getLabel="GetRibbonLabel"
-                getEnabled="GetBodyContext"
                 onAction="HighlightFormulaCmd"/>
               <button
                 id="ribRecalculateFormulaButton"
                 imageMso="CalculateSheet"
                 getLabel="GetRibbonLabel"
                 getScreentip="GetRibbonScreentip"
-                getEnabled="GetBodyContext"
                 onAction="RecalculateFormulaCmd"/>
               <button
                 id="ribTextToTableButton"
@@ -613,7 +661,7 @@
                 getEnabled="GetBodyContext"
                 onAction="SplitTableCmd"/>
             </menu>
-            <menu id="ribExtrasMenu" getLabel="GetRibbonLabel" imageMso="OutlineDemote">
+            <menu id="ribExtrasMenu" getLabel="GetRibbonLabel" imageMso="OutlineDemote" showImage="true">
               <button
                 id="ribAnalyzeButton"
                 imageMso="FileCompactAndRepairDatabase"
@@ -651,36 +699,14 @@
                 imageMso="ShowJournalPage"
                 getLabel="GetRibbonLabel"
                 onAction="InsertTimerCmd"/>
-              <button
-                id="ribStrikeoutTasksButton"
-                imageMso="Strikethrough"
-                getLabel="GetRibbonLabel"
-                getScreentip="GetRibbonScreentip"
-                onAction="StrikeoutCmd"/>
             </menu>
             <menuSeparator id="sepTools" getTitle="GetRibbonLabel" />
             <button
-              id="ribImportButton"
-              imageMso="FileOpen"
-              getLabel="GetRibbonLabel"
-              onAction="ImportCmd"/>
-            <button
-              id="ribImportWebButton"
-              imageMso="ImportHtmlDocument"
-              getLabel="GetRibbonLabel"
-              getEnabled="GetBodyContext"
-              onAction="ImportWebCmd"/>
-            <button
-              id="ribExportButton"
-              imageMso="FileSave"
+              id="ribCalendarButton"
+              imageMso="OpenAttachedCalendar"
               getLabel="GetRibbonLabel"
               getScreentip="GetRibbonScreentip"
-              onAction="ExportCmd"/>
-            <button
-              id="ribPluginButton"
-              imageMso="ComAddInsDialog"
-              getLabel="GetRibbonLabel"
-              onAction="RunPluginCmd"/>
+              onAction="CalendarCmd"/>
             <button
               id="ribShowXmlButton"
               imageMso="XmlSource"
@@ -702,6 +728,14 @@
     </tabs>
   </ribbon>
   <contextMenus>
+    <contextMenu idMso="ContextMenuFileAttachment">
+      <button
+        id="ctxCaptionAttachmentsButton"
+        imageMso="CaptionInsert"
+        getLabel="GetRibbonLabel"
+        onAction="CaptionAttachmentsCmd"
+        insertBeforeMso="FilePrintoutInsert"/>
+    </contextMenu>
     <contextMenu idMso="ContextMenuNotebook">
       <button
         id="ctxArchiveNotebookButton"
@@ -725,9 +759,26 @@
         getScreentip="GetRibbonScreentip"
         onAction="RemoveSectionNumbersCmd"
         insertBeforeMso="ShareThisNotebook"/>
+      <button
+        id="ctxSortNotebookSectionsButton"
+        imageMso="SortUp"
+        getLabel="GetRibbonLabel"
+        onAction="SortSectionsCmd"
+        insertBeforeMso="ShareThisNotebook"/>
       <menuSeparator
         id="omNotebookContextMenuSeparator"
         insertBeforeMso="ShareThisNotebook"/>
+    </contextMenu>
+    <contextMenu idMso="ContextMenuNotebookArea">
+      <button
+        id="ctxSortNotebooksButton"
+        imageMso="SortUp"
+        getLabel="GetRibbonLabel"
+        onAction="SortNotebooksCmd"
+        insertBeforeMso="SectionInsert"/>
+      <menuSeparator
+        id="omNotebooksContextMenuSeparator"
+        insertBeforeMso="SectionInsert"/>
     </contextMenu>
     <contextMenu idMso="ContextMenuPage">
       <button
@@ -750,6 +801,12 @@
         getLabel="GetRibbonLabel"
         onAction="SplitCmd"
         insertBeforeMso="RenamePageOneNote"/>
+      <button
+        id="ctxSortPageButton"
+        imageMso="SortUp"
+        getLabel="GetRibbonLabel"
+        onAction="SortPageCmd"
+        insertBeforeMso="RenamePageOneNote"/>
       <menuSeparator
         id="omPageContextMenuSeparator"
         insertBeforeMso="RenamePageOneNote"/>
@@ -768,6 +825,13 @@
         getLabel="GetRibbonLabel"
         getScreentip="GetRibbonScreentip"
         onAction="RemovePageNumbersCmd"
+        insertBeforeMso="RenamePageOneNote"/>
+      <button
+        id="ctxSortPagesButton"
+        imageMso="SortUp"
+        getLabel="GetRibbonLabel"
+        getScreentip="GetRibbonScreentip"
+        onAction="SortPagesCmd"
         insertBeforeMso="RenamePageOneNote"/>
     </contextMenu>
     <contextMenu idMso="ContextMenuPicture">
@@ -822,9 +886,48 @@
         getLabel="GetRibbonLabel"
         onAction="SectionColorCmd"
         insertBeforeMso="SectionRenameOneNote"/>
+      <button
+        id="ctxSortSectionPagesButton"
+        imageMso="SortUp"
+        getLabel="GetRibbonLabel"
+        onAction="SortPagesCmd"
+        insertBeforeMso="SectionRenameOneNote"/>
       <menuSeparator
         id="omSectionContextMenuSeparator"
         insertBeforeMso="SectionRenameOneNote"/>
+    </contextMenu>
+    <contextMenu idMso="ContextMenuSectionArea">
+      <button
+        id="ct2ArchiveNotebookButton"
+        imageMso="SaveAttachments"
+        getLabel="GetRibbonLabel"
+        getScreentip="GetRibbonScreentip"
+        onAction="ArchiveCmd"
+        tag="notebook"
+        insertBeforeMso="SectionInsert"/>
+      <button
+        id="ct2NumberSectionsButton"
+        imageMso="LineNumbersMenu"
+        getLabel="GetRibbonLabel"
+        getScreentip="GetRibbonScreentip"
+        onAction="NumberSectionsCmd"
+        insertBeforeMso="SectionInsert"/>
+      <button
+        id="ct2RemoveSectionNumbersButton"
+        imageMso="HeaderFooterRemoveHeaderWord"
+        getLabel="GetRibbonLabel"
+        getScreentip="GetRibbonScreentip"
+        onAction="RemoveSectionNumbersCmd"
+        insertBeforeMso="SectionInsert"/>
+      <button
+        id="ct2SortNotebookSectionsButton"
+        imageMso="SortUp"
+        getLabel="GetRibbonLabel"
+        onAction="SortSectionsCmd"
+        insertBeforeMso="SectionInsert"/>
+      <menuSeparator
+        id="omSectionAreaContextMenuSeparator"
+        insertBeforeMso="SectionInsert"/>
     </contextMenu>
     <contextMenu idMso="ContextMenuSectionGroup">
       <button

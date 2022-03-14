@@ -13,7 +13,10 @@ run once on the machine to configure Registry settings:
 
 # CmdletBinding adds -Verbose functionality, SupportsShouldProcess adds -WhatIf
 [CmdletBinding(SupportsShouldProcess = $true)]
-param ([int] $configbits)
+param (
+    [int] $configbits = 64,
+    [switch] $both
+    )
 
 Begin
 {
@@ -22,21 +25,36 @@ Begin
 
     function FindVisualStudio
     {
+        $cmd = Get-Command devenv -ErrorAction:SilentlyContinue
+        if ($cmd -ne $null)
+        {
+            $script:devenv = $cmd.Source
+            return $true
+        }
+
+        $0 = 'C:\Program Files\Microsoft Visual Studio\2022'
+        if (FindVS $0) { return $true }
+
         $0 = 'C:\Program Files (x86)\Microsoft Visual Studio\2019'
-        $script:devenv = Join-Path $0 'Enterprise\Common7\IDE\devenv.com'
+        return FindVS $0
+    }
+    function FindVS
+    {
+        param($vsroot)
+        $script:devenv = Join-Path $vsroot 'Enterprise\Common7\IDE\devenv.com'
 
         if (!(Test-Path $devenv))
         {
-            $script:devenv = Join-Path $0 'Professional\Common7\IDE\devenv.com'
+            $script:devenv = Join-Path $vsroot 'Professional\Common7\IDE\devenv.com'
         }
         if (!(Test-Path $devenv))
         {
-            $script:devenv = Join-Path $0 'Community\Common7\IDE\devenv.com'
+            $script:devenv = Join-Path $vsroot 'Community\Common7\IDE\devenv.com'
         }
 
         if (!(Test-Path $devenv))
         {
-            Write-Host 'devenv not found' -ForegroundColor Yellow
+            Write-Host "devenv not found in $vsroot" -ForegroundColor Yellow
             return $false
         }
 
@@ -135,21 +153,19 @@ Process
 {
     Push-Location OneMoreSetup
     $script:vdproj = Resolve-Path .\OneMoreSetup.vdproj
-
+    
     if (FindVisualStudio)
     {
         PreserveVdproj
 
-        if ($configbits)
-        {
-            Configure $configbits
-            Build $configbits
-        }
-        else
+        if ($configbits -eq 86 -or $both)
         {
             Configure 86
             Build 86
+        }
 
+        if ($configBits -eq 64 -or $both)
+        {
             Configure 64
             Build 64
         }

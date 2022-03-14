@@ -21,7 +21,15 @@ Process
     $content = (Get-Content $0) -replace 'Version = "\d+\.\d+(?:\.\d+)?";',"Version = ""$version"";"
     $content | Out-File $0 -Force
 
+    $0 = '.\OneMoreCalendar\Properties\AssemblyInfo.cs'
+    $content = (Get-Content $0) -replace 'Version = "\d+\.\d+(?:\.\d+)?";',"Version = ""$version"";"
+    $content | Out-File $0 -Force
+
     $0 = '.\OneMoreProtocolHandler\Properties\AssemblyInfo.cs'
+    $content = (Get-Content $0) -replace 'Version = "\d+\.\d+(?:\.\d+)?";',"Version = ""$version"";"
+    $content | Out-File $0 -Force
+
+    $0 = '.\OneMoreSetupActions\Properties\AssemblyInfo.cs'
     $content = (Get-Content $0) -replace 'Version = "\d+\.\d+(?:\.\d+)?";',"Version = ""$version"";"
     $content | Out-File $0 -Force
 

@@ -28,6 +28,7 @@ namespace River.OneMoreAddIn.Commands
 					"folderLabel",
 					"formatLabel",
 					"formatBox",
+					"underBox",
 					"attachmentsBox",
 					"okButton=word_OK",
 					"cancelButton=word_Cancel"
@@ -47,6 +48,9 @@ namespace River.OneMoreAddIn.Commands
 
 
 		public bool WithAttachments => attachmentsBox.Enabled && attachmentsBox.Checked;
+
+
+		public bool UseUnderscores => underBox.Checked;
 
 
 		public OneNote.ExportFormat Format
@@ -93,8 +97,10 @@ namespace River.OneMoreAddIn.Commands
 
 		private void ChangeFormat(object sender, EventArgs e)
 		{
-			attachmentsBox.Enabled = 
-				formatBox.SelectedIndex == 0 ||		// HTML
+			attachmentsBox.Enabled =
+				formatBox.SelectedIndex == 0 ||     // HTML
+				formatBox.SelectedIndex == 2 ||     // Word
+				formatBox.SelectedIndex == 3 ||     // XML
 				formatBox.SelectedIndex == 4;		// Markdown
 		}
 

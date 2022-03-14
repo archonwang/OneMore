@@ -18,7 +18,7 @@ namespace River.OneMoreAddIn.Settings
 
 	internal partial class SnippetsSheet : SheetBase
 	{
-		private class Snippet
+		private sealed class Snippet
 		{
 			public string Name { get; set; }
 			public string Path { get; set; }
@@ -45,12 +45,10 @@ namespace River.OneMoreAddIn.Settings
 				{
 					"introLabel",
 					"deleteLabel",
-					"deleteButton",
-					"okButton",
-					"cancelButton"
+					"deleteButton"
 				});
 
-				nameColumn.HeaderText = Resx.SnippetsSheet_nameColumn_HeaderText;
+				nameColumn.HeaderText = Resx.word_Name;
 			}
 
 			toolStrip.Rescale();

@@ -2,6 +2,11 @@
 
 A OneNote add-in with powerful yet simple and effective features.
 
+## 💾 How do I Install OneMore?
+There are [full instructions here](#install). 
+
+## 💁 Everything You Wanted to Know...
+
 See the [**project wiki**](../../wiki) for full details. Meanwhile, here's some pleasant reading material...
 
 * Integrated with the OneNote ribbon, [context menus](../../wiki#extended-context-menus), and [keyboard shortcuts](../../wiki#keys) for easy access
@@ -17,8 +22,14 @@ See the [**project wiki**](../../wiki) for full details. Meanwhile, here's some 
 
 ![screenshot](../../wiki/images/Screenshot.png)
 
+### The new Calendar app (BETA)
+![Calendar](../../wiki/images/Calendar.png)
+
+## Languages
+OneMore is translated to *Arabic, Chinese (Simplified), Dutch, English, French, German, Polish, Portuguese, and Spanish*. Please let me know if you'd like it translated to another language. I use my [ResxTranslator](https://github.com/stevencohn/ResxTranslator) program to automate the translations but can also override inaccuracies of specific words and phrases. If you think a translation is not correct, again please let me know.
+
 <a name="features"></a>
-## Features (139)
+## Features (147)
 
 [Clean commands](../../wiki/Clean-Commands) (11)
 
@@ -43,6 +54,14 @@ See the [**project wiki**](../../wiki) for full details. Meanwhile, here's some 
 * Apply an entire theme to a page
 * Change page theme inluding background and styles, optioanally with dark-mode awareness
 
+[File Commands](../../wiki/Tools) (5)
+* Import MSWord, PowerPoint, Markdown and others into the current page or a new page
+* Import a Web page from a specified URL
+* Import hyperlinks on the current page as separate sub-pages
+* Export the current page or selected pages as HTML, PDF, MSWord, Markdown, or as raw OneNote XML
+* Invoke an external custom plugin to process a page
+
+
 [Edit Commands](../../wiki/Edit-Commands) (16)
 * Colorize selected text as a chosen programming language - _syntax highlighting_
 * Set proofing language of selected text to one of the installed Office proofing languages
@@ -66,9 +85,10 @@ See the [**project wiki**](../../wiki) for full details. Meanwhile, here's some 
 * Quick access to user-defined plugins
 * Add a link to a special page containing all OneNote and OneMore keyboard shortcuts
 
-[Image commands](../../wiki/Image-Commands) (4)
+[Image commands](../../wiki/Image-Commands) (5)
 
 * Add caption to a selected images
+* Apply a variety of adjustment to an image including brightness, contrast, opacity, saturation, and stylizations like grayscale, sepia, and Polaroid
 * Precisely crop a selected image
 * Resize a selected image or all images on the page
 * Rotate an image to any angle
@@ -81,10 +101,12 @@ See the [**project wiki**](../../wiki) for full details. Meanwhile, here's some 
 * Remove numbering from sections
 * Remove numbering from pages
 
-[Page Commands](../../wiki/Page-Commands) (8)
+[Page Commands](../../wiki/Page-Commands) (11)
 * Arrange containers vertically or in columns
+* Add caption to selected file attachments on the page
 * Add special icon to the page title, also appears in page hierarchy
 * Expand or Collapse indented outlines, save and restore outlining
+* Fit background grid spacing to most common text size
 * Merge pages, preserving formatting and position of outlines
 * Split current page into multiple pages
 * Report number of words on the page or in the selected region
@@ -101,11 +123,12 @@ See the [**project wiki**](../../wiki) for full details. Meanwhile, here's some 
 * Replace hyperlinked URLs with their Web page titles
 * Replace hyperlinked URLs with their downloaded images
 
-[Reminder commands](../../wiki/Reminder-Commands) (4)
+[Reminder commands](../../wiki/Reminder-Commands) (5)
 * Add or update a reminder for any paragraph on a page (F8)
 * Mark the selected reminder as completed
 * Delete the seleted reminder
 * Generate a detailed report of all reminders and their status
+* Import Tasks from Outlook
 
 [Search commands](../../wiki/Search-Commands) (4)
 
@@ -150,13 +173,10 @@ See the [**project wiki**](../../wiki) for full details. Meanwhile, here's some 
 * Start and display a visual timer (Alt + F2) and insert the timer value (F2)
 * Toggle strikethrough text next to all completed/incompleted tags
 
-[Main Menu](../../wiki/Tools) (8)
+[Main Menu](../../wiki/Tools) (5)
 
+* Run OneMore Calendar
 * Replay the last OneMore action with a quick keyboard shortcut (Alt + Shift + R)
-* Import MSWord, PowerPoint, Markdown and others into the current page or a new page
-* Import a Web page from a specified URL
-* Export the current page or selected pages as HTML, PDF, MSWord, Markdown, or as raw OneNote XML
-* Invoke an external custom plugin to process a page
 * View and edit the internal OneNote XML of the current page (Ctrl + Shift + Alt + X)
 * Edit OneMore settings
 * Check for updates and install upgrades on-demand
@@ -198,14 +218,15 @@ appreciation that I humbly request that you consider a small donation to support
 of OneMore. In exchange, I pledge to continue listening with an open mind and to respond to your
 questions and tips in a timely manner.
 
-_Click here, click now, click often! >>_  
->  [![Donate](../../wiki/images/Donate.png)](https://paypal.me/stevenmcohn?locale.x=en_US)
+Please consider a sponsorship or one-time donation, click here:
+
+   [![Sponsor](../../wiki/images/Sponsor.png)](https://github.com/sponsors/stevencohn)
 
 
 ### Minimum Prerequisites for Development
 
 * Developed for Windows 10
-* Microsoft Visual Studio 2019<sup>1</sup>, C# 7
+* Microsoft Visual Studio 2019<sup>1</sup> including Office primary interop assemblies
 * Microsoft [Windows 10 SDK](https://developer.microsoft.com/en-US/windows/downloads/windows-10-sdk/)<sup>2</sup>
 * Microsoft [Visual Studio 2019 Installer Projects extension](https://marketplace.visualstudio.com/items?itemName=VisualStudioClient.MicrosoftVisualStudio2017InstallerProjects)
 * .NET Framework 4.8
@@ -227,19 +248,45 @@ Tested recently with:
 #### Dependencies
 
 * [HtmlAgilityPack](https://www.nuget.org/packages/HtmlAgilityPack) - nuget, MIT license
+   * Normalizes HTML and non-conformant XML to well-formed XML that can be consumed by XElement.Parse
+* [InputSimulator](https://github.com/michaelnoonan/inputsimulator) - nuget, MIT license
+   * Replaces the use of SendKeys.Send, adding support for multilingual keyboards
 * [MarkdownDeep](https://github.com/toptensoftware/markdowndeep) - DLL in external folder
-* [PuppeteerSharp](https://www.nuget.org/packages/PuppeteerSharp/) - nuget, MIT license
+   * Transforms markdown to HTML when importing md files
 
-
-### How to Install OneMore
+<a name="install"></a>
+## How to Install OneMore
 
 1. Close OneNote if it is currently running (See below if you need to install OneNote)
 2. Download the [latest installer from here](https://github.com/stevencohn/OneMore/releases/latest)
-3. Right-click the downloaded installer msi and choose Properties, then tick the Unblock box and click OK
-4. Run the installer
-   - If OneNote is installed for _all users_ then you must install OneMore for _all users_ as well
+   - Use the x86 installer only if you are running on a 32-bit Windows machine; it has nothing to do
+     with the bitness of Office itself.
+   - Use the x64 installer when running on a 64-bit Windows machine for either 32-bit or 64-bit Office.
+4. Right-click the downloaded installer msi and choose Properties, then tick the Unblock box and click OK
+5. Run the installer
+   - If you're currently logged in as a user with admin rights and this is the account with which you will 
+     use OneMore then you will be able to start OneNote immediately.
+   - Other users on the system will experience a slight delay the first time they log in after OneMore
+     is installed while settings are applied to their accounts. This only occurs once.
+   - If you're currently logged in as a user without admin rights, you can install OneMore if you have
+     the user name and password of an account with admin rights. See below for further instructions.
 5. Run OneNote and enjoy
 
+#### Install from a normal user account
+The OneMore installer requires admin rights to complete configuration and update the Windows Registry.
+If you have the user name and password of an account with admin rights, you can run the OneMore installer
+from your current account using this command entered from a console window:
+
+    runas /user:<username> "msiexec.exe /i <path-to-installer>"
+
+where &lt;username&gt; is the user name of an account with admin rights and
+&lt;path-to-installer&gt; is the full path to the OneMore installer .msi file
+
+You wil be prompted for the password of the admin user. The installation will continue.
+
+```diff
+- You must sign out and then sign in again before you will see OneMore in the OneNote ribbon.
+```
 
 ### How to Upgrade OneMore
 
@@ -253,20 +300,25 @@ the new installer will simply overwrite the old files and _upgrade_ OneMore. Not
 download the installer, you will need to unblock it by opening its Properties dialog and clicking
 the _Unblock_ checkbox.
 
-### How to Install OneNote
+## How to Install OneNote
 
-Microsoft has been pushing people to use the OneNote app and OneNote online, which suck in my opinion, and have removed OneNote from the Office 2019 installer. But you can still install it after installing Office or even install it standalone!
+OneNote can be installed after installing Office or even installed standalone without Office at all.
 
 1. Optionally install Office - do not run the Setup.exe; instead, run Office\Setup64.exe
-1. Download OfficeSetup.exe [from here](https://support.microsoft.com/en-us/office/install-or-reinstall-onenote-for-windows-c08068d8-b517-4464-9ff2-132cb9c45c08)
-   1. If run standalone, it will install 32-bit OneNote
-   1. If run after installing Office, it will install 32 or 64 bit based on the bitness of Office
-   1. The 64-bit installer is [here](http://www.onenote.com/download/win32/x64/en-US)
-   1. The 32-bit installer is [here](http://www.onenote.com/download/win32/x86/en-US)
+   - Download OfficeSetup.exe [from here](https://support.microsoft.com/en-us/office/install-or-reinstall-onenote-for-windows-c08068d8-b517-4464-9ff2-132cb9c45c08)
+   - If run standalone, it will install 32-bit OneNote
+   - If run after installing Office, it will install 32 or 64 bit based on the bitness of Office
+1. Download the standalone OneNote installer (does not require Office or can be installed ontop of Office)
+   - The standalone OneNote 64-bit installer is [here](http://www.onenote.com/download/win32/x64/en-US)
+   - The standalone OneNote 32-bit installer is [here](http://www.onenote.com/download/win32/x86/en-US)
+
+Note that Microsoft has changed its OneNote strategy. Instead of promoting the OneNote for Windows 10 app,
+which sucks in my opinion, they are now working on combining the best features from that app into a new
+desktop edition, hopefully to be released in 2022.
 
 ---
 
-### Developing OneMore
+## Developing OneMore
 
 See the [Developer Notes](../../wiki/~-Developer-Notes) page in the Wiki where I keep a list of 
 technical references and information regarding developing and debugging this OneNote add-in.

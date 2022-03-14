@@ -16,7 +16,7 @@ namespace River.OneMoreAddIn.Commands
 
 	internal class EmbedSubpageCommand : Command
 	{
-		private class SourceInfo
+		private sealed class SourceInfo
 		{
 			public IEnumerable<XElement> Snippets;
 			public string SourceId;
@@ -146,7 +146,10 @@ namespace River.OneMoreAddIn.Commands
 				}
 			}
 
-			var outRoot = source.Root.Elements(source.Namespace + "Outline").FirstOrDefault();
+			var outRoot = source.Root.Elements(source.Namespace + "Outline")
+				.FirstOrDefault(e => !e.Elements(ns + "Meta")
+					.Any(m => m.Attribute("name").Value == MetaNames.TaggingBank));
+
 			if (outRoot == null)
 			{
 				UIHelper.ShowInfo(one.Window, Resx.EmbedSubpageCommand_NoContent);
@@ -187,7 +190,7 @@ namespace River.OneMoreAddIn.Commands
 			var citationIndex = page.GetQuickStyle(Styles.StandardStyles.Citation).Index;
 
 			var text = $"<a href=\"{link}\">Embedded from {source.Title}</a> | <a " +
-				$"href=\"onemore://EmbedSubpageProxy/true/{source.PageId}/{linkId}\">{Resx.EmbedSubpageCommand_Refresh}</a>";
+				$"href=\"onemore://EmbedSubpageProxy/true/{source.PageId}/{linkId}\">{Resx.word_Refresh}</a>";
 
 			var header = new Paragraph(text)
 				.SetQuickStyle(citationIndex)

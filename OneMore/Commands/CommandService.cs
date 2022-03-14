@@ -12,6 +12,7 @@ namespace River.OneMoreAddIn
 	using System.Security.Principal;
 	using System.Text;
 	using System.Threading;
+	using System.Threading.Tasks;
 	using System.Web;
 
 
@@ -31,15 +32,17 @@ namespace River.OneMoreAddIn
 		public CommandService(CommandFactory factory)
 			: base()
 		{
-			var key = Registry.ClassesRoot.OpenSubKey(KeyPath, false);
-			if (key != null)
+			using (var key = Registry.ClassesRoot.OpenSubKey(KeyPath, false))
 			{
-				// get default value string
-				pipe = (string)key.GetValue(string.Empty);
-			}
-			else
-			{
-				logger.WriteLine($"error reading pipe name from {KeyPath}");
+				if (key != null)
+				{
+					// get default value string
+					pipe = (string)key.GetValue(string.Empty);
+				}
+				else
+				{
+					logger.WriteLine($"error reading pipe name from {KeyPath}");
+				}
 			}
 
 			this.factory = factory;
@@ -54,6 +57,8 @@ namespace River.OneMoreAddIn
 				logger.WriteLine("command service not started, missing pipe name");
 				return;
 			}
+
+			logger.WriteLine("starting command service");
 
 			var thread = new Thread(async () =>
 			{
@@ -85,21 +90,14 @@ namespace River.OneMoreAddIn
 
 						if (!string.IsNullOrEmpty(data) && data.StartsWith(Protocol))
 						{
-							// data specifies command as onemore protocol such as
-							// onemore://DoitCommand/arg1/arg2/arg2/
+							// isolate work into its own thread so any uncaught exceptions
+							// won't tip over the service thread...
 
-							var parts = data.Substring(Protocol.Length)
-								.Split(new char[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
+							var worker = new Thread(async (d) => await InvokeCommand(data));
+							worker.SetApartmentState(ApartmentState.STA);
+							worker.IsBackground = true;
+							worker.Start();
 
-							var action = parts[0];
-							var arguments = parts.Skip(1).ToArray();
-							for (int i=0; i < arguments.Length; i++)
-							{
-								arguments[i] = HttpUtility.UrlDecode(arguments[i]);
-							}
-
-							logger.WriteLine($"..invoking {action}({string.Join(", ", arguments)})");
-							await factory.Invoke(action, arguments);
 							errors = 0;
 						}
 					}
@@ -134,6 +132,42 @@ namespace River.OneMoreAddIn
 				pipe, PipeDirection.In, 1,
 				PipeTransmissionMode.Byte, PipeOptions.Asynchronous,
 				MaxBytes, MaxBytes, security);
+		}
+
+
+		private async Task InvokeCommand(string data)
+		{
+			// data specifies command as onemore protocol such as
+			// onemore://DoitCommand/arg1/arg2/arg2/
+
+			var parts = data.Substring(Protocol.Length)
+				.Split(new char[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
+
+			var action = parts[0];
+			var arguments = parts.Skip(1).ToArray();
+			for (int i = 0; i < arguments.Length; i++)
+			{
+				arguments[i] = HttpUtility.UrlDecode(arguments[i]);
+			}
+
+			//logger.WriteLine($"..invoking {action}({string.Join(", ", arguments)})");
+
+			try
+			{
+				await factory.Invoke(action, arguments)
+					.ContinueWith((t) =>
+					{
+						//logger.WriteLine($"continuation status is {t.Status}");
+						if (t.IsFaulted)
+						{
+							logger.WriteLine("continuation fault", t.Exception);
+						}
+					});
+			}
+			catch (Exception exc)
+			{
+				logger.WriteLine("error invoking command", exc);
+			}
 		}
 	}
 }

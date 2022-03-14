@@ -58,6 +58,7 @@ namespace River.OneMoreAddIn.Commands
 			OneNote.ExportFormat format;
 			string path;
 			bool withAttachments;
+			bool useUnderscores;
 
 			// dialog...
 
@@ -71,6 +72,7 @@ namespace River.OneMoreAddIn.Commands
 				path = dialog.FolderPath;
 				format = dialog.Format;
 				withAttachments = dialog.WithAttachments;
+				useUnderscores = dialog.UseUnderscores;
 			}
 
 			// prepare...
@@ -98,7 +100,12 @@ namespace River.OneMoreAddIn.Commands
 				foreach (var pageID in pageIDs)
 				{
 					var page = one.GetPage(pageID, OneNote.PageDetail.BinaryData);
-					var filename = Path.Combine(path, page.Title.Replace(' ', '_') + ext);
+
+					var title = useUnderscores
+						? PathFactory.CleanFileName(page.Title).Replace(' ', '_')
+						: page.Title;
+
+					var filename = Path.Combine(path, title + ext);
 
 					progress.SetMessage(filename);
 					progress.Increment();
@@ -116,7 +123,7 @@ namespace River.OneMoreAddIn.Commands
 					}
 					else if (format == OneNote.ExportFormat.XML)
 					{
-						archivist.ExportXML(page.Root, filename);
+						archivist.ExportXML(page.Root, filename, withAttachments);
 					}
 					else if (format == OneNote.ExportFormat.Markdown)
 					{
@@ -124,7 +131,7 @@ namespace River.OneMoreAddIn.Commands
 					}
 					else
 					{
-						archivist.Export(page.PageId, filename, format);
+						archivist.Export(page.PageId, filename, format, withAttachments);
 					}
 				}
 			}

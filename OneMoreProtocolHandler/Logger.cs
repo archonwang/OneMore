@@ -15,10 +15,10 @@ namespace OneMoreProtocolHandler
 		private TextWriter writer;
 
 
-		public Logger()
+		public Logger(string name)
 		{
 			writer = new StreamWriter(
-				Path.Combine(Path.GetTempPath(), "OneMoreProtocolHandler.log"),
+				Path.Combine(Path.GetTempPath(), $"{name}.log"),
 				true);
 		}
 
