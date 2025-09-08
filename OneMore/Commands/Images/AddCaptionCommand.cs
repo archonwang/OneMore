@@ -6,12 +6,24 @@ namespace River.OneMoreAddIn.Commands
 {
 	using River.OneMoreAddIn.Models;
 	using River.OneMoreAddIn.Styles;
+	using River.OneMoreAddIn.UI;
+	using System;
 	using System.Linq;
 	using System.Threading.Tasks;
+	using System.Windows.Forms;
 	using System.Xml.Linq;
-	using Resx = River.OneMoreAddIn.Properties.Resources;
+	using Resx = Properties.Resources;
 
 
+	/// <summary>
+	/// Add a caption to the selected image.
+	/// </summary>
+	/// <remarks>
+	/// This is done by moving the image into a one-row, one-column table and centering the
+	/// word "Caption" below the image, which of course you should edit immediately. 
+	/// If your custom styles has a style named exactly "Caption" then that style will be applied,
+	/// otherwise, a default caption style is used.
+	/// </remarks>
 	internal class AddCaptionCommand : Command
 	{
 		private XNamespace ns;
@@ -24,67 +36,142 @@ namespace River.OneMoreAddIn.Commands
 
 		public override async Task Execute(params object[] args)
 		{
-			using (var one = new OneNote(out var page, out ns, OneNote.PageDetail.All))
+			await using var one = new OneNote(out var page, out ns, OneNote.PageDetail.All);
+			var element = page.Root.Descendants(ns + "Image")?
+				.FirstOrDefault(e => e.Attribute("selected")?.Value == "all");
+
+			if (element == null)
 			{
-				var image = page.Root.Descendants(ns + "Image")?
-					.FirstOrDefault(e => e.Attribute("selected")?.Value == "all");
-
-				if (image == null)
-				{
-					UIHelper.ShowError(Resx.Error_SelectImage);
-					return;
-				}
-
-				if (AlreadyCaptioned(image))
-				{
-					return;
-				}
-
-				image.Attribute("selected").Remove();
-
-				var table = new Table(ns);
-				table.AddColumn(0f); // OneNote will set width accordingly
-
-				var cdata = new XCData("Caption");
-
-				var row = table.AddRow();
-				var cell = row.Cells.First();
-
-				cell.SetContent(
-					new XElement(ns + "OEChildren",
-						new XElement(ns + "OE",
-							new XAttribute("alignment", "center"),
-							image),
-						new XElement(ns + "OE",
-							new XAttribute("alignment", "center"),
-							new XElement(ns + "Meta",
-								new XAttribute("name", "om"),
-								new XAttribute("content", "caption")),
-							new XElement(ns + "T",
-								new XAttribute("selected", "all"),
-								cdata)
-						)
-					));
-
-				var style = GetStyle();
-				new Stylizer(style).ApplyStyle(cdata);
-
-				if (image.Parent.Name.LocalName.Equals("Page"))
-				{
-					// image.ReplaceWith seems to insert the new Outline but doesn't remove the top
-					// level image, so force the deletion by its objectID
-					var imageId = image.Attribute("objectID").Value;
-					one.DeleteContent(page.Root.Attribute("ID").Value, imageId);
-
-					image.ReplaceWith(WrapInOutline(table.Root, image));
-				}
-				else
-				{
-					image.ReplaceWith(table.Root);
-				}
-
-				await one.Update(page);
+				ShowError(Resx.Error_SelectImage);
+				return;
 			}
+
+			if (element.Parent.Name.LocalName == "Page")
+			{
+				ShowError(Resx.AddCaptionCommand_cannotCaptionBg);
+				return;
+			}
+
+			if (AlreadyCaptioned(element))
+			{
+				return;
+			}
+
+			element.Attribute("selected").Remove();
+
+			// try to detect diagram title...
+
+			string caption = Resx.word_Caption;
+
+			string plantID = null;
+
+			var editor = new ImageMetaTextEditor(element.Element(ns + "Data").Value);
+			var uml = editor.ReadImageMetaTextEntry();
+			if (uml != null)
+			{
+				logger.Verbose(uml);
+
+				if (editor.Keyword == DiagramKeys.PlantUmlKey ||
+					editor.Keyword == DiagramKeys.MermaidKey)
+				{
+					var title = DiagramProviderFactory.MakeProvider(editor.Keyword).ReadTitle(uml);
+					if (!string.IsNullOrWhiteSpace(title))
+					{
+						caption = MakeCaption(ns, element, title, out plantID);
+					}
+				}
+			}
+
+			// add caption...
+
+			var table = MakeCaptionTable(ns, element, caption, plantID, out var cdata);
+
+			if (element.Parent.Name.LocalName.Equals("Page"))
+			{
+				// image.ReplaceWith seems to insert the new Outline but doesn't remove the top
+				// level image, so force the deletion by its objectID
+				var imageId = element.Attribute("objectID").Value;
+				one.DeleteContent(page.Root.Attribute("ID").Value, imageId);
+
+				element.ReplaceWith(WrapInOutline(table.Root, element));
+			}
+			else
+			{
+				element.ReplaceWith(table.Root);
+			}
+
+			await one.Update(page);
+		}
+
+
+		public static string MakeCaption(
+			XNamespace ns, XElement image, string title, out string plantID)
+		{
+			var meta = image.Parent.Elements(ns + "Meta")
+				.FirstOrDefault(e => e.Attribute("name").Value == "omPlantImage");
+
+			plantID = meta == null
+				? Guid.NewGuid().ToString("N")
+				: meta.Attribute("content").Value;
+
+			var url = $"onemore://PlantUmlCommand/{plantID}";
+
+			var caption = $"{title} <span style='font-style:italic'>(" +
+				$"<a href=\"{url}/extract\">{Resx.word_Extract}</a>)</span>";
+
+			return caption;
+		}
+
+
+		public static Table MakeCaptionTable(
+			XNamespace ns, XElement content, string caption, string plantID, out XCData cdata)
+		{
+			var table = new Table(ns);
+			table.AddColumn(0f); // OneNote will set width accordingly
+
+			var row = table.AddRow();
+			var cell = row.Cells.First();
+
+			if (content.Name.LocalName == "OE")
+			{
+				content.SetAttributeValue("alignment", "center");
+			}
+			else
+			{
+				content = new XElement(ns + "OE",
+					new XAttribute("alignment", "center"),
+					content
+					);
+			}
+
+			if (plantID != null)
+			{
+				content.AddFirst(new XElement(ns + "Meta",
+					new XAttribute("name", "omPlantImage"),
+					new XAttribute("content", plantID))
+					);
+			}
+
+			cdata = new XCData(caption);
+
+			cell.SetContent(
+				new XElement(ns + "OEChildren",
+					content,
+					new XElement(ns + "OE",
+						new XAttribute("alignment", "center"),
+						new XElement(ns + "Meta",
+							new XAttribute("name", "om"),
+							new XAttribute("content", Resx.word_Caption)),
+						new XElement(ns + "T",
+							new XAttribute("selected", "all"),
+							cdata)
+					)
+				));
+
+			var style = GetStyle();
+			new Stylizer(style).ApplyStyle(cdata);
+
+			return table;
 		}
 
 
@@ -97,20 +184,17 @@ namespace River.OneMoreAddIn.Commands
 			var styles = new ThemeProvider().Theme.GetStyles();
 			if (styles?.Count > 0)
 			{
-				style = styles.FirstOrDefault(s => s.Name.Equals("Caption"));
+				style = styles.Find(s => s.Name.Equals(Resx.word_Caption));
 			}
 
 			// otherwise use default style
 
-			if (style == null)
+			style ??= new Style
 			{
-				style = new Style
-				{
-					Color = "#5B9BD5", // close to CornflowerBlue
-					FontSize = "10pt",
-					IsBold = true
-				};
-			}
+				Color = "#5B9BD5", // close to CornflowerBlue
+				FontSize = "10pt",
+				IsBold = true
+			};
 
 			return style;
 		}
@@ -121,9 +205,10 @@ namespace River.OneMoreAddIn.Commands
 			if (image.Parent.ElementsAfterSelf().FirstOrDefault()?
 				.Elements(ns + "Meta")
 				.Any(e => e.Attribute("name").Value.Equals("om") &&
-					 e.Attribute("content").Value.Equals("caption")) == true)
+					 e.Attribute("content").Value.Equals(Resx.word_Caption)) == true)
 			{
-				UIHelper.ShowInfo(owner, Resx.AddCaptionCommand_Captioned);
+				MoreMessageBox.Show(owner, Resx.AddCaptionCommand_Captioned,
+					MessageBoxButtons.OK, MessageBoxIcon.Information);
 				return true;
 			}
 

@@ -11,7 +11,7 @@ namespace River.OneMoreAddIn.Commands
 	using Resx = River.OneMoreAddIn.Properties.Resources;
 
 
-	internal partial class SaveSnippetDialog : LocalizableForm
+	internal partial class SaveSnippetDialog : MoreForm
 	{
 		private List<string> names;
 		private char[] invalidChars;
@@ -37,7 +37,11 @@ namespace River.OneMoreAddIn.Commands
 		}
 
 
-		public string SnippetName => nameBox.Text.Trim();
+		public string SnippetName
+		{
+			get { return nameBox.Text.Trim(); }
+			set { nameBox.Text = value; }
+		}
 
 
 		private void ValidateName(object sender, System.EventArgs e)
@@ -51,10 +55,7 @@ namespace River.OneMoreAddIn.Commands
 
 			name = name.ToLower();
 
-			if (invalidChars == null)
-			{
-				invalidChars = Path.GetInvalidFileNameChars();
-			}
+			invalidChars ??= Path.GetInvalidFileNameChars();
 
 			if (name.IndexOfAny(invalidChars) >= 0)
 			{
@@ -63,10 +64,7 @@ namespace River.OneMoreAddIn.Commands
 				return;
 			}
 
-			if (names == null)
-			{
-				names = new SnippetsProvider().GetNames().Select(n => n.ToLower()).ToList();
-			}
+			names ??= new SnippetsProvider().GetNames().Select(n => n.ToLower()).ToList();
 
 			if (names.Contains(name))
 			{

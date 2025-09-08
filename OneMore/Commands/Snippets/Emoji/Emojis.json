@@ -1,0 +1,204 @@
+[
+  {
+    "glyph": "📐",
+    "resID": "e_Architecture"
+  },
+  {
+    "glyph": "🚗",
+    "resID": "e_Automobile"
+  },
+  {
+    "glyph": "☐",
+    "resID": "e_BallotBox",
+    "color": "#5B9BD5"
+  },
+  {
+    "glyph": "🔔",
+    "resID": "e_Bell"
+  },
+  {
+    "glyph": "●",
+    "resID": "e_Bullet",
+    "color": "#0070C0"
+  },
+  {
+    "glyph": "📆",
+    "resID": "e_Calendar"
+  },
+  {
+    "glyph": "📷",
+    "resID": "e_Camera"
+  },
+  {
+    "glyph": "✓",
+    "resID": "e_CheckMark",
+    "color": "#00B050"
+  },
+  {
+    "glyph": "⭕",
+    "resID": "e_Circle"
+  },
+  {
+    "glyph": "📋",
+    "resID": "e_Clipboard"
+  },
+  {
+    "glyph": "☁",
+    "resID": "e_Cloud"
+  },
+  {
+    "glyph": "©",
+    "resID": "e_Copyright"
+  },
+  {
+    "glyph": "❌",
+    "resID": "e_Cross"
+  },
+  {
+    "glyph": "🚴",
+    "resID": "e_Cycling"
+  },
+  {
+    "glyph": "Δ",
+    "resID": "e_Delta"
+  },
+  {
+    "glyph": "✉",
+    "resID": "e_Envelope"
+  },
+  {
+    "glyph": "👀",
+    "resID": "e_Eyes"
+  },
+  {
+    "glyph": "👪",
+    "resID": "e_Family"
+  },
+  {
+    "glyph": "💲",
+    "resID": "e_Financial"
+  },
+  {
+    "glyph": "🚩",
+    "resID": "e_Flag"
+  },
+  {
+    "glyph": "📁",
+    "resID": "e_Folder"
+  },
+  {
+    "glyph": "🌐",
+    "resID": "e_Globe"
+  },
+  {
+    "glyph": "🔨",
+    "resID": "e_Hammer"
+  },
+  {
+    "glyph": "♥",
+    "resID": "e_Heart"
+  },
+  {
+    "glyph": "⁉",
+    "resID": "e_Interrobang"
+  },
+  {
+    "glyph": "📓",
+    "resID": "e_Journal"
+  },
+  {
+    "glyph": "←",
+    "resID": "e_LeftwardsArrow",
+    "color": "#0070C0"
+  },
+  {
+    "glyph": "🔒",
+    "resID": "e_Lock"
+  },
+  {
+    "glyph": "📝",
+    "resID": "e_Memo"
+  },
+  {
+    "glyph": "🔑",
+    "resID": "e_Passwords"
+  },
+  {
+    "glyph": "✏",
+    "resID": "e_Pencil"
+  },
+  {
+    "glyph": "📌",
+    "resID": "e_Pushpin"
+  },
+  {
+    "glyph": "♻",
+    "resID": "e_Recycle"
+  },
+  {
+    "glyph": "→",
+    "resID": "e_RightwardsArrow",
+    "color": "#0070C0"
+  },
+  {
+    "glyph": "§",
+    "resID": "e_Section"
+  },
+  {
+    "glyph": "⚡",
+    "resID": "e_Shazam"
+  },
+  {
+    "glyph": "🙂",
+    "resID": "e_Smiley"
+  },
+  {
+    "glyph": "💾",
+    "resID": "e_Software"
+  },
+  {
+    "glyph": "⚾",
+    "resID": "e_Sports"
+  },
+  {
+    "glyph": "⚽",
+    "resID": "e_SportsEU"
+  },
+  {
+    "glyph": "⭐",
+    "resID": "e_Star"
+  },
+  {
+    "glyph": "∑",
+    "resID": "e_Summary"
+  },
+  {
+    "glyph": "☑",
+    "resID": "e_Tasks"
+  },
+  {
+    "glyph": "⚒",
+    "resID": "e_Tools"
+  },
+  {
+    "glyph": "🛩",
+    "resID": "e_Travel"
+  },
+  {
+    "glyph": "🎥",
+    "resID": "e_Video"
+  },
+  {
+    "glyph": "⚠",
+    "resID": "e_Warning"
+  },
+  {
+    "glyph": "⌚",
+    "resID": "e_Watch"
+  },
+  {
+    "glyph": "✗",
+    "resID": "e_XMark",
+    "color": "#C00000"
+  }
+]

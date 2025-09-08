@@ -10,9 +10,17 @@ namespace River.OneMoreAddIn.Commands
 	using System.Threading.Tasks;
 	using System.Windows.Forms;
 	using System.Xml.Linq;
-	using Resx = River.OneMoreAddIn.Properties.Resources;
+	using Resx = Properties.Resources;
 
 
+	/// <summary>
+	/// Adds the ability to insert cells into a table, shifting existing content down or to the
+	/// right. This is similar to the Excel functionality with one enhancement - if you select
+	/// a rectangular region of cells then it will shift just those cells, possibly overwriting
+	/// other cells. If you select cells from one column or cells from one row then it will
+	/// insert cells above or to the left and add rows or columns as needed to make room for
+	/// the new cells.
+	/// </summary>
 	internal class InsertCellsCommand : Command
 	{
 
@@ -23,54 +31,45 @@ namespace River.OneMoreAddIn.Commands
 
 		public override async Task Execute(params object[] args)
 		{
-			using (var one = new OneNote(out var page, out var ns))
+			await using var one = new OneNote(out var page, out var ns);
+
+			// Find first selected cell as anchor point to locate table ; By filtering on
+			// selected=all, we avoid including the parent table of a selected nested table.
+
+			var anchor = page.Root.Descendants(ns + "Cell")
+				// first dive down to find the selected T
+				.Elements(ns + "OEChildren").Elements(ns + "OE")
+				.Elements(ns + "T")
+				.Where(e => e.Attribute("selected")?.Value == "all")
+				// now move back up to the Cell
+				.Select(e => e.Parent.Parent.Parent)
+				.FirstOrDefault();
+
+			if (anchor == null)
 			{
-				// Find first selected cell as anchor point to locate table ; By filtering on
-				// selected=all, we avoid including the parent table of a selected nested table.
-
-				var anchor = page.Root.Descendants(ns + "Cell")
-					// first dive down to find the selected T
-					.Elements(ns + "OEChildren").Elements(ns + "OE")
-					.Elements(ns + "T")
-					.Where(e => e.Attribute("selected")?.Value == "all")
-					// now move back up to the Cell
-					.Select(e => e.Parent.Parent.Parent)
-					.FirstOrDefault();
-
-				if (anchor == null)
-				{
-					UIHelper.ShowInfo(one.Window, Resx.InsertCellsCommand_NoSelection);
-					return;
-				}
-
-				var table = new Table(anchor.FirstAncestor(ns + "Table"));
-				var cells = table.GetSelectedCells(out var range).ToList();
-
-				var shiftDown = true;
-				var shiftCount = 1;
-
-				using (var dialog = new InsertCellsDialog())
-				{
-					if (dialog.ShowDialog(owner) != DialogResult.OK)
-					{
-						return;
-					}
-
-					shiftDown = dialog.ShiftDown;
-					shiftCount = dialog.ShiftCount;
-				}
-
-				if (shiftDown)
-				{
-					ShiftDown(table, cells, shiftCount);
-				}
-				else
-				{
-					ShiftRight(table, cells, shiftCount);
-				}
-
-				await one.Update(page);
+				ShowInfo(Resx.InsertCellsCommand_NoSelection);
+				return;
 			}
+
+			var table = new Table(anchor.FirstAncestor(ns + "Table"));
+			var cells = table.GetSelectedCells(out var range).ToList();
+
+			using var dialog = new InsertCellsDialog();
+			if (dialog.ShowDialog(owner) != DialogResult.OK)
+			{
+				return;
+			}
+
+			if (dialog.ShiftDown)
+			{
+				ShiftDown(table, cells, dialog.ShiftCount);
+			}
+			else
+			{
+				ShiftRight(table, cells, dialog.ShiftCount);
+			}
+
+			await one.Update(page);
 		}
 
 

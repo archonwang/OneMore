@@ -5,8 +5,10 @@
 namespace OneMoreCalendar
 {
 	using River.OneMoreAddIn;
+	using River.OneMoreAddIn.Models;
 	using System;
 	using System.Collections.Generic;
+	using System.Globalization;
 	using System.IO;
 	using System.Linq;
 	using System.Threading.Tasks;
@@ -19,24 +21,20 @@ namespace OneMoreCalendar
 	/// </summary>
 	internal class OneNoteProvider
 	{
-		private OneNote one;
-
 
 		/// <summary>
 		/// Export an EMF representation of the specified page to the TEMP folder
 		/// </summary>
 		/// <param name="pageID"></param>
 		/// <returns>The path of the file generated</returns>
-		public string Export(string pageID)
+		public async Task<string> Export(string pageID)
 		{
 			var path = Path.Combine(
 				Path.GetTempPath(),
 				Path.GetFileNameWithoutExtension(Path.GetRandomFileName()) + ".emf");
 
-			using (one = new OneNote())
-			{
-				one.Export(pageID, path, OneNote.ExportFormat.EMF);
-			}
+			await using var one = new OneNote();
+			one.Export(pageID, path, OneNote.ExportFormat.EMF);
 
 			return path;
 		}
@@ -57,63 +55,68 @@ namespace OneMoreCalendar
 			IEnumerable<string> notebookIDs,
 			bool created, bool modified, bool deleted)
 		{
-			using (one = new OneNote())
-			{
-				var notebooks = await GetNotebooks(notebookIDs);
-				var ns = notebooks.GetNamespaceOfPrefix(OneNote.Prefix);
+			await using var one = new OneNote();
 
-				// filter to selected month...
+			var notebooks = await GetNotebooks(notebookIDs);
+			var ns = notebooks.GetNamespaceOfPrefix(OneNote.Prefix);
 
-				var pages = new CalendarPages();
+			// filter to selected month...
 
-				pages.AddRange(notebooks.Descendants(ns + "Page")
-					.Where(e => deleted || e.Attribute("isInRecycleBin") == null)
-					// collect all pages
-					.Select(e => new
-					{
-						Page = e,
-						Created = DateTime.Parse(e.Attribute("dateTime").Value),
-						Modified = DateTime.Parse(e.Attribute("lastModifiedTime").Value),
-						IsDeleted = e.Attribute("isInRecycleBin") != null
-					})
-					// filter by one or both filters
-					.Where(a =>
-						(created && a.Created.InRange(startDate, endDate)) ||
-						(modified && a.Modified.InRange(startDate, endDate)))
-					// prefer creation time
-					.OrderBy(a => created ? a.Created : a.Modified)
-					// pretty it up
-					.Select(a => new CalendarPage
-					{
-						PageID = a.Page.Attribute("ID").Value,
-						Path = a.Page.Ancestors()
-							.Where(n => n.Attribute("name") != null)
-							.Select(n => n.Attribute("name").Value)
-							.Aggregate((name1, name2) => $"{name2} > {name1}"),
-						Title = a.Page.Attribute("name").Value,
-						Created = a.Created,
-						Modified = a.Modified,
-						IsDeleted = a.IsDeleted
-					}));
+			var pages = new CalendarPages();
 
-				pages.ForEach(page =>
+			pages.AddRange(notebooks.Descendants(ns + "Page")
+				.Where(e => deleted || e.Attribute("isInRecycleBin") == null)
+				// collect all pages
+				.Select(e => new
 				{
-					var DeletedPages = "OneNote_RecycleBin > Deleted Pages";
-					if (page.Path.EndsWith(DeletedPages))
-					{
-						page.Path = page.Path.Substring(
-							0, page.Path.Length - DeletedPages.Length) + "Recycle Bin";
-					}
-				});
+					Page = e,
+					Created = DateTime.Parse(e.Attribute("dateTime").Value, DateTimeFormatInfo.CurrentInfo),
+					Modified = DateTime.Parse(e.Attribute("lastModifiedTime").Value, DateTimeFormatInfo.CurrentInfo),
+					IsDeleted = e.Attribute("isInRecycleBin") != null
+				})
+				// filter by one or both filters
+				.Where(a =>
+					(created && a.Created.InRange(startDate, endDate)) ||
+					(modified && a.Modified.InRange(startDate, endDate)))
+				// prefer creation time
+				.OrderBy(a => created ? a.Created : a.Modified)
+				// pretty it up
+				.Select(a => new CalendarPage
+				{
+					PageID = a.Page.Attribute("ID").Value,
+					Path = a.Page.Ancestors()
+						.Where(n => n.Attribute("name") != null)
+						.Select(n => n.Attribute("name").Value)
+						.Aggregate((name1, name2) => $"{name2} > {name1}"),
+					Title = a.Page.Attribute("name").Value,
+					Created = a.Created,
+					Modified = a.Modified,
+					IsDeleted = a.IsDeleted,
+					HasReminders = a.Page.Elements(ns + "Meta")
+						.Any(e =>
+							e.Attribute("name").Value == MetaNames.Reminder &&
+							e.Attribute("content").Value.Length > 0)
+				}));
 
-				return pages;
-			}
+			pages.ForEach(page =>
+			{
+				var DeletedPages = "OneNote_RecycleBin > Deleted Pages";
+				if (page.Path.EndsWith(DeletedPages))
+				{
+					page.Path = page.Path.Substring(
+						0, page.Path.Length - DeletedPages.Length) + "Recycle Bin";
+				}
+			});
+
+			return pages;
 		}
 
 
 		private async Task<XElement> GetNotebooks(IEnumerable<string> ids)
 		{
 			// attempt optimal ways to load...
+
+			await using var one = new OneNote();
 
 			if (!ids.Any())
 			{
@@ -134,14 +137,22 @@ namespace OneMoreCalendar
 				}
 			}
 
-			notebooks.Elements(ns + "Notebook").Remove();
-			foreach (var id in ids)
+			// filter out unknown notebookIDs to avoid uncatchable exception!
+			var nids = notebooks.Elements(ns + "Notebook").Select(e => e.Attribute("ID").Value);
+			var knownIDs = ids.Where(i => nids.Contains(i));
+
+			var books = new XElement(ns + "Notebooks",
+				new XAttribute(XNamespace.Xmlns + OneNote.Prefix, ns)
+				);
+
+			foreach (var id in knownIDs)
 			{
 				var book = await one.GetNotebook(id, OneNote.Scope.Pages);
-				notebooks.Add(book);
+				books.Add(book);
 			}
 
-			return notebooks;
+			// return filtered list; otherwise return all notebooks
+			return books.Elements().Any() ? books : notebooks;
 		}
 
 
@@ -151,13 +162,35 @@ namespace OneMoreCalendar
 		/// <returns></returns>
 		public async Task<IEnumerable<Notebook>> GetNotebooks()
 		{
-			using (one = new OneNote())
-			{
-				var notebooks = await one.GetNotebooks();
-				var ns = notebooks.GetNamespaceOfPrefix(OneNote.Prefix);
+			await using var one = new OneNote();
+			var notebooks = await one.GetNotebooks();
+			var ns = notebooks.GetNamespaceOfPrefix(OneNote.Prefix);
 
-				return notebooks.Elements(ns + "Notebook")
-					.Select(e => new Notebook(e));
+			return notebooks.Elements(ns + "Notebook")
+				.Select(e => new Notebook(e));
+		}
+
+
+		/// <summary>
+		/// Gets the onenote:hyperlink and Web hyperlink for each page.
+		/// </summary>
+		/// <param name="pages">A collection of CalendarPages</param>
+		/// <returns></returns>
+		public async Task GetPageLinks(List<CalendarPage> pages)
+		{
+			await using var one = new OneNote();
+			foreach (var page in pages)
+			{
+				try
+				{
+					page.Hyperlink = one.GetHyperlink(page.PageID, string.Empty);
+					page.WebHyperlink = one.GetWebHyperlink(page.PageID, string.Empty);
+				}
+				catch (Exception exc)
+				{
+					Logger.Current.WriteLine("error getting page hyperlinks", exc);
+					page.Hyperlink = null;
+				}
 			}
 		}
 
@@ -169,21 +202,21 @@ namespace OneMoreCalendar
 		/// <returns></returns>
 		public async Task<IEnumerable<int>> GetYears(IEnumerable<string> notebookIDs)
 		{
-			using (one = new OneNote())
-			{
-				var notebooks = await GetNotebooks(notebookIDs);
-				var ns = notebooks.GetNamespaceOfPrefix(OneNote.Prefix);
+			await using var one = new OneNote();
+			var notebooks = await GetNotebooks(notebookIDs);
+			var ns = notebooks.GetNamespaceOfPrefix(OneNote.Prefix);
 
-				var pages = notebooks.Descendants(ns + "Page");
+			var pages = notebooks.Descendants(ns + "Page");
 
-				var years = pages
-					.Select(p => DateTime.Parse(p.Attribute("dateTime").Value).Year)
-					.Union(pages.Select(p => DateTime.Parse(p.Attribute("lastModifiedTime").Value).Year))
-					.Distinct()
-					.OrderByDescending(y => y);
+			var years = pages
+				.Select(p => DateTime.Parse(
+					p.Attribute("dateTime").Value, DateTimeFormatInfo.CurrentInfo).Year)
+				.Union(pages.Select(p => DateTime.Parse(
+					p.Attribute("lastModifiedTime").Value, DateTimeFormatInfo.CurrentInfo).Year))
+				.Distinct()
+				.OrderByDescending(y => y);
 
-				return years;
-			}
+			return years;
 		}
 
 
@@ -194,15 +227,12 @@ namespace OneMoreCalendar
 		/// <returns></returns>
 		public async Task NavigateTo(string pageID)
 		{
-			using (one = new OneNote())
+			await using var one = new OneNote();
+			var url = one.GetHyperlink(pageID, string.Empty);
+			if (!string.IsNullOrEmpty(url))
 			{
-				var url = one.GetHyperlink(pageID, string.Empty);
-				if (url != null)
-				{
-					await one.NavigateTo(url);
-				}
+				await one.NavigateTo(url);
 			}
-
 		}
 	}
 }

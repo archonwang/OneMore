@@ -15,7 +15,7 @@ namespace River.OneMoreAddIn.Commands
 	using System.Threading.Tasks;
 	using System.Web;
 	using System.Xml.Linq;
-	using Resx = River.OneMoreAddIn.Properties.Resources;
+	using Resx = Properties.Resources;
 
 
 	internal class Archivist : Loggable
@@ -42,7 +42,7 @@ namespace River.OneMoreAddIn.Commands
 		{
 			logger.WriteLine("building hyperlink map");
 
-			map = await one.BuildHyperlinkMap(
+			map = await new HyperlinkProvider(one).BuildHyperlinkMap(
 				scope,
 				token,
 				async (count) =>
@@ -68,9 +68,12 @@ namespace River.OneMoreAddIn.Commands
 		/// <param name="filename">The output file to create/overwrite</param>
 		/// <param name="format">The OneNote ExportFormat</param>
 		/// <param name="withAttachments">True if copy and relink attachments</param>
+		/// <param name="embedded">True if attachment should be embedded; false to link</param>
 		/// <returns>True if the export was successful</returns>
-		public bool Export(string pageId, string filename,
-			OneNote.ExportFormat format, bool withAttachments = false)
+		public async Task<bool> Export(string pageId, string filename,
+			OneNote.ExportFormat format,
+			bool withAttachments = false,
+			bool embedded = false)
 		{
 			logger.WriteLine($"publishing page to {filename}");
 
@@ -81,17 +84,15 @@ namespace River.OneMoreAddIn.Commands
 					File.Delete(filename);
 				}
 
-				PathFactory.EnsurePathExists(Path.GetDirectoryName(filename));
+				PathHelper.EnsurePathExists(Path.GetDirectoryName(filename));
 
 				if (one.Export(pageId, filename, format))
 				{
 					if (withAttachments && format == OneNote.ExportFormat.Word)
 					{
-						using (var word = new Helpers.Office.Word())
-						{
-							var page = one.GetPage(pageId);
-							word.LinkupAttachments(filename, page.Root);
-						}
+						using var word = new Helpers.Office.Word();
+						var page = await one.GetPage(pageId);
+						word.ResolveAttachmentRefs(filename, page.Root, embedded);
 					}
 
 					return true;
@@ -103,7 +104,10 @@ namespace River.OneMoreAddIn.Commands
 			{
 				var fmt = format.ToString();
 				logger.WriteLine($"error publishig page as {fmt}", exc);
-				UIHelper.ShowError(string.Format(Resx.SaveAs_Error, fmt) + "\n\n" + exc.Message);
+
+				UI.MoreMessageBox.ShowError(null,
+					string.Format(Resx.SaveAs_Error, fmt) + "\n\n" + exc.Message);
+
 				return false;
 			}
 		}
@@ -115,21 +119,21 @@ namespace River.OneMoreAddIn.Commands
 		/// 
 		/// </summary>
 		/// <param name="page"></param>
-		/// <param name="filename"></param>
+		/// <param name="filename">Unique qualified name</param>
 		/// <param name="hpath"></param>
 		/// <param name="bookScope"></param>
-		public void ExportHTML(
-			Page page, ref string filename, string hpath = null, bool bookScope = false)
+		public async Task<string> ExportHTML(
+			Page page, string filename, string hpath = null, bool bookScope = false)
 		{
 			// expand C:\folder\name.htm --> C:\folder\name\name.htm
-			var name = Path.GetFileNameWithoutExtension(filename);				// "name"
-			var fame = PathFactory.CleanFileName(Path.GetFileName(filename));	// "name.htm"
-			var path = Path.Combine(Path.GetDirectoryName(filename), name);		// "c:\folder\name"
-			filename = Path.Combine(path, fame);								// "c:\folder\name\name.htm"
+			var name = Path.GetFileNameWithoutExtension(filename);              // "name"
+			var fame = PathHelper.CleanFileName(Path.GetFileName(filename));    // "name.htm"
+			var path = Path.Combine(Path.GetDirectoryName(filename), name);     // "c:\folder\name"
+			filename = Path.Combine(path, fame);                                // "c:\folder\name\name.htm"
 
-			if (PathFactory.EnsurePathExists(path))
+			if (PathHelper.EnsurePathExists(path))
 			{
-				if (Export(page.PageId, filename, OneNote.ExportFormat.HTML))
+				if (await Export(page.PageId, filename, OneNote.ExportFormat.HTML))
 				{
 					if (map != null)
 					{
@@ -139,6 +143,8 @@ namespace River.OneMoreAddIn.Commands
 					ArchiveAttachments(page, filename, path);
 				}
 			}
+
+			return filename;
 		}
 
 
@@ -165,6 +171,11 @@ namespace River.OneMoreAddIn.Commands
 			var index = 0;
 			var builder = new StringBuilder();
 
+			// named group captures:
+			//  <u> = entire URI
+			//  <s> = section ID
+			//  <p> = page ID
+			//  <n> = page name
 			var matches = Regex.Matches(text,
 				@"<a\s+href=""(?<u>onenote:[^;]*?[#;]section-id=(?<s>{[^}]*?})(?:&amp;page-id=(?<p>{[^}]*?}))?[^""]*?)"">(?<n>.*?)</a>",
 				RegexOptions.Singleline);
@@ -182,17 +193,33 @@ namespace River.OneMoreAddIn.Commands
 					var uri = groups["u"];
 					var id = groups["p"].Success ? groups["p"].Value : null;
 
-					if (id != null && map.ContainsKey(id))
+					OneNote.HyperlinkInfo item = null;
+					if (id != null)
 					{
-						var name = groups["n"].Value;
-						if (name.Contains('<'))
+						if (map.ContainsKey(id))
 						{
-							// strip html from the name to get raw text
-							name = name.ToXmlWrapper().Value;
+							// found exact match
+							item = map[id];
 						}
+						else
+						{
+							// URI is in different format so match by section-id and page-id
+							item = map.Values.FirstOrDefault(m =>
+								m.SectionID == groups["s"].Value &&
+								m.PageID == groups["p"].Value);
+						}
+					}
 
-						name = HttpUtility.UrlDecode(PathFactory.CleanFileName(name));
-						var item = map[id];
+					if (item != null)
+					{
+						//var name = groups["n"].Value;
+						//if (name.Contains('<'))
+						//{
+						//	// strip html from the name to get raw text
+						//	name = name.ToXmlWrapper().Value;
+						//}
+
+						var name = HttpUtility.UrlDecode(PathHelper.CleanFileName(item.Name));
 
 						//logger.WriteLine();
 						var fpath = bookScope ? item.FullPath : item.FullPath.Substring(item.FullPath.IndexOf('/') + 1);
@@ -284,7 +311,7 @@ namespace River.OneMoreAddIn.Commands
 
 				// match <<escaped-name>>
 
-				var escape = name.Replace(@"\", @"\\").Replace(".", @"\.");
+				var escape = name.Replace(@"\", @"\\").Replace(".", @"\.").Replace("&", "&amp;");
 				var matches = Regex.Matches(text, $@">(&lt;&lt;{escape}&gt;&gt;)</");
 				if (matches.Count == 0)
 				{
@@ -349,7 +376,7 @@ namespace River.OneMoreAddIn.Commands
 					File.Delete(filename);
 				}
 
-				PathFactory.EnsurePathExists(Path.GetDirectoryName(filename));
+				PathHelper.EnsurePathExists(Path.GetDirectoryName(filename));
 
 				var writer = new MarkdownWriter(page, withAttachments);
 				writer.Save(filename);
@@ -357,7 +384,8 @@ namespace River.OneMoreAddIn.Commands
 			catch (Exception exc)
 			{
 				logger.WriteLine("error publishig page as Markdown", exc);
-				UIHelper.ShowError(string.Format(Resx.SaveAs_Error, "Markdown") + "\n\n" + exc.Message);
+				UI.MoreMessageBox.ShowError(null,
+					string.Format(Resx.SaveAs_Error, "Markdown") + "\n\n" + exc.Message);
 			}
 		}
 
@@ -374,7 +402,7 @@ namespace River.OneMoreAddIn.Commands
 			try
 			{
 				var path = Path.GetDirectoryName(filename);
-					
+
 				if (withAttachments)
 				{
 					CopyXmlAttachments(root, path);
@@ -385,14 +413,15 @@ namespace River.OneMoreAddIn.Commands
 					File.Delete(filename);
 				}
 
-				PathFactory.EnsurePathExists(path);
+				PathHelper.EnsurePathExists(path);
 
 				root.Save(filename);
 			}
 			catch (Exception exc)
 			{
 				logger.WriteLine("error publishig page as XML", exc);
-				UIHelper.ShowError(string.Format(Resx.SaveAs_Error, "XML") + "\n\n" + exc.Message);
+				UI.MoreMessageBox.ShowError(null,
+					string.Format(Resx.SaveAs_Error, "XML") + "\n\n" + exc.Message);
 			}
 		}
 

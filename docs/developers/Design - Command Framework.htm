@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description"
+    content="OneMore is an add-in for OneNote with simple and powerful features that make OneNote a better OneNote">
+  <meta name="author" content="Steven M Cohn">
+  <meta name="generator" content="OneMore">
+  <title>OneMore - a OneNote add-in</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha2/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-aFq/bzH65dt+w6FI2ooMVUpc+21e0SRygnTpmBvdBgSdnuTN7QbdgL+OapgHtvPp" crossorigin="anonymous">
+  <link href="/nav.css" rel="stylesheet">
+  <link href="/toc.css" rel="stylesheet">
+</head>
+
+<body>
+  <svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+    <symbol id="book-half" viewBox="0 0 16 16">
+      <path fill="currentColor" fill-rule="evenodd"
+        d="M8.5 2.687c.654-.689 1.782-.886 3.112-.752 1.234.124 2.503.523 3.388.893v9.923c-.918-.35-2.107-.692-3.287-.81-1.094-.111-2.278-.039-3.213.492V2.687zM8 1.783C7.015.936 5.587.81 4.287.94c-1.514.153-3.042.672-3.994 1.105A.5.5 0 0 0 0 2.5v11a.5.5 0 0 0 .707.455c.882-.4 2.303-.881 3.68-1.02 1.409-.142 2.59.087 3.223.877a.5.5 0 0 0 .78 0c.633-.79 1.814-1.019 3.222-.877 1.378.139 2.8.62 3.681 1.02A.5.5 0 0 0 16 13.5v-11a.5.5 0 0 0-.293-.455c-.952-.433-2.48-.952-3.994-1.105C10.413.809 8.985.936 8 1.783z">
+      </path>
+    </symbol>
+    <symbol id="three-dots" viewBox="0 0 16 16">
+      <path fill="currentColor" fill-rule="evenodd"
+        d="M3 9.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z">
+      </path>
+    </symbol>
+    <symbol id="facebook">
+      <path fill="currentColor" fill-rule="evenodd"
+        d="M480,257.35c0-123.7-100.3-224-224-224s-224,100.3-224,224c0,111.8,81.9,204.47,189,221.29V322.12H164.11V257.35H221V208c0-56.13,33.45-87.16,84.61-87.16,24.51,0,50.15,4.38,50.15,4.38v55.13H327.5c-27.81,0-36.51,17.26-36.51,35v42h62.12l-9.92,64.77H291V478.66C398.1,461.85,480,369.18,480,257.35Z">
+      </path>
+    </symbol>
+    <symbol id="github">
+      <path fill="currentColor" fill-rule="evenodd"
+        d="M256 0C114.64 0 0 114.61 0 256c0 113.09 73.34 209 175.08 242.9 12.8 2.35 17.47-5.56 17.47-12.34 0-6.08-.22-22.18-.35-43.54-71.2 15.49-86.2-34.34-86.2-34.34-11.64-29.57-28.42-37.45-28.42-37.45-23.27-15.84 1.73-15.55 1.73-15.55 25.69 1.81 39.21 26.38 39.21 26.38 22.84 39.12 59.92 27.82 74.5 21.27 2.33-16.54 8.94-27.82 16.25-34.22-56.84-6.43-116.6-28.43-116.6-126.49 0-27.95 10-50.8 26.35-68.69-2.63-6.48-11.42-32.5 2.51-67.75 0 0 21.49-6.88 70.4 26.24a242.65 242.65 0 0 1 128.18 0c48.87-33.13 70.33-26.24 70.33-26.24 14 35.25 5.18 61.27 2.55 67.75 16.41 17.9 26.31 40.75 26.31 68.69 0 98.35-59.85 120-116.88 126.32 9.19 7.9 17.38 23.53 17.38 47.41 0 34.22-.31 61.83-.31 70.23 0 6.85 4.61 14.81 17.6 12.31C438.72 464.97 512 369.08 512 256.02 512 114.62 397.37 0 256 0z">
+      </path>
+    </symbol>
+    <symbol id="heart">
+      <path stroke="#FF0000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+        d="M12 7.69431C10 2.99988 3 3.49988 3 9.49991C3 15.4999 12 20.5001 12 20.5001C12 20.5001 21 15.4999 21 9.49991C21 3.49988 14 2.99988 12 7.69431Z">
+      </path>
+    </symbol>
+  </svg>
+
+  <script src="https://code.jquery.com/jquery-3.5.1.min.js"
+    integrity="sha384-ZvpUoO/+PpLXR1lu4jmpXWu80pZlYUAfxl5NsBMWOEPSjUn/6Z/hRTt8+pR6L4N2"
+    crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha2/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-qKXV1j0HvMUeCBQ+QVp7JcfGl760yU08IQ+GpUo5hlbpg51QRiuqHAJz8+BrxE/N"
+    crossorigin="anonymous"></script>
+
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg bg-body-tertiary fixed-top" aria-label="OneMore-navbar">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="/">
+        <img src="/Logo.png" alt="OneMore" height="45" class="logo d-inline-block align-text-middle">
+        <div class="logo-text">OneMore</div>
+      </a>
+
+      <div class="navbar-toggler d-flex d-lg-none order-3 p-2" style="display:block">
+        <button class="navbar-toggler navbar-dark" type="button" data-bs-toggle="offcanvas"
+          data-bs-target="#offcanvasResponsive" aria-controls="offcanvasResponsive" aria-label="TOC">
+          <svg class="bi" aria-hidden="true">
+            <use xlink:href="#book-half"></use>
+          </svg>
+        </button>
+
+        <button class="navbar-toggler navbar-dark" type="button" data-bs-toggle="collapse"
+          data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false"
+          aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+      </div>
+
+      <div class="collapse navbar-collapse" id="navbarSupportedContent">
+        <div class="navbar-nav me-auto mb-2 mb-lg-0">
+          <!-- TODO class+active aria-currrent=page -->
+          <a class="nav-link" href="/get-started/index.html" id="get-started-section">Get started</a>
+          <a class="nav-link" href="/the-basics/index.html" id="the-basics-section">The Basics</a>
+          <a class="nav-link" href="/commands/index.html" id="commands-section">Commands</a>
+          <a class="nav-link" href="/context-menus/index.html" id="context-menus-section">Context Menus</a>
+          <a class="nav-link" href="/developers/index.html" id="developers-section">Developers</a>
+        </div>
+        <div class="d-flex">
+          <a class="nav-link nav-glyph py-2 px-lg-2" href="https://facebook.com/OneMoreAddIn" target="_blank" rel="noopener">
+            <svg width="22px" height="22px" viewBox="0 0 512 512" id="fbglyph" xmlns="http://www.w3.org/2000/svg"
+              stroke="#FFFFFF" role="img" class="navbar-nav-svg">
+              <title>OneMore on Facebook</title>
+              <use xlink:href="#facebook"></use>
+            </svg>
+            <small class="d-lg-none ms-2">Facebook</small>
+          </a>
+          <a class="nav-link nav-glyph py-2 px-lg-2" href="https://github.com/stevencohn/OneMore" target="_blank" rel="noopener">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" class="navbar-nav-svg"
+              viewBox="0 0 512 499.36" role="img">
+              <title>See the project on GitHub</title>
+              <use xlink:href="#github"></use>
+            </svg>
+            <small class="d-lg-none ms-2">GitHub</small>
+          </a>
+          <a class="nav-link nav-glyph py-2 px-lg-2" href="https://github.com/sponsors/stevencohn" target="_blank" rel="noopener">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" class="navbar-nav-svg" viewBox="0 0 24 24"
+              role="img" fill="none">
+              <title>Please consider a donation</title>
+              <use xlink:href="#heart"></use>
+            </svg>
+            <small class="d-lg-none ms-2">Donate</small>
+          </a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="wrapper">
+
+    <!-- Sidebar -->
+    <nav id="sidebar" style="background-color:#EBE5E1; " aria-label="Sidebar">
+      <div class="offcanvas-lg offcanvas-end" tabindex="-1" id="offcanvasResponsive"
+        aria-labelledby="offcanvasResponsiveLabel">
+        <div class="offcanvas-header">
+          <h5 class="offcanvas-title" id="offcanvasResponsiveLabel">Get Started</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#offcanvasResponsive"
+            aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body">
+          <ul class="navbar-nav">
+            <li><a id="setup" href="Setup.htm">Setup</a></li>
+<li><a id="building-the-installer" href="Building The Installer.htm">Building The Installer</a></li>
+<li><a id="debugging-onemore" href="Debugging OneMore.htm">Debugging OneMore</a></li>
+<li><a id="experimental-features" href="Experimental Features.htm">Experimental Features</a></li>
+<li><a id="how-to-add-a-new-command" href="How to Add A New Command.htm">How to Add A New Command</a></li>
+<li><a id="how-to-add-a-settings-sheet" href="How to Add A Settings Sheet.htm">How to Add A Settings Sheet</a></li>
+<li><a id="language-translations" href="Language Translations.htm">Language Translations</a></li>
+<li><a id="logging-options" href="Logging Options.htm">Logging Options</a></li>
+<li><a id="scripts" href="Scripts.htm">Scripts</a></li>
+<li><a id="smoke-tests" href="Smoke Tests.htm">Smoke Tests</a></li>
+<li><a id="references" href="References.htm">References</a></li>
+<li><a id="design---command-framework" href="Design - Command Framework.htm">Design - Command Framework</a></li>
+<li><a id="design---command-service" href="Design - Command Service.htm">Design - Command Service</a></li>
+<li><a id="design---hashtags" href="Design - Hashtags.htm">Design - Hashtags</a></li>
+<li><a id="technote---colors" href="TechNote - Colors.htm">TechNote - Colors</a></li>
+<li><a id="technote---com-registration" href="TechNote - COM Registration.htm">TechNote - COM Registration</a></li>
+<li><a id="technote---com-surrogate" href="TechNote - COM Surrogate.htm">TechNote - COM Surrogate</a></li>
+<li><a id="technote---editing-text" href="TechNote - Editing Text.htm">TechNote - Editing Text</a></li>
+<li><a id="technote---interop" href="TechNote - Interop.htm">TechNote - Interop</a></li>
+<li><a id="technote---styles" href="TechNote - Styles.htm">TechNote - Styles</a></li>
+<li><a id="onenote-defects" href="OneNote Defects.htm">OneNote Defects</a></li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Page Content -->
+    <div id="content" style="margin-left: 30px; margin-top:100px;">
+      <DIV style="DIRECTION: ltr">
+<DIV style="WIDTH: 8.512in; MARGIN-TOP: 0in; DIRECTION: ltr; MARGIN-LEFT: 0in">
+<DIV style="WIDTH: 3.978in; MARGIN-TOP: 0in; DIRECTION: ltr; MARGIN-LEFT: 0.075in">
+<P lang=yo style='FONT-SIZE: 20pt; FONT-FAMILY: "Calibri Light"; MARGIN: 0in'>Design - Command Framework</P></DIV>
+<DIV style="WIDTH: 2.605in; MARGIN-TOP: 0.042in; DIRECTION: ltr; MARGIN-LEFT: 0.075in">
+<P style="FONT-SIZE: 10pt; FONT-FAMILY: Calibri; COLOR: #767676; MARGIN: 0in">Wednesday, March 22, 2023</P>
+<P style="FONT-SIZE: 10pt; FONT-FAMILY: Calibri; COLOR: #767676; MARGIN: 0in">10:34 AM</P></DIV>
+<DIV style="WIDTH: 8.512in; MARGIN-TOP: 0.427in; DIRECTION: ltr; MARGIN-LEFT: 0in">
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">The OneMore add-in extends OneNote with many new commands. Just like most OneNote commands, the OneMore commands are available through a set of concise menus on the Home ribbon bar. They're also available through a number of other mechanisms. Commands generally have the following requirements.</P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<H1 lang=yo style="FONT-SIZE: 16pt; FONT-FAMILY: Calibri; COLOR: #1e4e79; MARGIN: 0in">Requirements</H1>
+<UL style="MARGIN-BOTTOM: 0in; unicode-bidi: embed; MARGIN-TOP: 0in; DIRECTION: ltr" type=disc>
+<LI lang=yo style="MARGIN-BOTTOM: 0px; VERTICAL-ALIGN: middle; MARGIN-TOP: 0px"><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri">Commands should be created and destroyed using a standard pattern</SPAN> 
+<LI lang=yo style="MARGIN-BOTTOM: 0px; VERTICAL-ALIGN: middle; MARGIN-TOP: 0px"><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri">Commands should be accessible from the ribbon, from hotkeys, and from the Command Palette</SPAN> 
+<LI lang=yo style="MARGIN-BOTTOM: 0px; VERTICAL-ALIGN: middle; MARGIN-TOP: 0px"><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri">Commands should be discoverable such that they can be enumerated and added to context menus</SPAN> 
+<LI lang=yo style="MARGIN-BOTTOM: 0px; VERTICAL-ALIGN: middle; MARGIN-TOP: 0px"><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri">Commands should have access to the Ribbon to update or add/remove controls, e.g. Favorites or Snippets</SPAN> 
+<LI lang=yo style="MARGIN-BOTTOM: 0px; VERTICAL-ALIGN: middle; MARGIN-TOP: 0px"><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri">Commands should be tracked through a most-recently-used list, MRU</SPAN> 
+<LI lang=yo style="MARGIN-BOTTOM: 0px; VERTICAL-ALIGN: middle; MARGIN-TOP: 0px"><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri">Commands should be fully describable such that the MRU can hand that to Replay and Palette functions</SPAN> </LI></UL>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<DIV style="DIRECTION: ltr">
+<TABLE title="" style="BORDER-TOP: #a3a3a3 0pt solid; BORDER-RIGHT: #a3a3a3 0pt solid; BORDER-COLLAPSE: collapse; BORDER-BOTTOM: #a3a3a3 0pt solid; DIRECTION: ltr; BORDER-LEFT: #a3a3a3 0pt solid" cellSpacing=0 cellPadding=0 summary="" border=0 valign="top">
+<TBODY>
+<TR>
+<TD style="BORDER-LEFT-WIDTH: 0pt; BORDER-RIGHT-WIDTH: 0pt; WIDTH: 8.332in; VERTICAL-ALIGN: top; BORDER-BOTTOM-WIDTH: 0pt; PADDING-BOTTOM: 2pt; PADDING-TOP: 2pt; PADDING-LEFT: 3pt; PADDING-RIGHT: 3pt; BORDER-TOP-WIDTH: 0pt">
+<P style="MARGIN: 0in"><IMG src="Design%20-%20Command%20Framework_files/image001.png" width=786 height=134></P>
+<P lang=yo style="FONT-SIZE: 10pt; FONT-FAMILY: Calibri; COLOR: #5b9bd5; TEXT-ALIGN: center; MARGIN: 0in"><SPAN style="FONT-WEIGHT: bold">Command Use Cases</SPAN></P></TD></TR></TBODY></TABLE></DIV>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">Ultimately, the goal is to simplify how we add new commands and automate all of these use cases. In <A href="How to Add A New Command.htm">How to Add a New Command</A>, it shows that this can be done in three easy steps:</P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<OL style="FONT-SIZE: 11.5pt; MARGIN-BOTTOM: 0in; FONT-FAMILY: Calibri; unicode-bidi: embed; MARGIN-TOP: 0in; FONT-WEIGHT: normal; DIRECTION: ltr; FONT-STYLE: normal" type=1>
+<LI lang=yo style="MARGIN-BOTTOM: 0px; VERTICAL-ALIGN: middle; MARGIN-TOP: 0px" value=1><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; FONT-WEIGHT: normal; FONT-STYLE: normal">Implement the command, inheriting from the </SPAN><SPAN style='FONT-SIZE: 10pt; FONT-FAMILY: "Lucida Console"; BACKGROUND: #f1f1f1; FONT-WEIGHT: normal; FONT-STYLE: normal'>Command</SPAN><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; FONT-WEIGHT: normal; FONT-STYLE: normal"> base class</SPAN> 
+<LI lang=yo style="MARGIN-BOTTOM: 0px; VERTICAL-ALIGN: middle; MARGIN-TOP: 0px"><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri">Implement the proxy method in the AddInCommands.cs file</SPAN> 
+<LI lang=yo style="MARGIN-BOTTOM: 0px; VERTICAL-ALIGN: middle; MARGIN-TOP: 0px"><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri">Add a new button control in the ribbon by declaring it in the Ribbon.xml file</SPAN> </LI></OL>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<H1 lang=yo style="FONT-SIZE: 16pt; FONT-FAMILY: Calibri; COLOR: #1e4e79; MARGIN: 0in">Assumptions</H1>
+<UL style="MARGIN-BOTTOM: 0in; unicode-bidi: embed; MARGIN-TOP: 0in; DIRECTION: ltr" type=disc>
+<LI lang=yo style="MARGIN-BOTTOM: 0px; VERTICAL-ALIGN: middle; MARGIN-TOP: 0px"><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri">Controls in the ribbon.xml include the </SPAN><SPAN style='FONT-SIZE: 10pt; FONT-FAMILY: "Lucida Console"; BACKGROUND: #f1f1f1'>onAction</SPAN><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri"> attribute, specifying the name of a callback method. Every callback method must be an imperative member, defined in the AddIn scope</SPAN> 
+<LI lang=yo style="MARGIN-BOTTOM: 0px; VERTICAL-ALIGN: middle; MARGIN-TOP: 0px"><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri">Everything must run async and be thread-safe</SPAN> 
+<LI lang=yo style="MARGIN-BOTTOM: 0px; VERTICAL-ALIGN: middle; MARGIN-TOP: 0px"><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri">Each command invocation should be as isolated as possible and behave like a good neighbor</SPAN> </LI></UL>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<H1 lang=yo style="FONT-SIZE: 16pt; FONT-FAMILY: Calibri; COLOR: #1e4e79; MARGIN: 0in">Models</H1>
+<P lang=yo style="MARGIN: 0in"><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; COLOR: black">Obviously, the </SPAN><SPAN style='FONT-SIZE: 10pt; FONT-FAMILY: "Lucida Console"; BACKGROUND: #f1f1f1; COLOR: black'>AddIn</SPAN><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; COLOR: black"> class is the root of everything. It implements </SPAN><SPAN style='FONT-SIZE: 10pt; FONT-FAMILY: "Lucida Console"; BACKGROUND: #f1f1f1; COLOR: black'>IDTExtensibility2</SPAN><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri"> that declares add-in lifecycle handlers from which we can grab a reference to </SPAN><SPAN style='FONT-SIZE: 10pt; FONT-FAMILY: "Lucida Console"; BACKGROUND: #f1f1f1; COLOR: black'>IRibbonControl</SPAN><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri"> and </SPAN><SPAN style='FONT-SIZE: 10pt; FONT-FAMILY: "Lucida Console"; BACKGROUND: #f1f1f1'>IRibbonExtensibility</SPAN><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri">,<SPAN style="mso-spacerun: yes">&nbsp; </SPAN>the latter of which declares the </SPAN><SPAN style='FONT-SIZE: 10pt; FONT-FAMILY: "Lucida Console"; BACKGROUND: #f1f1f1'>GetCustomUI</SPAN><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri"> callback where our responsibility is to return XML describing the add-in extensions to the ribbon.</SPAN></P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<P lang=yo style="MARGIN: 0in"><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri">We leverage the </SPAN><SPAN style='FONT-SIZE: 10pt; FONT-FAMILY: "Lucida Console"; BACKGROUND: #f1f1f1'>IDTEExtensibility2.OnStartupComplete</SPAN><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri"> handler to instantiate our own </SPAN><SPAN style='FONT-SIZE: 10pt; FONT-FAMILY: "Lucida Console"; BACKGROUND: #f1f1f1'>CommandFactory</SPAN><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri"> and start up any internal services such as the </SPAN><A href="Design - Command Service.htm"><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri">Command Service</SPAN></A><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri">, Reminder Service[LINK] and Navigation Service[LINK].</SPAN></P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">The AddIn class is divided into multiple C# files, one of which is AddInCommands.cs. This file contains callback methods, each bound to a ribbon control via its onAction property. By convention, each callback method is a very simple proxy that uses the CommandFactory to instantiate and invoke a single command.</P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<P lang=yo style="MARGIN: 0in"><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri">Additionally, each callback method may be decorated with a </SPAN><SPAN style='FONT-SIZE: 10pt; FONT-FAMILY: "Lucida Console"; BACKGROUND: #f1f1f1'>[CommandAttribute]</SPAN><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri"> that declares the resource ID used to lookup the translation string for the command, key definitions that declare the default shortcut key sequence, and an optional category for grouping commands in the Settings dialog.</SPAN></P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<P lang=yo style='FONT-SIZE: 10pt; FONT-FAMILY: "Lucida Console"; MARGIN: 0in 0in 0in 0.375in'><SPAN style="COLOR: black">[Command(</SPAN><SPAN style="COLOR: firebrick">"ribAddFootnoteButton_Label"</SPAN><SPAN style="COLOR: black">, Keys.Control | Keys.Alt | Keys.F, </SPAN><SPAN style="COLOR: firebrick">"ribReferencesMenu"</SPAN><SPAN style="COLOR: black">)]</SPAN></P>
+<P lang=yo style='FONT-SIZE: 10pt; FONT-FAMILY: "Lucida Console"; MARGIN: 0in 0in 0in 0.375in'><SPAN style="COLOR: #2e75b5">public async</SPAN><SPAN style="COLOR: black"> Task AddFootnoteCmd(IRibbonControl control)</SPAN></P>
+<P lang=yo style='FONT-SIZE: 10pt; FONT-FAMILY: "Lucida Console"; MARGIN: 0in 0in 0in 0.75in'><SPAN style="COLOR: black">=&gt; </SPAN><SPAN style="COLOR: #2e75b5">await</SPAN><SPAN style="COLOR: black"> factory.Run&lt;AddFootnoteCommand&gt;();</SPAN></P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<H2 lang=yo style="FONT-SIZE: 14pt; FONT-FAMILY: Calibri; COLOR: #2e75b5; MARGIN: 0in">Command Class</H2>
+<P lang=yo style="MARGIN: 0in"><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri">All commands derive from the abstract base class </SPAN><SPAN style='FONT-SIZE: 10pt; FONT-FAMILY: "Lucida Console"; BACKGROUND: #f1f1f1'>Command</SPAN><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri">. Created by </SPAN><SPAN style='FONT-SIZE: 10pt; FONT-FAMILY: "Lucida Console"; BACKGROUND: #f1f1f1'>CommandFactory</SPAN><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri">, each instance inherits protected fields to access an </SPAN><SPAN style='FONT-SIZE: 10pt; FONT-FAMILY: "Lucida Console"; BACKGROUND: #f1f1f1'>ILogger</SPAN><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri">, the </SPAN><SPAN style='FONT-SIZE: 10pt; FONT-FAMILY: "Lucida Console"; BACKGROUND: #f1f1f1'>IRibbonUI</SPAN><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri">, and a reference to the factory, allowing commands to invoke other commands.</SPAN></P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<P lang=yo style="MARGIN: 0in"><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri">The abstract </SPAN><SPAN style='FONT-SIZE: 10pt; FONT-FAMILY: "Lucida Console"; BACKGROUND: #f1f1f1'>Execute</SPAN><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri"> method must be implemented by inheritors and encapsulates the business logic of the command.</SPAN></P>
+<H2 lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; COLOR: #2e75b5; MARGIN: 0in">&nbsp;</H2>
+<DIV style="DIRECTION: ltr">
+<TABLE title="" style="BORDER-TOP: #a3a3a3 0pt solid; BORDER-RIGHT: #a3a3a3 0pt solid; BORDER-COLLAPSE: collapse; BORDER-BOTTOM: #a3a3a3 0pt solid; DIRECTION: ltr; MARGIN-LEFT: 0.333in; BORDER-LEFT: #a3a3a3 0pt solid" cellSpacing=0 cellPadding=0 summary="" border=0 valign="top">
+<TBODY>
+<TR>
+<TD style="BORDER-LEFT-WIDTH: 0pt; BORDER-RIGHT-WIDTH: 0pt; WIDTH: 3.188in; VERTICAL-ALIGN: top; BORDER-BOTTOM-WIDTH: 0pt; PADDING-BOTTOM: 2pt; PADDING-TOP: 2pt; PADDING-LEFT: 3pt; PADDING-RIGHT: 3pt; BORDER-TOP-WIDTH: 0pt">
+<P style="MARGIN: 0in"><IMG src="Design%20-%20Command%20Framework_files/image002.png" width=288 height=168></P>
+<P lang=yo style="FONT-SIZE: 10pt; FONT-FAMILY: Calibri; COLOR: #5b9bd5; TEXT-ALIGN: center; MARGIN: 0in"><SPAN style="FONT-WEIGHT: bold">Command</SPAN></P></TD>
+<TD style="BORDER-LEFT-WIDTH: 0pt; BORDER-RIGHT-WIDTH: 0pt; WIDTH: 0.534in; VERTICAL-ALIGN: top; BORDER-BOTTOM-WIDTH: 0pt; PADDING-BOTTOM: 2pt; PADDING-TOP: 2pt; PADDING-LEFT: 3pt; PADDING-RIGHT: 3pt; BORDER-TOP-WIDTH: 0pt">
+<P lang=yo style="FONT-SIZE: 10pt; FONT-FAMILY: Calibri; COLOR: #5b9bd5; TEXT-ALIGN: center; MARGIN: 0in">&nbsp;</P></TD></TR></TBODY></TABLE></DIV>
+<H2 lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; COLOR: #2e75b5; MARGIN: 0in">&nbsp;</H2>
+<H2 lang=yo style="FONT-SIZE: 14pt; FONT-FAMILY: Calibri; COLOR: #2e75b5; MARGIN: 0in">CommandFactory Class</H2>
+<P lang=yo style="MARGIN: 0in"><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri">This factory class is responsible for instantiating new commands and initializing their context including </SPAN><SPAN style='FONT-SIZE: 10pt; FONT-FAMILY: "Lucida Console"; BACKGROUND: #f1f1f1'>ILogger</SPAN><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri"> and </SPAN><SPAN style='FONT-SIZE: 10pt; FONT-FAMILY: "Lucida Console"; BACKGROUND: #f1f1f1'>IRibbonUI</SPAN><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri"> references.</SPAN></P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<P lang=yo style="MARGIN: 0in"><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri">The </SPAN><SPAN style='FONT-SIZE: 10pt; FONT-FAMILY: "Lucida Console"; BACKGROUND: #f1f1f1'>Run</SPAN><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri"> method dispatches the command to a new thread, calls its </SPAN><SPAN style='FONT-SIZE: 10pt; FONT-FAMILY: "Lucida Console"; BACKGROUND: #f1f1f1'>Execute</SPAN><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri"> method, and if successful and not cancelled, records it in the MRU.</SPAN></P>
+<P style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in 0in 0in 0.375in">&nbsp;</P>
+<DIV style="DIRECTION: ltr">
+<TABLE title="" style="BORDER-TOP: #a3a3a3 0pt solid; BORDER-RIGHT: #a3a3a3 0pt solid; BORDER-COLLAPSE: collapse; BORDER-BOTTOM: #a3a3a3 0pt solid; DIRECTION: ltr; MARGIN-LEFT: 0.333in; BORDER-LEFT: #a3a3a3 0pt solid" cellSpacing=0 cellPadding=0 summary="" border=0 valign="top">
+<TBODY>
+<TR>
+<TD style="BORDER-LEFT-WIDTH: 0pt; BORDER-RIGHT-WIDTH: 0pt; WIDTH: 3.693in; VERTICAL-ALIGN: top; BORDER-BOTTOM-WIDTH: 0pt; PADDING-BOTTOM: 2pt; PADDING-TOP: 2pt; PADDING-LEFT: 3pt; PADDING-RIGHT: 3pt; BORDER-TOP-WIDTH: 0pt">
+<P style="MARGIN: 0in"><IMG src="Design%20-%20Command%20Framework_files/image003.png" width=341 height=126></P>
+<P lang=yo style="FONT-SIZE: 10pt; FONT-FAMILY: Calibri; COLOR: #5b9bd5; TEXT-ALIGN: center; MARGIN: 0in"><SPAN style="FONT-WEIGHT: bold">CommandFactory</SPAN></P></TD></TR></TBODY></TABLE></DIV>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<P lang=yo style='FONT-SIZE: 10pt; FONT-FAMILY: "Courier New"; COLOR: #43577c; MARGIN: 0in'>──────────────────────────────────────────────────────────────────────────────────────────────────</P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in"><SPAN style="FONT-STYLE: italic">Command Use Cases PlantUML (</SPAN><A href="onemore://PlantUmlCommand/3679ddf69ed24091978630e1ffd1d277"><SPAN style="FONT-STYLE: italic">Refresh</SPAN></A><SPAN style="FONT-STYLE: italic">)</SPAN></P>
+<P lang=yo style='FONT-SIZE: 9.5pt; FONT-FAMILY: "Lucida Console"; MARGIN: 0in 0in 0in 0.375in'><SPAN style="FONT-WEIGHT: bold; COLOR: #5b9bd5">@startuml</SPAN> Command Use Cases</P>
+<P lang=yo style='FONT-SIZE: 9.5pt; FONT-FAMILY: "Lucida Console"; MARGIN: 0in 0in 0in 0.375in'><SPAN style="COLOR: #a5a5a5">scale</SPAN><SPAN style="COLOR: black"> max </SPAN><SPAN style="COLOR: #8064a2">590</SPAN><SPAN style="COLOR: black"> width</SPAN></P>
+<P lang=yo style='FONT-SIZE: 9.5pt; FONT-FAMILY: "Lucida Console"; MARGIN: 0in 0in 0in 0.375in'><SPAN style="COLOR: #a5a5a5">skin</SPAN><SPAN style="COLOR: black"> rose</SPAN></P>
+<P lang=yo style='FONT-SIZE: 9.5pt; FONT-FAMILY: "Lucida Console"; MARGIN: 0in 0in 0in 0.375in'><SPAN style="COLOR: #2e75b5">top</SPAN><SPAN style="COLOR: black"> to </SPAN><SPAN style="COLOR: #2e75b5">bottom</SPAN><SPAN style="COLOR: black"> direction</SPAN></P>
+<P lang=yo style='FONT-SIZE: 9.5pt; FONT-FAMILY: "Lucida Console"; MARGIN: 0in 0in 0in 0.375in'><SPAN style="COLOR: lightseagreen">usecase</SPAN><SPAN style="COLOR: black"> (Command) </SPAN><SPAN style="COLOR: #2e75b5">as</SPAN><SPAN style="COLOR: black"> cmd #LightSkyBlue</SPAN></P>
+<P lang=yo style='FONT-SIZE: 9.5pt; FONT-FAMILY: "Lucida Console"; MARGIN: 0in 0in 0in 0.375in'><SPAN style="COLOR: lightseagreen">usecase</SPAN><SPAN style="COLOR: black"> Hotkeys</SPAN></P>
+<P lang=yo style='FONT-SIZE: 9.5pt; FONT-FAMILY: "Lucida Console"; MARGIN: 0in 0in 0in 0.375in'><SPAN style="COLOR: lightseagreen">usecase</SPAN><SPAN style="COLOR: black"> Replay</SPAN></P>
+<P lang=yo style='FONT-SIZE: 9.5pt; FONT-FAMILY: "Lucida Console"; MARGIN: 0in 0in 0in 0.375in'><SPAN style="COLOR: lightseagreen">usecase</SPAN><SPAN style="COLOR: black"> Palette</SPAN></P>
+<P lang=yo style='FONT-SIZE: 9.5pt; FONT-FAMILY: "Lucida Console"; MARGIN: 0in 0in 0in 0.375in'><SPAN style="COLOR: lightseagreen">usecase</SPAN><SPAN style="COLOR: black"> Ribbon</SPAN></P>
+<P lang=yo style='FONT-SIZE: 9.5pt; FONT-FAMILY: "Lucida Console"; MARGIN: 0in 0in 0in 0.375in'><SPAN style="COLOR: lightseagreen">usecase </SPAN><SPAN style="COLOR: firebrick">"Context Menus" </SPAN><SPAN style="COLOR: #2e75b5">as</SPAN><SPAN style="COLOR: black"> menus</SPAN></P>
+<P lang=yo style='FONT-SIZE: 9.5pt; FONT-FAMILY: "Lucida Console"; MARGIN: 0in 0in 0in 0.375in'><SPAN style="COLOR: lightseagreen">usecase</SPAN><SPAN style="COLOR: black"> Aliases</SPAN></P>
+<P lang=yo style='FONT-SIZE: 9.5pt; FONT-FAMILY: "Lucida Console"; MARGIN: 0in 0in 0in 0.375in'><SPAN style="COLOR: black">cmd </SPAN><SPAN style="COLOR: #5b9bd5">--&gt;</SPAN><SPAN style="COLOR: black"> Hotkeys</SPAN></P>
+<P lang=yo style='FONT-SIZE: 9.5pt; FONT-FAMILY: "Lucida Console"; MARGIN: 0in 0in 0in 0.375in'><SPAN style="COLOR: black">cmd </SPAN><SPAN style="COLOR: #5b9bd5">--&gt;</SPAN><SPAN style="COLOR: black"> Palette</SPAN></P>
+<P lang=yo style='FONT-SIZE: 9.5pt; FONT-FAMILY: "Lucida Console"; MARGIN: 0in 0in 0in 0.375in'><SPAN style="COLOR: black">cmd </SPAN><SPAN style="COLOR: #5b9bd5">--&gt;</SPAN><SPAN style="COLOR: black"> Ribbon</SPAN></P>
+<P lang=yo style='FONT-SIZE: 9.5pt; FONT-FAMILY: "Lucida Console"; MARGIN: 0in 0in 0in 0.375in'><SPAN style="COLOR: black">cmd </SPAN><SPAN style="COLOR: #5b9bd5">--&gt;</SPAN><SPAN style="COLOR: black"> Replay</SPAN></P>
+<P lang=yo style='FONT-SIZE: 9.5pt; FONT-FAMILY: "Lucida Console"; MARGIN: 0in 0in 0in 0.375in'><SPAN style="COLOR: black">cmd </SPAN><SPAN style="COLOR: #5b9bd5">--&gt;</SPAN><SPAN style="COLOR: black"> menus</SPAN></P>
+<P lang=yo style='FONT-SIZE: 9.5pt; FONT-FAMILY: "Lucida Console"; MARGIN: 0in 0in 0in 0.375in'><SPAN style="COLOR: black">cmd </SPAN><SPAN style="COLOR: #5b9bd5">--&gt;</SPAN><SPAN style="COLOR: black"> Aliases</SPAN></P>
+<P lang=yo style='FONT-SIZE: 9.5pt; FONT-FAMILY: "Lucida Console"; COLOR: #5b9bd5; MARGIN: 0in 0in 0in 0.375in'><SPAN style="FONT-WEIGHT: bold">@enduml</SPAN></P>
+<P style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in"><SPAN style="FONT-STYLE: italic">Command PlantUML (</SPAN><A href="onemore://PlantUmlCommand/c97a9a5b2a4c4783823be9c7ff9651b0"><SPAN style="FONT-STYLE: italic">Refresh</SPAN></A><SPAN style="FONT-STYLE: italic">)</SPAN></P>
+<P lang=yo style='FONT-SIZE: 9.5pt; FONT-FAMILY: "Lucida Console"; MARGIN: 0in 0in 0in 0.375in'><SPAN style="FONT-WEIGHT: bold; COLOR: #5b9bd5">@startuml</SPAN><SPAN style="COLOR: black"> Command</SPAN></P>
+<P lang=yo style='FONT-SIZE: 9.5pt; FONT-FAMILY: "Lucida Console"; MARGIN: 0in 0in 0in 0.375in'><SPAN style="COLOR: #a5a5a5">skinparam</SPAN><SPAN style="COLOR: black"> defaultFontSize </SPAN><SPAN style="COLOR: #8064a2">9</SPAN></P>
+<P lang=yo style='FONT-SIZE: 9.5pt; FONT-FAMILY: "Lucida Console"; MARGIN: 0in 0in 0in 0.375in'><SPAN style="COLOR: lightseagreen">class</SPAN><SPAN style="COLOR: black"> Command {</SPAN></P>
+<P lang=yo style='FONT-SIZE: 9.5pt; FONT-FAMILY: "Lucida Console"; COLOR: black; MARGIN: 0in 0in 0in 0.375in'><SPAN style="mso-spacerun: yes">&nbsp;</SPAN>#logger : ILogger</P>
+<P lang=yo style='FONT-SIZE: 9.5pt; FONT-FAMILY: "Lucida Console"; COLOR: black; MARGIN: 0in 0in 0in 0.375in'><SPAN style="mso-spacerun: yes">&nbsp;</SPAN>#ribbon : IRibbonUI</P>
+<P lang=yo style='FONT-SIZE: 9.5pt; FONT-FAMILY: "Lucida Console"; COLOR: black; MARGIN: 0in 0in 0in 0.375in'><SPAN style="mso-spacerun: yes">&nbsp;</SPAN>#factory : CommandFactory</P>
+<P lang=yo style='FONT-SIZE: 9.5pt; FONT-FAMILY: "Lucida Console"; COLOR: black; MARGIN: 0in 0in 0in 0.375in'><SPAN style="mso-spacerun: yes">&nbsp;</SPAN>+get_IsCancelled : bool</P>
+<P lang=yo style='FONT-SIZE: 9.5pt; FONT-FAMILY: "Lucida Console"; COLOR: black; MARGIN: 0in 0in 0in 0.375in'><SPAN style="mso-spacerun: yes">&nbsp;</SPAN>+XElement GetReplayArguments()</P>
+<P lang=yo style='FONT-SIZE: 9.5pt; FONT-FAMILY: "Lucida Console"; MARGIN: 0in 0in 0in 0.375in'><SPAN style="COLOR: black"><SPAN style="mso-spacerun: yes">&nbsp;</SPAN>+{</SPAN><SPAN style="COLOR: lightseagreen">abstract</SPAN><SPAN style="COLOR: black">} Task Execute(params </SPAN><SPAN style="COLOR: lightseagreen">object</SPAN><SPAN style="COLOR: black">[] args)</SPAN></P>
+<P lang=yo style='FONT-SIZE: 9.5pt; FONT-FAMILY: "Lucida Console"; COLOR: black; MARGIN: 0in 0in 0in 0.375in'>}</P>
+<P lang=yo style='FONT-SIZE: 9.5pt; FONT-FAMILY: "Lucida Console"; COLOR: #5b9bd5; MARGIN: 0in 0in 0in 0.375in'><SPAN style="FONT-WEIGHT: bold">@enduml</SPAN></P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in"><SPAN style="FONT-STYLE: italic">CommandFactory PlantUML (</SPAN><A href="onemore://PlantUmlCommand/e4c44165cb6945dba791f28660003af4"><SPAN style="FONT-STYLE: italic">Refresh</SPAN></A><SPAN style="FONT-STYLE: italic">)</SPAN></P>
+<P lang=yo style='FONT-SIZE: 9.5pt; FONT-FAMILY: "Lucida Console"; MARGIN: 0in 0in 0in 0.375in'><SPAN style="FONT-WEIGHT: bold; COLOR: #5b9bd5">@startuml</SPAN><SPAN style="COLOR: black"> CommandFactory</SPAN></P>
+<P lang=yo style='FONT-SIZE: 9.5pt; FONT-FAMILY: "Lucida Console"; MARGIN: 0in 0in 0in 0.375in'><SPAN style="COLOR: #a5a5a5">skinparam</SPAN><SPAN style="COLOR: black"> defaultFontSize </SPAN><SPAN style="COLOR: #8064a2">9</SPAN></P>
+<P lang=yo style='FONT-SIZE: 9.5pt; FONT-FAMILY: "Lucida Console"; MARGIN: 0in 0in 0in 0.375in'><SPAN style="COLOR: lightseagreen">class</SPAN><SPAN style="COLOR: black"> CommandFactory {</SPAN></P>
+<P lang=yo style='FONT-SIZE: 9.5pt; FONT-FAMILY: "Lucida Console"; COLOR: black; MARGIN: 0in 0in 0in 0.375in'><SPAN style="mso-spacerun: yes">&nbsp;</SPAN>+Task Invoke(string action, string[] arguments)</P>
+<P lang=yo style='FONT-SIZE: 9.5pt; FONT-FAMILY: "Lucida Console"; COLOR: black; MARGIN: 0in 0in 0in 0.375in'><SPAN style="mso-spacerun: yes">&nbsp;</SPAN>+Task ReplayLastAction()</P>
+<P lang=yo style='FONT-SIZE: 9.5pt; FONT-FAMILY: "Lucida Console"; MARGIN: 0in 0in 0in 0.375in'><SPAN style="COLOR: black"><SPAN style="mso-spacerun: yes">&nbsp;</SPAN>+Task Run(params </SPAN><SPAN style="COLOR: lightseagreen">object</SPAN><SPAN style="COLOR: black">[] args)</SPAN></P>
+<P lang=yo style='FONT-SIZE: 9.5pt; FONT-FAMILY: "Lucida Console"; COLOR: black; MARGIN: 0in 0in 0in 0.375in'>}</P>
+<P lang=yo style='FONT-SIZE: 9.5pt; FONT-FAMILY: "Lucida Console"; COLOR: #5b9bd5; MARGIN: 0in 0in 0in 0.375in'><SPAN style="FONT-WEIGHT: bold">@enduml</SPAN></P>
+<P style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<P><CITE lang=yo style="FONT-SIZE: 9pt; FONT-FAMILY: Calibri; COLOR: #595959; MARGIN: 0in">#omwiki #omdeveloper #omdesign</CITE></P>
+<P><CITE lang=yo style="FONT-SIZE: 9pt; FONT-FAMILY: Calibri; COLOR: #595959; MARGIN: 0in">&nbsp;</CITE></P>
+<P><CITE lang=yo style="FONT-SIZE: 10pt; FONT-FAMILY: Calibri; COLOR: #595959; MARGIN: 0in">© 2020 Steven M Cohn. All rights reserved.</CITE></P>
+<P><CITE lang=yo style="FONT-SIZE: 10pt; FONT-FAMILY: Calibri; COLOR: #595959; MARGIN: 0in">Please consider a <A href="https://github.com/sponsors/stevencohn">sponsorship or one-time donation</A> to support ongoing development</CITE></P>
+<P><CITE style="FONT-SIZE: 9pt; FONT-FAMILY: Calibri; COLOR: #595959; MARGIN: 0in">&nbsp;</CITE></P></DIV></DIV></DIV>
+<DIV>
+<P style="MARGIN: 0in">&nbsp;</P>
+<P style="FONT-SIZE: 9pt; FONT-FAMILY: Arial; COLOR: #969696; DIRECTION: ltr; TEXT-ALIGN: left; MARGIN: 0in">Created with OneNote.</P></DIV>
+    </div>
+
+  </div>
+  <script>
+    $('#developers-section').addClass('active');
+    let pageID = '#' + window.location.pathname.match(/.*\/(.*).htm$/)[1];
+    pageID = pageID.toLowerCase().replace(/%20| |\./g,'-')
+    if ( $(pageID).length > 0) { $(pageID).addClass('active'); }
+  </script>
+</body>
+
+</html>

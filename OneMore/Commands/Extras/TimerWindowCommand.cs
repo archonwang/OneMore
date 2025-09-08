@@ -1,5 +1,5 @@
 ﻿//************************************************************************************************
-// Copyright © 2021 Steven M Cohn.  All rights reserved.
+// Copyright © 2021 Steven M Cohn. All rights reserved.
 //************************************************************************************************
 
 namespace River.OneMoreAddIn.Commands
@@ -9,6 +9,18 @@ namespace River.OneMoreAddIn.Commands
 	using System.Threading.Tasks;
 	using System.Xml.Linq;
 
+
+	/// <summary>
+	/// Starts and opens a visual timer. This small window will first appear in the upper right
+	/// corner of the display and immediately starts counting seconds, minutes, and hours.
+	/// </summary>
+	/// <remarks>
+	/// There are three controls on the window: copy the current value to the clipboard, 
+	/// restart the timer from zero, and close the timer. The window can be moved but is limited 
+	/// to the current desktop window.
+	/// The current value shown in the timer window can easily be inserted into the body of the
+	/// open page by using the Insert Timer command.
+	/// </remarks>
 	internal class TimerWindowCommand : Command
 	{
 
@@ -20,6 +32,9 @@ namespace River.OneMoreAddIn.Commands
 		}
 
 
+		public static bool TimerActive => window?.IsDisposed != null;
+
+
 		public override async Task Execute(params object[] args)
 		{
 			if (args.Length == 0)
@@ -28,7 +43,7 @@ namespace River.OneMoreAddIn.Commands
 				{
 					window = new TimerWindow();
 					window.FormClosed += CloseTimerWindow;
-					await window.RunModeless();
+					window.RunModeless();
 				}
 
 				return;
@@ -39,30 +54,49 @@ namespace River.OneMoreAddIn.Commands
 				return;
 			}
 
-			using (var one = new OneNote(out var page, out var ns))
+			var cmd = (int)args[0];
+
+			if (cmd == TimerWindow.CopyCmd)
 			{
-				var run = page.Root.Descendants(ns + "T")
-					.FirstOrDefault(e => e.Attribute("selected")?.Value == "all");
-
-				if (run != null)
-				{
-					var stamp = TimeSpan.FromSeconds(window.Seconds).ToString("c");
-					run.GetCData().Value = stamp;
-					run.Attribute("selected").Remove();
-
-					run.AddAfterSelf(new XElement(ns + "T",
-						run.Attributes(),
-						new XAttribute("selected", "all"),
-						new XCData(string.Empty))
-						);
-
-					await one.Update(page);
-				}
+				await CopyAndInsertTime();
+			}
+			else if (cmd == TimerWindow.RestartCmd)
+			{
+				window.Restart();
+			}
+			else if (cmd == TimerWindow.ShutdownCmd)
+			{
+				window.Shutdown();
 			}
 		}
 
 
-		private void CloseTimerWindow(object sender, System.Windows.Forms.FormClosedEventArgs e)
+		// default binding: F2
+		private static async Task CopyAndInsertTime()
+		{
+			await using var one = new OneNote(out var page, out var ns);
+			var run = page.Root.Descendants(ns + "T")
+				.FirstOrDefault(e => e.Attribute("selected")?.Value == "all");
+
+			if (run != null)
+			{
+				var stamp = TimeSpan.FromSeconds(window.Seconds).ToString("c");
+				run.GetCData().Value = stamp;
+				run.Attribute("selected").Remove();
+
+				run.AddAfterSelf(new XElement(ns + "T",
+					run.Attributes(),
+					new XAttribute("selected", "all"),
+					new XCData(string.Empty))
+					);
+
+				await one.Update(page);
+			}
+		}
+
+
+		private static void CloseTimerWindow(
+			object sender, System.Windows.Forms.FormClosedEventArgs e)
 		{
 			window.Dispose();
 			window = null;

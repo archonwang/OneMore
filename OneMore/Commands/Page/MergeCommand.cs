@@ -12,6 +12,24 @@ namespace River.OneMoreAddIn.Commands
 	using System.Xml.Linq;
 
 
+	/// <summary>
+	/// Merges two or more pages into a single page.
+	/// </summary>
+	/// <remarks>
+	/// If every selected page contains exactly one outline each then the content of the outlines
+	/// is concatenated to the outline in the target page, resulting in a single outline. However,
+	/// if at least one page has multiple outlines then all outlines are appended vertically on
+	/// the target page to preserve formatting and relative positioning.
+	/// 
+	/// Outlines are used in variety of ways, not the least of which to preserve some conceptual
+	/// context with other containers on the page based on size and position, so OneMore doesn't
+	/// attempt to merge containers from multiple pages but instead preserves the layout of
+	/// containers from each page in a continuous stream in the newly merged page.
+	/// 
+	/// Note that you can easily merge to containers by Shift+clicking one container and dragging
+	/// it on top of the container with which you want the first to be merged. This is a
+	/// built-in OneNote feature.
+	/// </summary>
 	internal class MergeCommand : Command
 	{
 
@@ -29,9 +47,9 @@ namespace River.OneMoreAddIn.Commands
 
 		public override async Task Execute(params object[] args)
 		{
-			using (one = new OneNote())
+			await using (one = new OneNote())
 			{
-				var section = one.GetSection();
+				var section = await one.GetSection();
 				ns = one.GetNamespace(section);
 
 				// find first selected - active page
@@ -42,7 +60,17 @@ namespace River.OneMoreAddIn.Commands
 
 				if (active == null)
 				{
-					UIHelper.ShowInfo(one.Window, "At least two pages must be selected to merge");
+					ShowError("At least two pages must be selected to merge");
+					return;
+				}
+
+				var count =
+					section.Elements(ns + "Page")
+					.Count(e => e.Attributes("selected").Any(a => a.Value.Equals("all")));
+
+				if (count < 2)
+				{
+					ShowError("At least two pages must be selected to merge");
 					return;
 				}
 
@@ -55,17 +83,17 @@ namespace River.OneMoreAddIn.Commands
 
 				// get first selected (active) page and reference its quick styles, outline, size
 
-				page = one.GetPage(active.Attribute("ID").Value);
+				page = await one.GetPage(active.Attribute("ID").Value);
 
-				if (page.Root.Elements(ns + "Outline").Count() == 1 && SimplePages(selections))
+				if (page.Root.Elements(ns + "Outline").Count() == 1 && await SimplePages(selections))
 				{
 					// result in a single outline with all content
-					ConcatenateContent(page, selections);
+					await ConcatenateContent(page, selections);
 				}
 				else
 				{
 					// result in multiple outlines preserving relative positioning
-					AppendOutlines(page, selections);
+					await AppendOutlines(page, selections);
 				}
 
 				// update page and section hierarchy
@@ -80,14 +108,14 @@ namespace River.OneMoreAddIn.Commands
 		}
 
 
-		private bool SimplePages(List<XElement> selections)
+		private async Task<bool> SimplePages(List<XElement> selections)
 		{
 			// accrues cost of loading every page twice, but limits memory by avoiding
 			// having all pages in memory at once
 
 			foreach (var selection in selections)
 			{
-				var child = one.GetPage(selection.Attribute("ID").Value, OneNote.PageDetail.Basic);
+				var child = await one.GetPage(selection.Attribute("ID").Value, OneNote.PageDetail.Basic);
 				if (child.Root.Elements(ns + "Outline").Count() > 1)
 				{
 					return false;
@@ -98,7 +126,7 @@ namespace River.OneMoreAddIn.Commands
 		}
 
 
-		private void ConcatenateContent(Page page, List<XElement> selections)
+		private async Task ConcatenateContent(Page page, List<XElement> selections)
 		{
 			logger.WriteLine("concatenating content into single outline");
 
@@ -107,7 +135,7 @@ namespace River.OneMoreAddIn.Commands
 
 			foreach (var selection in selections)
 			{
-				var child = one.GetPage(
+				var child = await one.GetPage(
 					selection.Attribute("ID").Value, OneNote.PageDetail.BinaryData);
 
 				var outline = child.Root.Elements(ns + "Outline").FirstOrDefault();
@@ -144,7 +172,7 @@ namespace River.OneMoreAddIn.Commands
 		}
 
 
-		private void AppendOutlines(Page page, List<XElement> selections)
+		private async Task AppendOutlines(Page page, List<XElement> selections)
 		{
 			logger.WriteLine("appending outlines with relative positioning");
 
@@ -161,7 +189,7 @@ namespace River.OneMoreAddIn.Commands
 
 			foreach (var selection in selections)
 			{
-				var child = one.GetPage(
+				var child = await one.GetPage(
 					selection.Attribute("ID").Value, OneNote.PageDetail.BinaryData);
 
 				var outlines = child.Root.Elements(ns + "Outline");
@@ -178,21 +206,36 @@ namespace River.OneMoreAddIn.Commands
 				foreach (var outline in outlines)
 				{
 					// adjust position relative to new parent page outlines
+					double y;
 					var position = outline.Elements(ns + "Position").FirstOrDefault();
-					var y = double.Parse(position.Attribute("y").Value, CultureInfo.InvariantCulture)
-						- topOffset + offset + OutlineMargin;
+					if (position != null)
+					{
+						y = double.Parse(position.Attribute("y").Value, CultureInfo.InvariantCulture)
+							- topOffset + offset + OutlineMargin;
 
-					position.Attribute("y").Value = y.ToString("#0.0", CultureInfo.InvariantCulture);
+						position.Attribute("y").Value = y.ToString("#0.0", CultureInfo.InvariantCulture);
+					}
+					else
+					{
+						y = topOffset + offset + OutlineMargin;
+					}
 
 					// keep track of lowest bottom
 					var size = outline.Elements(ns + "Size").FirstOrDefault();
-					var bottom = y + double.Parse(size.Attribute("height").Value, CultureInfo.InvariantCulture);
-					if (bottom > maxOffset)
+					if (size != null)
 					{
-						maxOffset = bottom;
+						var bottom = y + double.Parse(size.Attribute("height").Value, CultureInfo.InvariantCulture);
+						if (bottom > maxOffset)
+						{
+							maxOffset = bottom;
+						}
 					}
 
-					position.Attribute("z").Value = z.ToString();
+					if (position is not null)
+					{
+						position.Attribute("z").Value = z.ToString();
+					}
+
 					z++;
 
 					// remove its IDs so the page can apply its own

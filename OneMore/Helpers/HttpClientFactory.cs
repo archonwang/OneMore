@@ -25,22 +25,30 @@ namespace River.OneMoreAddIn
 		/// To change the timeout per caller, use a unique cancellation token such as
 		///
 		/// <code>
-		/// using (var source = new CancellationTokenSource(timeout))
-		/// {
-		///     var response = await client.GetAsync(requestUri, source.Token)
-		///     response.EnsureSuccessStatusCode();
-		///     return await response.Content.ReadAsStringAsync();
-		/// }
+		/// using var source = new CancellationTokenSource(timeout);
+		/// var response = await client.GetAsync(requestUri, source.Token)
+		/// response.EnsureSuccessStatusCode();
+		/// return await response.Content.ReadAsStringAsync();
 		/// </code>
 		/// </remarks>
 		public static HttpClient Create()
 		{
 			if (client == null)
 			{
-				ServicePointManager.SecurityProtocol =
-					SecurityProtocolType.Tls12 | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls;
+				ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
 
-				client = new HttpClient();
+				var handler = new HttpClientHandler()
+				{
+					AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate
+				};
+
+				client = new HttpClient(handler);
+
+				// required headers otherwise some sites may not respond
+				client.DefaultRequestHeaders.Add("user-agent", "OneMore");
+				client.DefaultRequestHeaders.Add("accept", "text/html,application/xhtml+xml,application/xml,application/json");
+				client.DefaultRequestHeaders.Add("accept-encoding", "gzip, deflate");
+				client.DefaultRequestHeaders.Add("accept-language", "en-US;q=0.9");
 			}
 
 			return client;

@@ -1,0 +1,109 @@
+.bi {
+  width: 1.5rem;
+  height: 1.5rem
+}
+
+.navbar {
+  background-color: #4d1569 !important;
+  /* z-index: 100; */
+  box-shadow: 0px 2px 12px 2px rgba(0, 0, 0, 0.5);
+  height: 60px;
+}
+
+@media (max-width: 768px) {
+  .navbar {
+    height: auto;
+  }
+
+  .navbar-brand .logo {
+    height: 40px !important;
+    margin-top: 0px !important;
+  }
+}
+
+#navbox {
+  margin-left: 200px;
+}
+
+.navbar-brand {
+  position: relative;
+  z-index: 2;
+}
+
+.navbar .navbar-brand {
+  color: white;
+  margin-right: 100px;
+}
+
+.navbar-brand .logo {
+  position: relative !important;
+  z-index: 2 !important;
+  height: 55px !important;
+  margin-top: 15px !important;
+  filter: drop-shadow(0px 3px 6px #404040);
+}
+
+.navbar-brand .logo-text {
+  padding-top: 15px;
+  display: inline;
+}
+
+.navbar a {
+  color: white;
+}
+
+.navbar a.nav-link.active {
+  color: white;
+  text-decoration: underline;
+}
+
+.navbar a:hover {
+  color: #DEACF7;
+}
+
+.navbar a:focus {
+  color: white;
+}
+
+.navbar-toggler {
+  border-width: 0px !important;
+}
+
+.nav-link {
+  margin-right: 20px;
+}
+
+.nav-glyph {
+  margin-right: 0px !important;
+}
+
+/* main page */
+
+.intro {
+  margin-bottom: 30px;
+  font-style: normal;
+  font-weight: 500;
+}
+.intro .detail {
+  font-weight: normal;
+}
+
+.card-header {
+  background-color: #EBE5E1;
+}
+
+/* General custom overrides for OneNote/HTML  */
+P {
+  margin-bottom: 0 !important;
+  line-height: 125% !important;
+}
+
+TD P {
+  margin-top: 0px !important;
+  margin-bottom: 0px !important;
+  line-height: var(--font-size) !important;
+}
+
+cite {
+  font-style: normal;
+}

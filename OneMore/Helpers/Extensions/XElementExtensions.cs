@@ -7,6 +7,7 @@ namespace River.OneMoreAddIn
 	using System.Collections.Generic;
 	using System.ComponentModel;
 	using System.Globalization;
+	using System.IO;
 	using System.Linq;
 	using System.Text.RegularExpressions;
 	using System.Xml;
@@ -89,7 +90,7 @@ namespace River.OneMoreAddIn
 			// gather from style attribute if one exists
 			var sheet = element.Attributes("style").Select(a => a.Value);
 
-			if ((sheet == null) || !sheet.Any()) return props;
+			if (!sheet.Any()) return props;
 
 			foreach (var css in sheet.ToList())
 			{
@@ -156,14 +157,10 @@ namespace River.OneMoreAddIn
 		/// <returns>A string specifying the inner XML of the element.</returns>
 		public static string GetInnerXml(this XElement element, bool singleQuote = false)
 		{
-			string xml = null;
-
 			// fastest way to get XElement inner XML
-			using (var reader = element.CreateReader())
-			{
-				reader.MoveToContent();
-				xml = reader.ReadInnerXml();
-			}
+			using var reader = element.CreateReader();
+			reader.MoveToContent();
+			var xml = reader.ReadInnerXml();
 
 			// undo what XCData.GetWrapper did to <br/> elements
 			xml = Regex.Replace(xml, @"<\s*br\s*/>", "<br>");
@@ -203,11 +200,13 @@ namespace River.OneMoreAddIn
 		/// <returns>A string that can be appended to a CData's raw content</returns>
 		public static string ExtractFirstWord(this XElement element, bool styled = false)
 		{
-			if (element.FirstNode == null)
+			// should not happen!
+			if (element.FirstNode is null)
 			{
 				return null;
 			}
 
+			// element is CDATA and first segment is Text, so this is quick and easy
 			if (element.FirstNode.NodeType == XmlNodeType.Text)
 			{
 				var pair = element.Value.SplitAtFirstWord();
@@ -215,10 +214,12 @@ namespace River.OneMoreAddIn
 				return pair.Item1;
 			}
 
+			// CDATA must be multi-segmented with embedded SPANs...
+
 			var cdata = element.GetCData();
 
 			// could be null if element only contains a <br>
-			if (cdata == null || cdata.IsEmpty())
+			if (cdata is null || cdata.IsEmpty())
 			{
 				return string.Empty;
 			}
@@ -231,14 +232,15 @@ namespace River.OneMoreAddIn
 			// whitespace when applying css to words; so we don't need to worry about whitespace
 
 			// get text node or span element but not others like <br/>
+			var wordPattern = new Regex(@"\w");
 			var node = wrapper.Nodes().FirstOrDefault(n =>
 				// text nodes that have at least one word character
-				(n.NodeType == XmlNodeType.Text && Regex.IsMatch((n as XText).Value, @"\w")) ||
+				(n.NodeType == XmlNodeType.Text && wordPattern.IsMatch((n as XText).Value)) ||
 				// span elements that have at least one word character
 				(n.NodeType == XmlNodeType.Element && (n as XElement).Name.LocalName.Equals("span")
-					&& Regex.IsMatch((n as XElement).Value, @"\w")));
+					&& wordPattern.IsMatch((n as XElement).Value)));
 
-			if (node == null)
+			if (node is null)
 			{
 				return null;
 			}
@@ -304,22 +306,26 @@ namespace River.OneMoreAddIn
 		/// <returns>A string that can be appended to a CData's raw content</returns>
 		public static string ExtractLastWord(this XElement element, bool styled = false)
 		{
-			if (element.FirstNode == null)
+			// should not happen!
+			if (element.FirstNode is null)
 			{
 				return null;
 			}
 
-			if (element.FirstNode.NodeType == XmlNodeType.Text)
+			// element is CDATA and last segment is Text, so this is quick and easy
+			if (element.LastNode.NodeType == XmlNodeType.Text)
 			{
 				var pair = element.Value.SplitAtLastWord();
 				element.Value = pair.Item2;
 				return pair.Item1;
 			}
 
+			// CDATA must be multi-segmented with embedded SPANs...
+
 			var cdata = element.GetCData();
 
 			// could be null if element only contains a <br>
-			if (cdata == null || cdata.IsEmpty())
+			if (cdata is null || cdata.IsEmpty())
 			{
 				return string.Empty;
 			}
@@ -332,15 +338,15 @@ namespace River.OneMoreAddIn
 			// whitespace when applying css to words; so we don't need to worry about whitespace
 
 			// get text node or span element but not others like <br/>
-			// Note the use of Reverse() here so we get the last node with content
+			var wordPattern = new Regex(@"\w");
 			var node = wrapper.Nodes().LastOrDefault(n =>
 				// text nodes that have at least one word character
-				(n.NodeType == XmlNodeType.Text && Regex.IsMatch((n as XText).Value, @"\w")) ||
+				(n.NodeType == XmlNodeType.Text && wordPattern.IsMatch((n as XText).Value)) ||
 				// span elements that have at least one word character
 				(n.NodeType == XmlNodeType.Element && (n as XElement).Name.LocalName.Equals("span")
-					&& Regex.IsMatch((n as XElement).Value, @"\w")));
+					&& wordPattern.IsMatch((n as XElement).Value)));
 
-			if (node == null)
+			if (node is null)
 			{
 				return null;
 			}
@@ -431,13 +437,97 @@ namespace River.OneMoreAddIn
 
 
 		/// <summary>
-		/// OneMore Extension >> Extract the sanitized text value of the given element
+		/// Determines if the content of the element consists only of a mathML statement
+		/// which is identified when its CDATA specifies an XML comment.
 		/// </summary>
 		/// <param name="element"></param>
 		/// <returns></returns>
-		public static string TextValue(this XElement element)
+		public static bool IsMathML(this XElement element)
 		{
+			var cdata = element.GetCData();
+			return cdata != null &&
+				Regex.IsMatch(cdata.Value, @"<!--.+?-->", RegexOptions.Singleline);
+		}
+
+
+		/// <summary>
+		/// OneMore Extension >> Extract the sanitized text value of the given element
+		/// </summary>
+		/// <param name="element">The root element from which to extract text</param>
+		/// <param name="deep">
+		/// If true then also strip all HTML out of CDATA values; default is to keep HTML
+		/// </param>
+		/// <returns></returns>
+		public static string TextValue(this XElement element, bool deep = false)
+		{
+			if (deep)
+			{
+				// this will work for CDATA that contain zero or more <span> elements
+				// regardless of XML validity; used to use cdata.GetWrapper() but that breaks!
+
+				var regex = new Regex(@"<\s*span[^>]*>(.*?)<\s*/\s*span>", RegexOptions.Compiled);
+
+				var text = string.Empty;
+				foreach (var cdata in element.DescendantNodes().OfType<XCData>())
+				{
+					var parts = regex.Split(cdata.Value);
+					text = $"{text}{string.Join(string.Empty, parts)}";
+				}
+
+				return text;
+
+				/*
+				var regex = new Regex(@"<span\s+", RegexOptions.Compiled);
+
+				var text = string.Empty;
+				var cdatas = element.DescendantNodes().OfType<XCData>();
+				foreach (var cdata in cdatas)
+				{
+					if (regex.IsMatch(cdata.Value))
+					{
+						var wrap = cdata.GetWrapper();
+						foreach (var node in wrap.Nodes())
+						{
+							text = node is XElement txt
+								? $"{text}{txt.Value}"
+								: $"{text}{((XText)node).Value}";
+						}
+					}
+					else
+					{
+						text = $"{text}{cdata.Value}";
+					}
+				}
+
+				return text;
+				*/
+			}
+
 			return element.Value.ToXmlWrapper().Value;
+		}
+
+
+		/// <summary>
+		/// Specific InvariantCulture double interpretation of an element's named attribute.
+		/// This is important so that we don't allow double.Parse(string) to misinterpret
+		/// double numbers in various cultures that treat a dot as a thousandth separator.
+		/// </summary>
+		/// <param name="element">This element</param>
+		/// <param name="name">Name of the attribute to parse</param>
+		/// <returns>The double value or NaN if the attribute can't be parsed as a double.</returns>
+		public static double GetAttributeDouble(this XElement element, string name)
+		{
+			var text = element.Attribute(name)?.Value;
+			if (text != null)
+			{
+				if (double.TryParse(text, NumberStyles.Any,
+					CultureInfo.InvariantCulture, out var result))
+				{
+					return result;
+				}
+			}
+
+			return double.NaN;
 		}
 
 
@@ -497,6 +587,59 @@ namespace River.OneMoreAddIn
 
 			value = defaultV;
 			return false;
+		}
+
+
+		public static string PrettyPrint(this XElement element)
+		{
+			var settings = new XmlWriterSettings
+			{
+				OmitXmlDeclaration = true,
+				Indent = true,
+				NewLineOnAttributes = true,
+			};
+
+			using var buffer = new StringWriter(CultureInfo.InvariantCulture);
+			var writer = XmlWriter.Create(buffer, settings);
+			element.Save(writer);
+			writer.Flush();
+
+			return buffer.ToString();
+		}
+
+
+		public static XElement RemoveID(this XElement element)
+		{
+			element.Attribute("objectID")?.Remove();
+			return element;
+		}
+
+
+		public static XElement RemovePII(this XElement element)
+		{
+			element.Attribute("author")?.Remove();
+			element.Attribute("authorInitials")?.Remove();
+			element.Attribute("authorResolutionID")?.Remove();
+			element.Attribute("creationTime")?.Remove();
+			element.Attribute("lastModifiedBy")?.Remove();
+			element.Attribute("lastModifiedByInitials")?.Remove();
+			element.Attribute("lastModifiedByResolutionID")?.Remove();
+			element.Attribute("lastModifiedTime")?.Remove();
+			return element;
+		}
+
+
+		public static XElement RemoveSelections(this XElement element)
+		{
+			element
+				.DescendantsAndSelf()
+				.Where(e => e.Attribute("selected") != null)
+				.ForEach(e =>
+				{
+					e.Attributes("selected").Remove();
+				});
+
+			return element;
 		}
 
 

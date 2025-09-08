@@ -4,19 +4,24 @@
 
 #pragma warning disable S1075 // URIs should not be hardcoded
 
-namespace River.OneMoreAddIn
+namespace River.OneMoreAddIn.Commands
 {
+	using River.OneMoreAddIn.Models;
 	using System;
 	using System.Drawing;
 	using System.Threading.Tasks;
 	using System.Web;
 	using System.Xml.Linq;
-	using Resx = River.OneMoreAddIn.Properties.Resources;
+	using Resx = Properties.Resources;
 
 
+	/// <summary>
+	/// 
+	/// </summary>
 	internal class InsertQRCommand : Command
 	{
-		private const string GetUri = "http://chart.apis.google.com/chart?cht=qr&chs={1}x{1}&chl={0}";
+		// aug-2024: charts.googleapi.com deprecated; switching to qrserver.com
+		private const string GetUri = "https://api.qrserver.com/v1/create-qr-code/?data={0}&size={1}x{1}";
 		private const int Size = 250;
 		private const int MaxLength = 2048;
 
@@ -30,53 +35,58 @@ namespace River.OneMoreAddIn
 		{
 			if (!HttpClientFactory.IsNetworkAvailable())
 			{
-				UIHelper.ShowInfo(Resx.NetwordConnectionUnavailable);
+				ShowInfo(Resx.NetwordConnectionUnavailable);
 				return;
 			}
 
-			using (var one = new OneNote(out var page, out var ns))
+			await using var one = new OneNote(out var page, out var ns);
+			var text = new PageEditor(page).GetSelectedText();
+
+			if (text.Length == 0)
 			{
-				var text = page.GetSelectedText();
-
-				if (text.Length == 0)
-				{
-					UIHelper.ShowMessage(Resx.InsertQRCommand_NoSelection);
-					return;
-				}
-
-				var url = string.Format(GetUri, HttpUtility.HtmlEncode(text), Size);
-
-				if (url.Length > MaxLength)
-				{
-					var max = MaxLength - GetUri.Length;
-					UIHelper.ShowMessage(string.Format(Resx.InsertQRCommand_MaxLength, max));
-					return;
-				}
-
-				var image = await GetQRCodeImage(url);
-
-				var bytes = (byte[])new ImageConverter().ConvertTo(image, typeof(byte[]));
-				var data = Convert.ToBase64String(bytes);
-
-				(float factorX, float factorY) = UIHelper.GetScalingFactors();
-				var scaledX = Size / factorX;
-				var scaledY = Size / factorY;
-
-				var content = new XElement(ns + "Image",
-					new XAttribute("alt", "QR Code"),
-					new XElement(ns + "Size",
-						new XAttribute("width", $"{scaledX:0.0}"),
-						new XAttribute("height", $"{scaledY:0.0}"),
-						new XAttribute("isSetByUser", "true")
-						),
-					new XElement(ns + "Data",
-						data
-						)
-					);
-
-				page.AddNextParagraph(content);
-				await one.Update(page);
+				ShowError(Resx.InsertQRCommand_NoSelection);
+				return;
 			}
+
+			var url = string.Format(GetUri, HttpUtility.HtmlEncode(text), Size);
+
+			if (url.Length > MaxLength)
+			{
+				var max = MaxLength - GetUri.Length;
+				ShowError(string.Format(Resx.InsertQRCommand_MaxLength, max));
+				return;
+			}
+
+			var image = await GetQRCodeImage(url);
+
+			if (image is null)
+			{
+				return;
+			}
+
+			var bytes = (byte[])new ImageConverter().ConvertTo(image, typeof(byte[]));
+			var data = Convert.ToBase64String(bytes);
+
+			(float factorX, float factorY) = UI.Scaling.GetScalingFactors();
+			var scaledX = Size / factorX;
+			var scaledY = Size / factorY;
+
+			var content = new XElement(ns + "Image",
+				new XAttribute("alt", "QR Code"),
+				new XElement(ns + "Size",
+					new XAttribute("width", $"{scaledX:0.0}"),
+					new XAttribute("height", $"{scaledY:0.0}"),
+					new XAttribute("isSetByUser", "true")
+					),
+				new XElement(ns + "Data",
+					data
+					)
+				);
+
+			var editor = new PageEditor(page);
+			editor.AddNextParagraph(content);
+
+			await one.Update(page);
 		}
 
 
@@ -84,17 +94,15 @@ namespace River.OneMoreAddIn
 		{
 			var client = HttpClientFactory.Create();
 
-			using (var response = await client.GetAsync(url))
+			using var response = await client.GetAsync(url);
+			if (response.IsSuccessStatusCode)
 			{
-				if (response.IsSuccessStatusCode)
-				{
-					using (var stream = await response.Content.ReadAsStreamAsync())
-					{
-						return Image.FromStream(stream);
-					}
-				}
+				using var stream = await response.Content.ReadAsStreamAsync();
+				return Image.FromStream(stream);
 			}
 
+			logger.WriteLine($"HttpClient StatusCode=[{response.StatusCode}]");
+			logger.WriteLine($"URL=[{url}]");
 			return null;
 		}
 	}

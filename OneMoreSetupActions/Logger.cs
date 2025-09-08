@@ -17,9 +17,20 @@ namespace OneMoreSetupActions
 
 		public Logger(string name)
 		{
-			writer = new StreamWriter(
-				Path.Combine(Path.GetTempPath(), $"{name}.log"),
-				true);
+			// probably running under System account and TEMP path would be C:\Windows\SystemTemp
+			// but most users don't have access to read that. So, first try the user's TEMP path
+			// and, if it is SystemTemp, instead use C:\Windows\TEMP
+
+			var temp = Path.GetTempPath();
+			if (temp.Contains("SystemTemp"))
+			{
+				temp = Path.Combine(Environment.GetEnvironmentVariable("SystemRoot"), "TEMP");
+			}
+
+			LogPath = Path.Combine(temp, $"{name}.log");
+			Console.WriteLine($"Logging to: {LogPath}");
+
+			writer = new StreamWriter(LogPath, true);
 		}
 
 
@@ -51,6 +62,12 @@ namespace OneMoreSetupActions
 		#endregion Lifecycle
 
 
+		public string LogPath { get; private set; }
+
+
+		public bool Indented { get; set; }
+
+
 		public void WriteLine()
 		{
 			WriteLine(string.Empty);
@@ -59,8 +76,9 @@ namespace OneMoreSetupActions
 
 		public void WriteLine(string message)
 		{
-			Console.WriteLine(message);
-			writer.WriteLine(message);
+			var m = Indented ? $"... {message}" : message;
+			Console.WriteLine(m);
+			writer.WriteLine(m);
 			writer.Flush();
 		}
 

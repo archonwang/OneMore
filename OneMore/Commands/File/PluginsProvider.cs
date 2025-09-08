@@ -1,5 +1,5 @@
 ﻿//************************************************************************************************
-// Copyright © 2021 Steven M Cohn.  All rights reserved.
+// Copyright © 2021 Steven M Cohn. All rights reserved.
 //************************************************************************************************
 
 namespace River.OneMoreAddIn.Commands
@@ -15,6 +15,7 @@ namespace River.OneMoreAddIn.Commands
 
 	internal class PluginsProvider : Loggable
 	{
+		private const string RunPluginButtonId = "ribPluginButton";
 		private const string ManagePluginsButtonId = "ribManagePluginsButton";
 
 		private const string DirectoryName = "Plugins";
@@ -25,7 +26,7 @@ namespace River.OneMoreAddIn.Commands
 
 		public PluginsProvider() : base()
 		{
-			store = Path.Combine(PathFactory.GetAppDataPath(), DirectoryName);
+			store = Path.Combine(PathHelper.GetAppDataPath(), DirectoryName);
 		}
 
 
@@ -102,19 +103,30 @@ namespace River.OneMoreAddIn.Commands
 
 			try
 			{
-				using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read))
-				using (var reader = new StreamReader(stream, System.Text.Encoding.UTF8))
+				using var stream = new FileStream(path, FileMode.Open, FileAccess.Read);
+				using var reader = new StreamReader(stream, System.Text.Encoding.UTF8);
+
+				var json = await reader.ReadToEndAsync();
+
+				var serializer = new JavaScriptSerializer();
+				var plugin = serializer.Deserialize<Plugin>(json);
+
+				plugin.OriginalName = plugin.Name;
+				plugin.Path = path;
+
+				// reader-makes-right
+				if (plugin.Version < 2)
 				{
-					var json = await reader.ReadToEndAsync();
-
-					var serializer = new JavaScriptSerializer();
-					var plugin = serializer.Deserialize<Plugin>(json);
-
-					plugin.OriginalName = plugin.Name;
-					plugin.Path = path;
-
-					return plugin;
+					plugin.Version = Plugin.SchemaVersion;
+					plugin.Target = PluginTarget.Page;
 				}
+				else if (plugin.Version < 3)
+				{
+					plugin.Version = Plugin.SchemaVersion;
+					plugin.Target = plugin.TargetPage ? PluginTarget.Page : PluginTarget.Notebook;
+				}
+
+				return plugin;
 			}
 			catch (Exception exc)
 			{
@@ -171,15 +183,13 @@ namespace River.OneMoreAddIn.Commands
 
 			try
 			{
-				PathFactory.EnsurePathExists(store);
+				PathHelper.EnsurePathExists(store);
 
-				using (var writer = new StreamWriter(path, false))
-				{
-					var serializer = new JavaScriptSerializer();
-					var json = serializer.Serialize(plugin);
+				using var writer = new StreamWriter(path, false);
+				var serializer = new JavaScriptSerializer();
+				var json = serializer.Serialize(plugin);
 
-					await writer.WriteAsync(json);
-				}
+				await writer.WriteAsync(json);
 
 				// overwrite original name
 				plugin.OriginalName = name;
@@ -196,16 +206,13 @@ namespace River.OneMoreAddIn.Commands
 
 		public XElement MakePluginsMenu(XNamespace ns)
 		{
-			var plugins = GetPaths();
-			if (!plugins.Any())
-			{
-				return null;
-			}
-
 			var menu = new XElement(ns + "menu",
-				new XAttribute("id", "ribPluginsMenu"),
-				new XAttribute("getLabel", "GetRibbonLabel"),
-				new XAttribute("imageMso", "AddInsMenu"),
+				new XElement(ns + "button",
+					new XAttribute("id", RunPluginButtonId),
+					new XAttribute("getLabel", "GetRibbonLabel"),
+					new XAttribute("imageMso", "ComAddInsDialog"),
+					new XAttribute("onAction", "RunPluginCmd")
+					),
 				new XElement(ns + "button",
 					new XAttribute("id", ManagePluginsButtonId),
 					new XAttribute("getLabel", "GetRibbonLabel"),
@@ -217,16 +224,20 @@ namespace River.OneMoreAddIn.Commands
 					)
 				);
 
-			var b = 0;
-			foreach (var plugin in plugins)
+			var plugins = GetPaths();
+			if (plugins.Any())
 			{
-				menu.Add(new XElement(ns + "button",
-					new XAttribute("id", $"ribMyPlugin{b++}"),
-					new XAttribute("imageMso", "GroupAddInsToolbarCommands"),
-					new XAttribute("label", Path.GetFileNameWithoutExtension(plugin)),
-					new XAttribute("tag", plugin),
-					new XAttribute("onAction", "RunPluginCmd")
-					));
+				var b = 0;
+				foreach (var plugin in plugins)
+				{
+					menu.Add(new XElement(ns + "button",
+						new XAttribute("id", $"ribMyPlugin{b++}"),
+						new XAttribute("imageMso", "GroupAddInsToolbarCommands"),
+						new XAttribute("label", Path.GetFileNameWithoutExtension(plugin)),
+						new XAttribute("tag", plugin),
+						new XAttribute("onAction", "RunPluginCmd")
+						));
+				}
 			}
 
 			return menu;

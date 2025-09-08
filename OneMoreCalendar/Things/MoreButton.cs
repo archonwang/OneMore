@@ -1,5 +1,5 @@
 ﻿//************************************************************************************************
-// Copyright © 2022 Steven M. Cohn. All Rights Reserved.
+// Copyright © 2022 Steven M Cohn. All Rights Reserved.
 //************************************************************************************************
 
 namespace OneMoreCalendar
@@ -23,7 +23,6 @@ namespace OneMoreCalendar
 	internal class MoreButton : Button
 	{
 		private const int Radius = 4;
-		private IContainer components;
 		private MouseEventArgs downArgs = null;
 		private Image enabledImage;
 		private Timer timer;
@@ -48,7 +47,7 @@ namespace OneMoreCalendar
 
 		private void InitializeComponent()
 		{
-			components = new Container();
+			var components = new Container();
 			timer = new Timer(components);
 			SuspendLayout();
 			timer.Tick += new EventHandler(Tick);
@@ -70,6 +69,18 @@ namespace OneMoreCalendar
 
 
 		/// <summary>
+		/// Gets or sets the preferred background color
+		/// </summary>
+		public Color PreferredBack { get; set; } = Color.Empty;
+
+
+		/// <summary>
+		/// Gets or sets the preferred foreground color
+		/// </summary>
+		public Color PreferredFore { get; set; } = Color.Empty;
+
+
+		/// <summary>
 		/// Interval between repeat firings
 		/// </summary>
 		[DefaultValue(62)]
@@ -83,23 +94,28 @@ namespace OneMoreCalendar
 		public bool ShowBorder { get; set; }
 
 
+		private ThemeProvider Theme => ThemeProvider.Instance;
+
+
+
 		protected override void OnPaint(PaintEventArgs pevent)
 		{
 			var g = pevent.Graphics;
-			g.Clear(BackColor);
+			g.Clear(PreferredBack.IsEmpty ? Theme.BackColor : PreferredBack);
 
 			if (Enabled && MouseState != MouseState.None)
 			{
-				g.FillRoundedRectangle(
-					MouseState.HasFlag(MouseState.Pushed) ? AppColors.PressedBrush : AppColors.HoverBrush,
-					pevent.ClipRectangle, Radius);
+				using var brush = new SolidBrush(Theme.ButtonHotBack);
+				g.FillRoundedRectangle(brush, pevent.ClipRectangle, Radius);
 			}
 
 			if (ShowBorder || (Enabled && MouseState != MouseState.None))
 			{
-				g.DrawRoundedRectangle(
-					MouseState.HasFlag(MouseState.Pushed) ? AppColors.PressedPen : AppColors.HoverPen,
-					pevent.ClipRectangle, Radius);
+				using var pen = new Pen(
+					MouseState.HasFlag(MouseState.Pushed) ? Theme.ButtonPressBorder :
+					MouseState.HasFlag(MouseState.Hover) ? Theme.ButtonHotBorder : Theme.ButtonBorder);
+
+				g.DrawRoundedRectangle(pen, pevent.ClipRectangle, Radius);
 			}
 
 			if (Image != null)
@@ -113,17 +129,18 @@ namespace OneMoreCalendar
 			if (!string.IsNullOrEmpty(Text))
 			{
 				var size = g.MeasureString(Text, Font);
-				using (var brush = new SolidBrush(Enabled ? ForeColor : Color.Gray))
-				{
-					g.DrawString(Text, Font, brush,
-						(pevent.ClipRectangle.Width - size.Width) / 2,
-						(pevent.ClipRectangle.Height - size.Height) / 2,
-						new StringFormat
-						{
-							Trimming = StringTrimming.EllipsisCharacter,
-							FormatFlags = StringFormatFlags.LineLimit | StringFormatFlags.NoWrap
-						});
-				}
+				using var brush = new SolidBrush(Enabled
+					? PreferredFore.IsEmpty ? Theme.ButtonFore : PreferredFore
+					: Theme.ButtonDisabled);
+
+				g.DrawString(Text, Font, brush,
+					(pevent.ClipRectangle.Width - size.Width) / 2,
+					(pevent.ClipRectangle.Height - size.Height) / 2,
+					new StringFormat
+					{
+						Trimming = StringTrimming.EllipsisCharacter,
+						FormatFlags = StringFormatFlags.LineLimit | StringFormatFlags.NoWrap
+					});
 			}
 		}
 

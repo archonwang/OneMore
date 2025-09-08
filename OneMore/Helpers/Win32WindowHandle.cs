@@ -1,5 +1,5 @@
 ﻿//************************************************************************************************
-// Copyright © 2016 Steven M Cohn.  Yada yada...
+// Copyright © 2016 Steven M Cohn. All rights reserved.
 //************************************************************************************************
 
 namespace River.OneMoreAddIn
@@ -10,7 +10,7 @@ namespace River.OneMoreAddIn
 
 	internal class Win32WindowHandle : IWin32Window
 	{
-		public Win32WindowHandle (IntPtr windowHandle)
+		public Win32WindowHandle(IntPtr windowHandle)
 		{
 			Handle = windowHandle;
 		}

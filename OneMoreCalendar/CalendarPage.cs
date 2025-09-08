@@ -12,7 +12,18 @@ namespace OneMoreCalendar
 	/// <summary>
 	/// 
 	/// </summary>
-	internal class CalendarPages : List<CalendarPage> { }
+	internal class CalendarPages : List<CalendarPage>
+	{
+		public CalendarPages()
+			: base()
+		{
+		}
+
+		public CalendarPages(IEnumerable<CalendarPage> pages)
+			: base(pages)
+		{
+		}
+	}
 
 
 	/// <summary>
@@ -39,5 +50,14 @@ namespace OneMoreCalendar
 
 
 		public Rectangle Bounds { get; set; } = Rectangle.Empty;
+
+
+		public bool HasReminders { get; set; }
+
+
+		public string Hyperlink { get; set; }
+
+
+		public string WebHyperlink { get; set; }
 	}
 }

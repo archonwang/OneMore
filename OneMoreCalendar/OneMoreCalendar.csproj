@@ -2,6 +2,9 @@
 <Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
+    <LangVersion>9.0</LangVersion>
+  </PropertyGroup>
+  <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{1F87159C-B663-4464-B272-E0C57BE22306}</ProjectGuid>
@@ -35,7 +38,48 @@
   <PropertyGroup>
     <ApplicationIcon>Logo.ico</ApplicationIcon>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|ARM64'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DebugType>full</DebugType>
+    <PlatformTarget>ARM64</PlatformTarget>
+    <LangVersion>9.0</LangVersion>
+    <ErrorReport>prompt</ErrorReport>
+    <Prefer32Bit>true</Prefer32Bit>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|ARM64'">
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <Optimize>true</Optimize>
+    <DebugType>pdbonly</DebugType>
+    <PlatformTarget>ARM64</PlatformTarget>
+    <LangVersion>9.0</LangVersion>
+    <ErrorReport>prompt</ErrorReport>
+    <Prefer32Bit>true</Prefer32Bit>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DebugType>full</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <LangVersion>9.0</LangVersion>
+    <ErrorReport>prompt</ErrorReport>
+    <Prefer32Bit>true</Prefer32Bit>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
+    <OutputPath>bin\x64\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <Optimize>true</Optimize>
+    <DebugType>pdbonly</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <LangVersion>9.0</LangVersion>
+    <ErrorReport>prompt</ErrorReport>
+    <Prefer32Bit>true</Prefer32Bit>
+  </PropertyGroup>
   <ItemGroup>
+    <Reference Include="PresentationCore" />
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -63,7 +107,7 @@
     <Compile Include="DetailView.Designer.cs">
       <DependentUpon>DetailView.cs</DependentUpon>
     </Compile>
-    <Compile Include="Things\AppColors.cs" />
+    <Compile Include="Things\ThemeMode.cs" />
     <Compile Include="Things\BitmapExtensions.cs" />
     <Compile Include="Things\DateTimeExtensions.cs" />
     <Compile Include="Things\GraphicsExtensions.cs" />
@@ -117,6 +161,13 @@
     <Compile Include="SnapshotForm.Designer.cs">
       <DependentUpon>SnapshotForm.cs</DependentUpon>
     </Compile>
+    <Compile Include="Things\ThemedForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Things\ThemedUserControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="Things\ThemeProvider.cs" />
     <Compile Include="YearsForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -131,6 +182,7 @@
     </EmbeddedResource>
     <EmbeddedResource Include="CalendarForm.resx">
       <DependentUpon>CalendarForm.cs</DependentUpon>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="MonthView.resx">
       <DependentUpon>MonthView.cs</DependentUpon>
@@ -154,6 +206,9 @@
     <EmbeddedResource Include="YearsForm.resx">
       <DependentUpon>YearsForm.cs</DependentUpon>
     </EmbeddedResource>
+    <None Include="Assets\DarkBlueTheme.json" />
+    <None Include="Assets\DarkTheme.json" />
+    <None Include="Assets\LightTheme.json" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
@@ -177,9 +232,20 @@
     <Content Include="Assets\day-32.png" />
     <Content Include="Assets\Logo.ico" />
     <Content Include="Assets\month-32.png" />
+    <Content Include="Assets\Reminder-01-24-Y.png" />
     <Content Include="Assets\settings-32.png" />
+    <Content Include="Assets\Sponsor.png" />
+    <Content Include="Assets\SponsorOver.png" />
     <Content Include="Assets\today-32.png" />
     <Content Include="Logo.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json">
+      <Version>13.0.3</Version>
+    </PackageReference>
+    <PackageReference Include="System.Buffers">
+      <Version>4.6.1</Version>
+    </PackageReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

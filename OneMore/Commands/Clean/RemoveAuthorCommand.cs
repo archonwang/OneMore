@@ -4,9 +4,15 @@
 
 namespace River.OneMoreAddIn.Commands
 {
+	using River.OneMoreAddIn.Models;
 	using System.Linq;
 	using System.Threading.Tasks;
 
+
+	/// <summary>
+	/// Removes "Authored by" annotations from a page, also removing related
+	/// attributes from all content on the page
+	/// </summary>
 	internal class RemoveAuthorsCommand : Command
 	{
 		public RemoveAuthorsCommand()
@@ -16,49 +22,42 @@ namespace River.OneMoreAddIn.Commands
 
 		public override async Task Execute(params object[] args)
 		{
-			using (var one = new OneNote(out var page, out var ns))
+			await using var one = new OneNote(out var page, out var ns);
+			logger.StartClock();
+
+			var count = 0;
+
+			// these are all the elements that might have editedByAttributes
+			var elements = page.Root.Descendants().Where(d =>
+				d.Name.LocalName == "Table" ||
+				d.Name.LocalName == "Row" ||
+				d.Name.LocalName == "Cell" ||
+				d.Name.LocalName == "Outline" ||
+				d.Name.LocalName == "OE")
+				.ToList();
+
+			var editedByAttributes = KnownSchemaAttributes.GetEditedByAttributes();
+
+			foreach (var element in elements)
 			{
-				logger.StartClock();
-
-				var count = 0;
-
-				// these are all the elements that might have editedByAttributes
-				var elements = page.Root.Descendants().Where(d =>
-					d.Name.LocalName == "Table" ||
-					d.Name.LocalName == "Row" ||
-					d.Name.LocalName == "Cell" ||
-					d.Name.LocalName == "Outline" ||
-					d.Name.LocalName == "OE")
+				var attributes = element.Attributes()
+					.Where(a => editedByAttributes.Contains(a.Name.LocalName))
 					.ToList();
 
-				foreach (var element in elements)
-				{
-					// editedByAttributes attributeGroup
-					var atts = element.Attributes().Where(a =>
-						a.Name == "author" ||
-						a.Name == "authorInitials" ||
-						a.Name == "authorResolutionID" ||
-						a.Name == "lastModifiedBy" ||
-						a.Name == "lastModifiedByInitials" ||
-						a.Name == "lastModifiedByResolutionID"
-						)
-						.ToList();
-
-					count += atts.Count;
-					atts.ForEach(a => a.Remove());
-				}
-
-				logger.WriteTime("removed authors, now saving...");
-
-				// TODO: This is removing authorship from OEs that wrap Images but
-				// OneNote isn't saving those changes. I don't know why...
-
-				if (count > 0)
-				{
-					logger.WriteLine($"cleaned {count} author attributes");
-					await one.Update(page);
-				}
+				count += attributes.Count;
+				attributes.ForEach(a => a.Remove());
 			}
+
+			// TODO: This is removing authorship from OEs that wrap Images but
+			// OneNote isn't saving those changes. I don't know why...
+
+			if (count > 0)
+			{
+				logger.WriteTime($"removed {count} author-related attributes; saving...", true);
+				await one.Update(page);
+			}
+
+			logger.WriteTime("removed authors completed");
 		}
 	}
 }

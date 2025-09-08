@@ -6,15 +6,19 @@
 
 namespace River.OneMoreAddIn.Commands
 {
+	using River.OneMoreAddIn.Helpers.Office;
 	using River.OneMoreAddIn.Settings;
 	using System;
 	using System.Threading;
 	using System.Windows.Forms;
-	using Resx = River.OneMoreAddIn.Properties.Resources;
+	using Resx = Properties.Resources;
 
 
-	internal partial class ExportDialog : UI.LocalizableForm
+	internal partial class ExportDialog : UI.MoreForm
 	{
+		private readonly bool wordInstalled;
+
+
 		public ExportDialog(int pageCount)
 		{
 			InitializeComponent();
@@ -25,8 +29,8 @@ namespace River.OneMoreAddIn.Commands
 
 				Localize(new string[]
 				{
-					"folderLabel",
-					"formatLabel",
+					"folderLabel=word_Folder",
+					"formatLabel=word_Format",
 					"formatBox",
 					"underBox",
 					"attachmentsBox",
@@ -35,6 +39,8 @@ namespace River.OneMoreAddIn.Commands
 				});
 			}
 
+			wordInstalled = Office.IsInstalled("Word");
+
 			groupBox.Text = pageCount == 1
 				? Resx.ExportDialog_groupBox_OneText
 				: string.Format(Resx.ExportDialog_groupBox_Text, pageCount);
@@ -42,6 +48,9 @@ namespace River.OneMoreAddIn.Commands
 			pathBox.Text = LoadDefaultPath();
 			formatBox.SelectedIndex = 0;
 		}
+
+
+		public bool Embedded => embeddedBox.Checked;
 
 
 		public string FolderPath => pathBox.Text;
@@ -57,17 +66,15 @@ namespace River.OneMoreAddIn.Commands
 		{
 			get
 			{
-				switch (formatBox.SelectedIndex)
+				return formatBox.SelectedIndex switch
 				{
-					case 0: return OneNote.ExportFormat.HTML;
-					case 1: return OneNote.ExportFormat.PDF;
-					case 2: return OneNote.ExportFormat.Word;
-					case 3: return OneNote.ExportFormat.XML;
-					case 4: return OneNote.ExportFormat.Markdown;
-
-					default:
-						return OneNote.ExportFormat.OneNote;
-				}
+					0 => OneNote.ExportFormat.HTML,
+					1 => OneNote.ExportFormat.PDF,
+					2 => OneNote.ExportFormat.Word,
+					3 => OneNote.ExportFormat.XML,
+					4 => OneNote.ExportFormat.Markdown,
+					_ => OneNote.ExportFormat.OneNote,
+				};
 			}
 		}
 
@@ -97,11 +104,25 @@ namespace River.OneMoreAddIn.Commands
 
 		private void ChangeFormat(object sender, EventArgs e)
 		{
+			okButton.Enabled =
+				formatBox.SelectedIndex != 2 || wordInstalled;
+
 			attachmentsBox.Enabled =
 				formatBox.SelectedIndex == 0 ||     // HTML
 				formatBox.SelectedIndex == 2 ||     // Word
 				formatBox.SelectedIndex == 3 ||     // XML
-				formatBox.SelectedIndex == 4;		// Markdown
+				formatBox.SelectedIndex == 4;       // Markdown
+
+			embeddedBox.Enabled =
+				formatBox.SelectedIndex == 2 &&     // Word
+				attachmentsBox.Checked;
+		}
+
+		private void ChangeIncludeAttachments(object sender, EventArgs e)
+		{
+			embeddedBox.Enabled =
+				formatBox.SelectedIndex == 2 &&     // Word
+				attachmentsBox.Checked;
 		}
 
 
@@ -114,19 +135,21 @@ namespace River.OneMoreAddIn.Commands
 				// FolderBrowserDialog must run in an STA thread
 				var thread = new Thread(() =>
 				{
-					using (var dialog = new FolderBrowserDialog()
+					using var dialog = new FolderBrowserDialog()
 					{
 						Description = "Export pages to this folder:",
 						SelectedPath = path
-					})
+					};
+
+					// cannot use owner parameter here or it will hang! cross-threading
+					if (dialog.ShowDialog(/* leave empty */) == DialogResult.OK)
 					{
-						// cannot use owner parameter here or it will hang! cross-threading
-						if (dialog.ShowDialog() == DialogResult.OK)
-						{
-							path = dialog.SelectedPath;
-						}
+						path = dialog.SelectedPath;
 					}
-				});
+				})
+				{
+					Name = $"{nameof(ExportDialog)}Thread"
+				};
 
 				thread.SetApartmentState(ApartmentState.STA);
 				thread.IsBackground = true;
@@ -138,7 +161,7 @@ namespace River.OneMoreAddIn.Commands
 			}
 			catch (Exception exc)
 			{
-				Logger.Current.WriteLine("error running FolderBrowserDialog", exc);
+				logger.WriteLine("error running FolderBrowserDialog", exc);
 			}
 		}
 	}

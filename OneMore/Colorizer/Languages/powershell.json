@@ -5,6 +5,12 @@
   ],
   "rules": [
     {
+      "pattern": "(?s)(<\\#.*?\\#>)",
+      "captures": [
+        "Comment"
+      ]
+    },
+    {
       "pattern": "(<\\#[^\\r\\n]*)$",
       "scope": "Comment",
       "captures": [
@@ -14,12 +20,6 @@
     {
       "pattern": "^([^\\r\\n]*\\#>)",
       "scope": "",
-      "captures": [
-        "Comment"
-      ]
-    },
-    {
-      "pattern": "(?s)(<\\#.*?\\#>)",
       "captures": [
         "Comment"
       ]
@@ -61,9 +61,15 @@
       ]
     },
     {
+      "pattern": "\\b([A-Za-z]+(?:-[A-Za-z]+)+)\\b",
+      "captures": [
+        "PowerShellCommand"
+      ]
+    },
+    {
       "pattern": "\\b(begin|break|catch|continue|data|do|dynamicparam|elseif|else|end|exit|filter|finally|foreach|for|from|function|if|in|param|process|return|switch|throw|trap|try|until|while)\\b",
       "captures": [
-        "Keyword"
+        "PowerShellKeyword"
       ]
     },
     {

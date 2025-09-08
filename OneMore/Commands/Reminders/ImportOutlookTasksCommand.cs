@@ -11,12 +11,20 @@ namespace River.OneMoreAddIn.Commands
 	using System.Linq;
 	using System.Threading.Tasks;
 	using System.Xml.Linq;
-	using Resx = River.OneMoreAddIn.Properties.Resources;
+	using Resx = Properties.Resources;
 
 
 	/// <summary>
-	/// Generates a list or a detailed table of selected Outlook tasks
+	/// Imports Outlook tasks in a list or tabular form. When imported as a table, the start, 
+	/// due, completed, and other properties are displayed. Note that OneMore can only keep track
+	/// of the status (clickable status flags) of tasks in the main Outlook Tasks folder. While
+	/// OneMore can import tasks from other folders, OneNote does not keep track of their status.
 	/// </summary>
+	/// <remarks>
+	/// The task detail table is accompanied by a title with a refresh link.Click this link to
+	/// update the task details from Outlook.
+	/// </remarks>
+	[CommandService]
 	internal class ImportOutlookTasksCommand : Command
 	{
 		private const string TableMeta = "omOutlookTasks";
@@ -50,11 +58,9 @@ namespace River.OneMoreAddIn.Commands
 		{
 			if (!Office.IsInstalled("Outlook"))
 			{
-				UIHelper.ShowInfo("Outlook must be installed to use this command");
+				ShowInfo("Outlook must be installed to use this command");
 				return;
 			}
-
-			IEnumerable<OutlookTask> tasks = null;
 
 			if (args.Length > 1 && args[0] is string refreshArg && refreshArg == "refresh")
 			{
@@ -62,31 +68,28 @@ namespace River.OneMoreAddIn.Commands
 				return;
 			}
 
-			var detailed = false;
-			using (var outlook = new Outlook())
+			// select...
+
+			using var outlook = new Outlook();
+			var folders = outlook.GetTaskHierarchy();
+
+			using var dialog = new ImportOutlookTasksDialog(folders);
+			if (dialog.ShowDialog(owner) != System.Windows.Forms.DialogResult.OK)
 			{
-				var folders = outlook.GetTaskHierarchy();
-
-				using (var dialog = new ImportOutlookTasksDialog(folders))
-				{
-					if (dialog.ShowDialog() != System.Windows.Forms.DialogResult.OK)
-					{
-						return;
-					}
-
-					tasks = dialog.SelectedTasks;
-					if (!tasks.Any())
-					{
-						return;
-					}
-
-					detailed = dialog.ShowDetailedTable;
-				}
+				return;
 			}
 
-			using (one = new OneNote(out page, out ns))
+			var tasks = dialog.SelectedTasks;
+			if (!tasks.Any())
 			{
-				if (detailed)
+				return;
+			}
+
+			// import...
+
+			await using (one = new OneNote(out page, out ns))
+			{
+				if (dialog.ShowDetailedTable)
 				{
 					await GenerateTableReport(tasks);
 				}
@@ -95,14 +98,14 @@ namespace River.OneMoreAddIn.Commands
 					await GenerateListReport(tasks);
 				}
 
-				BindTasks(tasks);
+				await BindTasks(tasks);
 			}
 		}
 
 
 		private async Task UpdateTableReport(string guid)
 		{
-			using (one = new OneNote(out page, out ns, OneNote.PageDetail.Basic))
+			await using (one = new OneNote(out page, out ns, OneNote.PageDetail.Basic))
 			{
 				var meta = page.Root.Descendants(ns + "Meta")
 					.FirstOrDefault(e =>
@@ -112,7 +115,7 @@ namespace River.OneMoreAddIn.Commands
 
 				if (meta == null)
 				{
-					UIHelper.ShowInfo("Outlook task table not found. It may have been deleted");
+					ShowInfo("Outlook task table not found. It may have been deleted");
 					return;
 				}
 
@@ -125,28 +128,27 @@ namespace River.OneMoreAddIn.Commands
 
 				if (!taskIDs.Any())
 				{
-					UIHelper.ShowInfo("Table contains no Outlook tasks. Rows may have been deleted");
+					ShowInfo("Table contains no Outlook tasks. Rows may have been deleted");
 					return;
 				}
 
 				PrepareTableContext();
 
-				using (var outlook = new Outlook())
-				{
-					var tasks = outlook.LoadTasksByID(taskIDs);
-					foreach (var task in tasks)
-					{
-						var row = table.Rows.FirstOrDefault(r => r.Root
-							.Element(ns + "Cell")
-							.Element(ns + "OEChildren")
-							.Element(ns + "OE")
-							.Element(ns + "OutlookTask")?
-							.Attribute("guidTask").Value == task.OneNoteTaskID);
+				using var outlook = new Outlook();
 
-						if (row != null)
-						{
-							PopulateRow(row, task, false);
-						}
+				var tasks = outlook.LoadTasksByID(taskIDs);
+				foreach (var task in tasks)
+				{
+					var row = table.Rows.FirstOrDefault(r => r.Root
+						.Element(ns + "Cell")
+						.Element(ns + "OEChildren")
+						.Element(ns + "OE")
+						.Element(ns + "OutlookTask")?
+						.Attribute("guidTask").Value == task.OneNoteTaskID);
+
+					if (row != null)
+					{
+						PopulateRow(row, task, false);
 					}
 				}
 
@@ -196,7 +198,7 @@ namespace River.OneMoreAddIn.Commands
 			row[2].SetContent(new Paragraph(Resx.OutlookTaskReport_DateStarted).SetStyle(HeaderCss));
 			row[3].SetContent(new Paragraph(Resx.OutlookTaskReport_DateDue).SetStyle(HeaderCss));
 			row[4].SetContent(new Paragraph(Resx.OutlookTaskReport_Importance).SetStyle(HeaderCss));
-			row[5].SetContent(new Paragraph(Resx.OutlookTaskReport_Percent).SetStyle(HeaderCss));
+			row[5].SetContent(new Paragraph(Resx.phrase_PctComplete).SetStyle(HeaderCss));
 
 			PrepareTableContext();
 
@@ -213,7 +215,8 @@ namespace River.OneMoreAddIn.Commands
 			var nowf = DateTime.Now.ToShortFriendlyString();
 			var guid = Guid.NewGuid().ToString("b").ToUpper();
 
-			page.AddNextParagraph(
+			var editor = new PageEditor(page);
+			editor.AddNextParagraph(
 				new Paragraph(Resx.OutlookTaskReport_Title).SetQuickStyle(heading2Index),
 				new Paragraph($"{Resx.ReminderReport_LastUpdated} {nowf} " +
 					$"(<a href=\"onemore://ImportOutlookTasksCommand/refresh/{guid}\">{Resx.word_Refresh}</a>)")
@@ -237,7 +240,7 @@ namespace River.OneMoreAddIn.Commands
 			// wth only CR instead of NLCR so allow for any possibility
 			var delims = new[] { Environment.NewLine, "\r", "\n" };
 
-			importances = Resx.OutlookTaskReport_importances
+			importances = Resx.phrase_priorityOptions
 				.Split(delims, StringSplitOptions.RemoveEmptyEntries);
 
 			statuses = Resx.OutlookTaskReport_statuses
@@ -353,20 +356,22 @@ namespace River.OneMoreAddIn.Commands
 		{
 			var ordered = tasks.OrderBy(t => t.FolderPath).ThenBy(t => t.Subject);
 
+			var editor = new PageEditor(page);
+
 			foreach (var task in ordered)
 			{
 				//logger.WriteLine($"importing \"{task.FolderPath}/{task.Subject}\"");
-				page.InsertParagraph(MakeTaskReference(task));
+				editor.InsertParagraph(MakeTaskReference(task));
 			}
 
 			await one.Update(page);
 		}
 
 
-		private void BindTasks(IEnumerable<OutlookTask> tasks)
+		private async Task BindTasks(IEnumerable<OutlookTask> tasks)
 		{
 			// re-fetch page to get IDs of new paragraphs...
-			page = one.GetPage(page.PageId, OneNote.PageDetail.Basic);
+			page = await one.GetPage(page.PageId, OneNote.PageDetail.Basic);
 			ns = page.Namespace;
 
 			// find the containing Outline to optimize the lookup loop below
@@ -375,22 +380,20 @@ namespace River.OneMoreAddIn.Commands
 				.Select(e => e.FirstAncestor(ns + "Outline"))
 				.First();
 
-			using (var outlook = new Outlook())
+			using var outlook = new Outlook();
+			foreach (var task in tasks)
 			{
-				foreach (var task in tasks)
+				var paragraph = outline.Descendants(ns + "OutlookTask")
+					.Where(e => e.Attribute("guidTask").Value == task.OneNoteTaskID)
+					.Select(e => e.Parent)
+					.FirstOrDefault();
+
+				if (paragraph != null)
 				{
-					var paragraph = outline.Descendants(ns + "OutlookTask")
-						.Where(e => e.Attribute("guidTask").Value == task.OneNoteTaskID)
-						.Select(e => e.Parent)
-						.FirstOrDefault();
+					var id = paragraph.Attribute("objectID").Value;
+					task.OneNoteURL = one.GetHyperlink(page.PageId, id);
 
-					if (paragraph != null)
-					{
-						var id = paragraph.Attribute("objectID").Value;
-						task.OneNoteURL = one.GetHyperlink(page.PageId, id);
-
-						outlook.SaveTask(task);
-					}
+					outlook.SaveTask(task);
 				}
 			}
 		}

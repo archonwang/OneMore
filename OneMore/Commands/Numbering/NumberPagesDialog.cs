@@ -1,5 +1,5 @@
 ﻿//************************************************************************************************
-// Copyright © 2020 Steven M Cohn.  All rights reserved.
+// Copyright © 2020 Steven M Cohn. All rights reserved.
 //************************************************************************************************
 
 #pragma warning disable CS3003  // Type is not CLS-compliant
@@ -9,10 +9,10 @@ namespace River.OneMoreAddIn.Commands
 {
 	using System;
 	using System.Windows.Forms;
-	using Resx = River.OneMoreAddIn.Properties.Resources;
+	using Resx = Properties.Resources;
 
 
-	internal partial class NumberPagesDialog : UI.LocalizableForm
+	internal partial class NumberPagesDialog : UI.MoreForm
 	{
 		public NumberPagesDialog()
 		{
@@ -24,10 +24,9 @@ namespace River.OneMoreAddIn.Commands
 
 				Localize(new string[]
 				{
-					"numberingGroup",
 					"introLabel",
-					"alphaRadio",
-					"numRadio",
+					"alphaRadio=word_Alphanumeric",
+					"numRadio=word_Numeric",
 					"cleanBox",
 					"okButton=word_OK",
 					"cancelButton=word_Cancel"

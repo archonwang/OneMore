@@ -39,46 +39,44 @@ namespace River.OneMoreAddIn.Commands
 
 		public override async Task Execute(params object[] args)
 		{
-			using (var one = new OneNote(out page, out ns))
+			await using var one = new OneNote(out page, out ns);
+			if (!page.ConfirmBodyContext())
 			{
-				if (!page.ConfirmBodyContext())
-				{
-					UIHelper.ShowError(Resx.Error_BodyContext);
-					return;
-				}
-
-				using (var dialog = new InsertCalendarDialog())
-				{
-					if (dialog.ShowDialog(owner) != DialogResult.OK)
-					{
-						return;
-					}
-
-					logger.WriteLine($"making calendar for {dialog.Month}/{dialog.Year}");
-
-					var days = MakeDayList(dialog.Year, dialog.Month, dialog.FirstDay);
-
-					var root = MakeCalendar(days, dialog.FirstDay, dialog.Large, dialog.HeaderShading);
-					var header = MakeHeader(dialog.Year, dialog.Month);
-
-					if (dialog.Indent)
-					{
-						header.Add(new XElement(ns + "OEChildren",
-								new XElement(ns + "OE",
-								root)
-							));
-
-						page.AddNextParagraph(header);
-					}
-					else
-					{
-						page.AddNextParagraph(root);
-						page.AddNextParagraph(header);
-					}
-				}
-
-				await one.Update(page);
+				ShowError(Resx.Error_BodyContext);
+				return;
 			}
+
+			using var dialog = new InsertCalendarDialog();
+			if (dialog.ShowDialog(owner) != DialogResult.OK)
+			{
+				return;
+			}
+
+			logger.WriteLine($"making calendar for {dialog.Month}/{dialog.Year}");
+
+			var days = MakeDayList(dialog.Year, dialog.Month, dialog.FirstDay);
+
+			var root = MakeCalendar(days, dialog.FirstDay, dialog.Large, dialog.HeaderShading);
+			var header = MakeHeader(dialog.Year, dialog.Month);
+
+			var editor = new PageEditor(page);
+
+			if (dialog.Indent)
+			{
+				header.Add(new XElement(ns + "OEChildren",
+						new XElement(ns + "OE",
+						root)
+					));
+
+				editor.AddNextParagraph(header);
+			}
+			else
+			{
+				editor.AddNextParagraph(root);
+				editor.AddNextParagraph(header);
+			}
+
+			await one.Update(page);
 		}
 
 

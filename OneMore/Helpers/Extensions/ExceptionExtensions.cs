@@ -18,7 +18,8 @@ namespace River.OneMoreAddIn
 	{
 
 		/// <summary>
-		/// Generate a detailed report of the given exception and all inner exceptions
+		/// OneMore Extension >> Generate a detailed report of the given exception and all
+		/// inner exceptions
 		/// </summary>
 		/// <param name="exc">The exception to report</param>
 		/// <param name="full">
@@ -41,7 +42,7 @@ namespace River.OneMoreAddIn
 		private static void FormatDetails(
 			Exception exc, StringBuilder builder, int depth)
 		{
-			string h = new string(' ', depth * 2);
+			string h = new(' ', depth * 2);
 			if (depth > 0)
 			{
 				builder.AppendLine($"{h}-- inner exception at depth {depth} ---------------");
@@ -97,13 +98,14 @@ namespace River.OneMoreAddIn
 
 			if (exc.InnerException != null)
 			{
-				FormatDetails(exc, builder, depth + 1);
+				FormatDetails(exc.InnerException, builder, depth + 1);
 			}
 		}
 
 
 		/// <summary>
-		/// Get a concatenated string of the exception messages and its inner exceptions.
+		/// OneMore Extension >> Get a concatenated string of the exception messages and its
+		/// inner exceptions.
 		/// </summary>
 		/// <param name="exc">The exception</param>
 		/// <returns>A string with one or more lines</returns>

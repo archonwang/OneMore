@@ -2,9 +2,6 @@
 // Copyright © 2020 Steven M Cohn.  All rights reserved.
 //************************************************************************************************
 
-#define Hx
-#define Zx
-
 namespace River.OneMoreAddIn.Commands
 {
 	using System;
@@ -19,45 +16,12 @@ namespace River.OneMoreAddIn.Commands
 	using System.Windows.Documents;
 	using System.Xml;
 	using System.Xml.Linq;
-	using WindowsInput;
-	using WindowsInput.Native;
-	using Resx = River.OneMoreAddIn.Properties.Resources;
+	using Resx = Properties.Resources;
 
 
-	/*
-	using River.OneMoreAddIn.Helpers.Office;
-	using River.OneMoreAddIn.Models;
-	using System.Linq;
-	using System.Xml.Linq;
-
-			if (Office.IsWordInstalled())
-			{
-				using (var word = new Word())
-				{
-					//var html = word.ConvertFileToHtml(@"C:\users\steven\downloads\foo.docx");
-					var html = word.ConvertClipboardToHtml();
-
-					logger.WriteLine(html);
-
-					logger.WriteLine("Adding HTML blcok");
-					using (var manager = new ApplicationManager())
-					{
-						var page = new Page(manager.CurrentPage(PageInfo.piBasic));
-						var ns = page.Namespace;
-
-						var outline = page.Root.Elements(ns + "Outline").Elements(ns + "OEChildren").FirstOrDefault();
-
-						outline.Add(new XElement(ns + "HTMLBlock",
-							new XElement(ns + "Data", new XCData(html))
-							));
-
-						manager.UpdatePageContent(page.Root);
-						return;
-					}
-				}
-			}
-	*/
-
+	/// <summary>
+	/// Pastes rich text from the clipboard, preserving formatting and colors.
+	/// </summary>
 	internal class PasteRtfCommand : Command
 	{
 		private const double DeltaSize = 0.75;
@@ -75,55 +39,32 @@ namespace River.OneMoreAddIn.Commands
 
 		public override async Task Execute(params object[] args)
 		{
-			using (var one = new OneNote(out var page, out _))
+			await using (var one = new OneNote(out var page, out _))
 			{
 				if (!page.ConfirmBodyContext())
 				{
-					UIHelper.ShowError(Resx.Error_BodyContext);
+					ShowError(Resx.Error_BodyContext);
 					return;
 				}
 
-				_ = one.GetPage().GetPageColor(out _, out black);
+				_ = (await one.GetPage()).GetPageColor(out _, out black);
 			}
 
 			// transform RTF and Xaml data on clipboard to HTML
 
-			var html = PrepareClipboard();
+			_ = PrepareClipboard();
 			//logger.WriteLine(html);
-#if H
-			if (html != null)
-			{
-				// TODO: find and replace selected region
 
-				logger.WriteLine("Adding HTML blcok");
-				using (var manager = new ApplicationManager())
-				{
-					var page = new OM.Page(manager.CurrentPage(PageInfo.piBasic));
-					var ns = page.Namespace;
-
-					var outline = page.Root.Elements(ns + "Outline").Elements(ns + "OEChildren").FirstOrDefault();
-
-					outline.Add(new XElement(ns + "HTMLBlock",
-						new XElement(ns + "Data", new XCData(html))
-						));
-
-					manager.UpdatePageContent(page.Root);
-					return;
-				}
-			}
-#endif
 			// paste what's remaining from clipboard, letting OneNote do the
 			// heavy lifting of converting the HTML into one:xml schema
 
-			using (var one = new OneNote())
+			await using (var one = new OneNote())
 			{
 				// since the Hotkey message loop is watching all input, explicitly setting
 				// focus on the OneNote main window provides a direct path for SendKeys
 				Native.SetForegroundWindow(one.WindowHandle);
 
-				//System.Windows.Forms.SendKeys.SendWait("^(v)");
-				new InputSimulator().Keyboard
-					.ModifiedKeyStroke(VirtualKeyCode.CONTROL, VirtualKeyCode.VK_V);
+				await ClipboardProvider.Paste();
 			}
 
 			await Task.Yield();
@@ -140,16 +81,24 @@ namespace River.OneMoreAddIn.Commands
 				if (Clipboard.ContainsText(TextDataFormat.Html))
 				{
 					var text = Clipboard.GetText(TextDataFormat.Html);
-					html = text.Substring(text.IndexOf("<html>"));
+					var offset = text.IndexOf("<html>");
+					if (offset >= 0)
+					{
+						html = TranslateWhitespace(text.Substring(offset));
+						RebuildClipboard(ClipboardProvider.WrapWithHtmlPreamble(html));
+					}
+					else
+					{
+						logger.WriteLine("HTML tag not found in clipboard snippet:");
+						logger.WriteLine(text);
+					}
 				}
 				else if (Clipboard.ContainsText(TextDataFormat.Rtf))
 				{
 					html = ConvertXamlToHtml(
 						ConvertRtfToXaml(Clipboard.GetText(TextDataFormat.Rtf)));
 
-					var text = AddHtmlPreamble(html);
-
-					RebuildClipboard(text);
+					RebuildClipboard(ClipboardProvider.WrapWithHtmlPreamble(html));
 					//logger.WriteLine("PasteRtf Rtf -> Html");
 				}
 				else if (Clipboard.ContainsText(TextDataFormat.Xaml))
@@ -157,9 +106,7 @@ namespace River.OneMoreAddIn.Commands
 					html = ConvertXamlToHtml(
 							Clipboard.GetText(TextDataFormat.Xaml));
 
-					var text = AddHtmlPreamble(html);
-
-					RebuildClipboard(text);
+					RebuildClipboard(ClipboardProvider.WrapWithHtmlPreamble(html));
 					//logger.WriteLine("PasteRtf Xaml -> Html");
 				}
 				else
@@ -167,11 +114,41 @@ namespace River.OneMoreAddIn.Commands
 					var formats = string.Join(",", Clipboard.GetDataObject().GetFormats(false));
 					logger.WriteLine($"PasteRtf clipboard:({formats})");
 				}
-			});
+			})
+			{
+				Name = $"{nameof(PasteRtfCommand)}Thread"
+			};
 
 			thread.SetApartmentState(ApartmentState.STA);
 			thread.Start();
 			thread.Join();
+
+			return html;
+		}
+
+
+		private string TranslateWhitespace(string html)
+		{
+			html = html.Replace("&#32;", " ");
+
+			/*
+			 * This is a theory but as of yet untested...
+			 * It strips whitespace occurring in between two SPAN elements and appends it
+			 * to the first SPAN element. But so far, seems unnecessary.
+			 *
+			var matches = Regex.Matches(html, @"</span>([ ]+)<span");
+			if (matches.Count > 0)
+			{
+				var builder = new StringBuilder(html);
+				for (int i = matches.Count - 1; i >= 0; i--)
+				{
+					builder.Remove(matches[i].Groups[1].Captures[0].Index, matches[i].Groups[1].Captures[0].Length);
+					builder.Insert(matches[i].Groups[0].Index, matches[i].Groups[1].Captures[0].Value);
+				}
+
+				html = builder.ToString();
+			}
+			*/
 
 			return html;
 		}
@@ -228,16 +205,12 @@ namespace River.OneMoreAddIn.Commands
 			}
 
 			// read Xaml from rich text box
-			using (var stream = new MemoryStream())
-			{
-				range = new TextRange(box.Document.ContentStart, box.Document.ContentEnd);
-				range.Save(stream, DataFormats.Xaml);
-				stream.Seek(0, SeekOrigin.Begin);
-				using (var reader = new StreamReader(stream))
-				{
-					return reader.ReadToEnd();
-				}
-			}
+			using var stream = new MemoryStream();
+			range = new TextRange(box.Document.ContentStart, box.Document.ContentEnd);
+			range.Save(stream, DataFormats.Xaml);
+			stream.Seek(0, SeekOrigin.Begin);
+			using var reader = new StreamReader(stream);
+			return reader.ReadToEnd();
 		}
 
 
@@ -257,22 +230,20 @@ namespace River.OneMoreAddIn.Commands
 			using (var outer = new XmlTextReader(new StringReader(xaml)))
 			{
 				// skip outer <Section> to get to subtree
-				while (outer.Read() && outer.NodeType != XmlNodeType.Element) { /**/ }
+				while (outer.Read() && outer.NodeType != XmlNodeType.Element) { /* empty */ }
 				if (!outer.EOF)
 				{
-					using (var writer = new XmlTextWriter(new StringWriter(builder)))
+					using var writer = new XmlTextWriter(new StringWriter(builder));
+					// prepare proper HTML clipboard skeleton
+
+					writer.WriteComment("StartFragment");
+
+					using (var reader = outer.ReadSubtree())
 					{
-						// prepare proper HTML clipboard skeleton
-
-						writer.WriteComment("StartFragment");
-
-						using (var reader = outer.ReadSubtree())
-						{
-							ConvertXaml(reader, writer);
-						}
-
-						writer.WriteComment("EndFragment");
+						ConvertXaml(reader, writer);
 					}
+
+					writer.WriteComment("EndFragment");
 				}
 			}
 			builder.AppendLine();
@@ -404,15 +375,8 @@ namespace River.OneMoreAddIn.Commands
 				return text;
 
 			var builder = new StringBuilder();
-
 			int i = 0;
-#if Z
-			while ((i < text.Length) && text[i] == '\t')
-			{
-				builder.Append(Zpace);
-				i++;
-			}
-#endif
+
 			zindents = zindents || i > 0;
 
 			while ((i < text.Length) && (text[i] == ' ' || text[i] == '\t'))
@@ -449,88 +413,28 @@ namespace River.OneMoreAddIn.Commands
 
 		private string TranslateElementName(string xname, XmlReader reader = null)
 		{
-			string name;
-
-			switch (xname)
+			string name = xname switch
 			{
-				case "InlineUIContainer":
-				case "Span":
-					name = "span";
-					break;
-
-				case "Run":
-					name = "span";
-					break;
-
-				case "Bold":
-					name = "b";
-					break;
-
-				case "Italic":
-					name = "i";
-					break;
-
-				case "Paragraph":
-					name = "p";
-					break;
-
-				case "BlockUIContainer":
-				case "Section":
-					name = "div";
-					break;
-
-				case "Table":
-					name = "table";
-					break;
-
-				case "TableColumn":
-					name = "col";
-					break;
-
-				case "TableRowGroup":
-					name = "tbody";
-					break;
-
-				case "TableRow":
-					name = "tr";
-					break;
-
-				case "TableCell":
-					name = "td";
-					break;
-
-				case "List":
-					switch (reader.GetAttribute("MarkerStyle"))
-					{
-						case null:
-						case "None":
-						case "Disc":
-						case "Circle":
-						case "Square":
-						case "Box":
-							name = "ul";
-							break;
-
-						default:
-							name = "ol";
-							break;
-					}
-					break;
-
-				case "ListItem":
-					name = "li";
-					break;
-
-				case "Hyperlink":
-					name = "a";
-					break;
-
-				default:
-					// ignore
-					name = null;
-					break;
-			}
-
+				"InlineUIContainer" or "Span" => "span",
+				"Run" => "span",
+				"Bold" => "b",
+				"Italic" => "i",
+				"Paragraph" => "p",
+				"BlockUIContainer" or "Section" => "div",
+				"Table" => "table",
+				"TableColumn" => "col",
+				"TableRowGroup" => "tbody",
+				"TableRow" => "tr",
+				"TableCell" => "td",
+				"List" => reader.GetAttribute("MarkerStyle") switch
+				{
+					null or "None" or "Disc" or "Circle" or "Square" or "Box" => "ul",
+					_ => "ol",
+				},
+				"ListItem" => "li",
+				"Hyperlink" => "a",
+				_ => null,// ignore
+			};
 			return name;
 		}
 
@@ -679,7 +583,7 @@ namespace River.OneMoreAddIn.Commands
 
 			for (int i = 0; i < parts.Length; i++)
 			{
-				if (double.TryParse(parts[i], out var value))
+				if (double.TryParse(parts[i], NumberStyles.Any, CultureInfo.InvariantCulture, out var value))
 				{
 					parts[i] = Math.Ceiling(value * DeltaSize).ToString(CultureInfo.InvariantCulture);
 				}
@@ -701,61 +605,6 @@ namespace River.OneMoreAddIn.Commands
 				}
 			}
 
-			return builder.ToString();
-		}
-
-
-		public static string AddHtmlPreamble(string html)
-		{
-			/*
-			 * https://docs.microsoft.com/en-us/windows/win32/dataxchg/html-clipboard-format
-			 * 
-			 * StartHTML:00071
-			 * EndHTML:00170
-			 * StartFragment:00140
-			 * EndFragment:00160
-			 * <html>
-			 * <body>
-			 * <!--StartFragment--> ... <!--EndFragment-->
-			 * </body>
-			 * </html>
-			 */
-
-			var builder = new StringBuilder();
-			builder.AppendLine("Version:0.9");
-			builder.AppendLine("StartHTML:0000000000");
-			builder.AppendLine("EndHTML:1111111111");
-			builder.AppendLine("StartFragment:2222222222");
-			builder.AppendLine("EndFragment:3333333333");
-
-			// calculate offsets, accounting for Unicode no-break space chars
-
-			builder.Replace("0000000000", builder.Length.ToString("D10"));
-
-			int start = html.IndexOf("<!--StartFragment-->");
-			int spaces = 0;
-			for (int i = 0; i < start; i++)
-			{
-				if (html[i] == Space)
-				{
-					spaces++;
-				}
-			}
-			builder.Replace("2222222222", (builder.Length + start + 20 + spaces).ToString("D10"));
-
-			int end = html.IndexOf("<!--EndFragment-->");
-			for (int i = start + 20; i < end; i++)
-			{
-				if (html[i] == Space)
-				{
-					spaces++;
-				}
-			}
-			spaces--;
-			builder.Replace("3333333333", (builder.Length + end + spaces).ToString("D10"));
-			builder.Replace("1111111111", (builder.Length + html.Length + spaces).ToString("D10"));
-
-			builder.AppendLine(html);
 			return builder.ToString();
 		}
 	}

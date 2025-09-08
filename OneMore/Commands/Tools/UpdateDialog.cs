@@ -11,7 +11,7 @@ namespace River.OneMoreAddIn.Commands
 	using Resx = River.OneMoreAddIn.Properties.Resources;
 
 
-	internal partial class UpdateDialog : UI.LocalizableForm
+	internal partial class UpdateDialog : UI.MoreForm
 	{
 		private readonly string url;
 
@@ -37,7 +37,7 @@ namespace River.OneMoreAddIn.Commands
 					{
 						"currentLabel",
 						"versionLabel",
-						"lastpdatedLabel",
+						"lastUpdatedLabel",
 						"releaseNotesLink",
 						"okButton=word_OK"
 					});
@@ -63,9 +63,9 @@ namespace River.OneMoreAddIn.Commands
 						"upVersionLabel",
 						"upDescriptionLabel",
 						"upReleaseDateLabel",
-						"upReleaseNotesLink",
+						"upReleaseNotesLink=UpdateDialog_releaseNotesLink",
 						"upCurrentVersionLabel",
-						"upLastUpdatedLabel",
+						"upLastUpdatedLabel=UpdateDialog_lastUpdatedLabel",
 						"upOKButton",
 						"cancelButton=word_Cancel"
 					});
@@ -106,7 +106,8 @@ namespace River.OneMoreAddIn.Commands
 				}
 				else
 				{
-					if (DateTime.TryParse(value, out var date))
+					if (DateTime.TryParse(value,
+						DateTimeFormatInfo.CurrentInfo, DateTimeStyles.None, out var date))
 					{
 						return date.ToShortDateString();
 					}

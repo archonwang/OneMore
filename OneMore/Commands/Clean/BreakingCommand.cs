@@ -33,20 +33,15 @@ namespace River.OneMoreAddIn.Commands
 
 		public override async Task Execute(params object[] args)
 		{
-			bool singleSpace = true;
-			using (var dialog = new BreakingDialog())
+			using var dialog = new BreakingDialog();
+			if (dialog.ShowDialog(owner) != DialogResult.OK)
 			{
-				if (dialog.ShowDialog(owner) != DialogResult.OK)
-				{
-					return;
-				}
-
-				singleSpace = dialog.SingleSpace;
+				return;
 			}
 
 			Regex regex;
 			string replacement;
-			if (singleSpace)
+			if (dialog.SingleSpace)
 			{
 				regex = new Regex(OneSpacePattern);
 				replacement = "$1 $2$3$4$5";
@@ -56,32 +51,30 @@ namespace River.OneMoreAddIn.Commands
 				regex = new Regex(TwoSpacePattern);
 				replacement = "$1  $2$3$4";
 			}
-			
-			using (var one = new OneNote(out var page, out var ns))
+
+			await using var one = new OneNote(out var page, out var ns);
+			logger.StartClock();
+
+			var nodes = page.Root.DescendantNodes().OfType<XCData>()
+				.Where(n => n.Value.Contains('.'));
+
+			if (nodes.Any())
 			{
-				logger.StartClock();
+				var updated = false;
 
-				var nodes = page.Root.DescendantNodes().OfType<XCData>()
-					.Where(n => n.Value.Contains('.'));
-
-				if (nodes != null && nodes.Any())
+				foreach (var cdata in nodes)
 				{
-					var updated = false;
-
-					foreach (var cdata in nodes)
-					{
-						cdata.Value = regex.Replace(cdata.Value, replacement);
-						updated = true;
-					}
-
-					if (updated)
-					{
-						await one.Update(page);
-					}
+					cdata.Value = regex.Replace(cdata.Value, replacement);
+					updated = true;
 				}
 
-				logger.StopClock();
+				if (updated)
+				{
+					await one.Update(page);
+				}
 			}
+
+			logger.StopClock();
 		}
 	}
 }

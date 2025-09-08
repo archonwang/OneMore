@@ -5,21 +5,87 @@
 namespace River.OneMoreAddIn.UI
 {
 	using System;
+	using System.ComponentModel;
+	using System.Drawing;
 	using System.Windows.Forms;
 
 
 	/// <summary>
 	/// Extension of LinkLabel to force system Hand cursor instead of default Forms Hand cursor.
 	/// </summary>
-	internal class MoreLinkLabel : LinkLabel
+	internal class MoreLinkLabel : LinkLabel, ILoadControl
 	{
 		private readonly IntPtr hcursor;
+		private Color fore;
 
 
 		public MoreLinkLabel()
 		{
 			Cursor = Cursors.Hand;
 			hcursor = Native.LoadCursor(IntPtr.Zero, Native.IDC_HAND);
+			fore = Color.Empty;
+
+			ActiveLinkColor = Color.MediumOrchid;
+			LinkColor = Color.MediumOrchid;
+			VisitedLinkColor = Color.MediumOrchid;
+		}
+
+
+		[Description("Determines the color of the hyperlink when mouse is over it")]
+		public Color HoverColor
+		{
+			get;
+			set;
+		} = Color.Orchid;
+
+
+		public bool StrictColors { get; set; }
+
+
+		public string ThemedBack { get; set; }
+
+
+		public string ThemedFore { get; set; }
+
+
+		void ILoadControl.OnLoad()
+		{
+			if (!StrictColors)
+			{
+				var manager = ThemeManager.Instance;
+
+				var foreColor = !string.IsNullOrWhiteSpace(ThemedFore)
+					? manager.GetColor(ThemedFore)
+					: manager.GetColor("LinkColor");
+
+				LinkColor = foreColor;
+				ActiveLinkColor = foreColor;
+				HoverColor = manager.GetColor("HoverColor");
+
+				BackColor = !string.IsNullOrWhiteSpace(ThemedBack)
+					? manager.GetColor(ThemedBack)
+					: Parent.BackColor;
+			}
+		}
+
+
+		protected override void OnMouseEnter(EventArgs e)
+		{
+			base.OnMouseEnter(e);
+
+			if (fore == Color.Empty)
+			{
+				fore = LinkColor;
+			}
+
+			LinkColor = VisitedLinkColor = HoverColor;
+		}
+
+
+		protected override void OnMouseLeave(EventArgs e)
+		{
+			base.OnMouseLeave(e);
+			LinkColor = VisitedLinkColor = fore;
 		}
 
 

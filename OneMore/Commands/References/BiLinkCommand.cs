@@ -1,16 +1,19 @@
 ﻿//************************************************************************************************
-// Copyright © 2021 Steven M Cohn.  All rights reserved.
+// Copyright © 2021 Steven M Cohn. All rights reserved.
 //************************************************************************************************
 
-namespace River.OneMoreAddIn
+#define xLOG
+
+namespace River.OneMoreAddIn.Commands
 {
 	using River.OneMoreAddIn.Models;
+	using River.OneMoreAddIn.Settings;
 	using System.Linq;
 	using System.Text.RegularExpressions;
 	using System.Threading.Tasks;
 	using System.Xml.Linq;
 	using Hap = HtmlAgilityPack;
-	using Resx = River.OneMoreAddIn.Properties.Resources;
+	using Resx = Properties.Resources;
 
 
 	/// <summary>
@@ -20,6 +23,8 @@ namespace River.OneMoreAddIn
 	/// </summary>
 	internal class BiLinkCommand : Command
 	{
+		public const string SettingsName = "bilink";
+
 		// TODO: consider moving these to a global state cache that can be pruned
 		// rather than holding on to them indefinitely as statics....
 
@@ -33,6 +38,7 @@ namespace River.OneMoreAddIn
 
 		public BiLinkCommand()
 		{
+			IsCancelled = true;
 		}
 
 
@@ -41,52 +47,59 @@ namespace River.OneMoreAddIn
 			// anchor/link sub-commands cannot be repeated
 			IsCancelled = true;
 
-			using (var one = new OneNote())
+			await using var one = new OneNote();
+
+			if ((args[0] is string cmd) && (cmd == "mark"))
 			{
-				if ((args[0] is string cmd) && (cmd == "mark"))
+				if (!await MarkAnchor(one))
 				{
-					if (!MarkAnchor(one))
-					{
-						UIHelper.ShowError(one.Window, Resx.BiLinkCommand_BadAnchor);
-						return;
-					}
-
-					if (anchorText.Length > 20) { anchorText = $"{anchorText.Substring(0,20)}..."; }
-					UIHelper.ShowInfo(one.Window, string.Format(Resx.BiLinkCommand_Marked, anchorText));
+					ShowError(Resx.BiLinkCommand_BadAnchor);
+					return;
 				}
-				else
+
+				var settings = new SettingsProvider().GetCollection(SettingsName);
+				if (!settings.Get("hideStartMessage", false))
 				{
-					if (string.IsNullOrEmpty(anchorPageId))
+					using var dialog = new BiLinkDialog();
+					if (anchorText.Length > 20)
 					{
-						UIHelper.ShowError(one.Window, Resx.BiLinkCommand_NoAnchor);
-						return;
+						anchorText = $"{anchorText.Substring(0, 20)}...";
 					}
 
-					if (!await CreateLinks(one))
-					{
-						UIHelper.ShowError(one.Window, string.Format(Resx.BiLinkCommand_BadTarget, error));
-						return;
-					}
-
-					// reset
-					anchorPageId = null;
-					anchorId = null;
-					anchor = null;
+					dialog.SetAnchorText(anchorText);
+					dialog.ShowDialog(owner);
 				}
 			}
+			else
+			{
+				if (string.IsNullOrEmpty(anchorPageId))
+				{
+					ShowError(Resx.BiLinkCommand_NoAnchor);
+					return;
+				}
 
-			await Task.Yield();
+				if (!await CreateLinks(one))
+				{
+					ShowError(string.Format(Resx.BiLinkCommand_BadTarget, error));
+					return;
+				}
+
+				// reset
+				anchorPageId = null;
+				anchorId = null;
+				anchor = null;
+			}
 		}
 
 
-		private bool MarkAnchor(OneNote one)
+		private async Task<bool> MarkAnchor(OneNote one)
 		{
-			var page = one.GetPage();
-			var range = new SelectionRange(page.Root);
+			var page = await one.GetPage();
+			var range = new SelectionRange(page);
 
 			// get selected runs but preserve cursor if there is one so we can edit from it later
-			var run = range.GetSelection();
-			if (run == null)
+			var run = range.GetSelection(true);
+			if (run is null)
 			{
 				logger.WriteLine("no selected content");
 				return false;
@@ -104,7 +117,10 @@ namespace River.OneMoreAddIn
 			}
 
 			anchorPageId = one.CurrentPageId;
-			anchorText = page.GetSelectedText();
+			anchorText = new PageEditor(page).GetSelectedText();
+
+			logger.WriteLine($"anchored to {anchorId}");
+
 			return true;
 		}
 
@@ -113,8 +129,8 @@ namespace River.OneMoreAddIn
 		{
 			// - - - - anchor...
 
-			var anchorPage = one.GetPage(anchorPageId);
-			if (anchorPage == null)
+			var anchorPage = await one.GetPage(anchorPageId);
+			if (anchorPage is null)
 			{
 				logger.WriteLine($"lost anchor page {anchorPageId}");
 				error = Resx.BiLinkCommand_LostAnchor;
@@ -124,7 +140,7 @@ namespace River.OneMoreAddIn
 			var candidate = anchorPage.Root.Descendants()
 				.FirstOrDefault(e => e.Attributes("objectID").Any(a => a.Value == anchorId));
 
-			if (candidate == null)
+			if (candidate is null)
 			{
 				logger.WriteLine($"lost anchor paragraph {anchorId}");
 				error = Resx.BiLinkCommand_LostAnchor;
@@ -145,13 +161,13 @@ namespace River.OneMoreAddIn
 			var targetPageId = anchorPageId;
 			if (one.CurrentPageId != anchorPageId)
 			{
-				targetPage = one.GetPage();
+				targetPage = await one.GetPage();
 				targetPageId = targetPage.PageId;
 			}
 
-			var range = new SelectionRange(targetPage.Root);
-			var targetRun = range.GetSelection();
-			if (targetRun == null)
+			var range = new SelectionRange(targetPage);
+			var targetRun = range.GetSelection(true);
+			if (targetRun is null)
 			{
 				logger.WriteLine("no selected target content");
 				error = Resx.BiLinkCommand_NoTarget;
@@ -187,20 +203,21 @@ namespace River.OneMoreAddIn
 				candidate.DescendantsAndSelf().Attributes("selected").Remove();
 			}
 
-			//logger.WriteLine();
-			//logger.WriteLine("LINKING");
-			//logger.WriteLine($" anchorPageId = {anchorPageId}");
-			//logger.WriteLine($" anchorId     = {anchorId}");
-			//logger.WriteLine($" anchorLink   = {anchorLink}");
-			//logger.WriteLine($" candidate    = '{candidate}'");
-			//logger.WriteLine($" targetPageId = {targetPageId}");
-			//logger.WriteLine($" targetId     = {targetId}");
-			//logger.WriteLine($" targetLink   = {targetLink}");
-			//logger.WriteLine($" target       = '{target}'");
-			//logger.WriteLine();
-			//logger.WriteLine("---------------------------------------------");
-			//logger.WriteLine(targetPage.Root);
-
+#if LOG
+			logger.WriteLine();
+			logger.WriteLine("LINKING");
+			logger.WriteLine($" anchorPageId = {anchorPageId}");
+			logger.WriteLine($" anchorId     = {anchorId}");
+			logger.WriteLine($" anchorLink   = {anchorLink}");
+			logger.WriteLine($" candidate    = '{candidate}'");
+			logger.WriteLine($" targetPageId = {targetPageId}");
+			logger.WriteLine($" targetId     = {targetId}");
+			logger.WriteLine($" targetLink   = {targetLink}");
+			logger.WriteLine($" target       = '{target}'");
+			logger.WriteLine();
+			logger.WriteLine("---------------------------------------------");
+			logger.WriteLine(targetPage.Root);
+#endif
 			await one.Update(targetPage);
 
 			if (targetPageId != anchorPageId)
@@ -219,28 +236,19 @@ namespace River.OneMoreAddIn
 			// special deep comparison, excluding the selected attributes to handle
 			// case where anchor is on the same page as the target element
 
-
-			var oldcopy = new SelectionRange(anchor.Clone());
-			oldcopy.Deselect();
-
-			var newcopy = new SelectionRange(candidate.Clone());
-			newcopy.Deselect();
-
-			NormalizeCData(oldcopy.Root);
-			NormalizeCData(newcopy.Root);
-
-			var oldxml = Regex.Replace(oldcopy.ToString(), @"[\r\n]+", " ");
-			var newxml = Regex.Replace(newcopy.ToString(), @"[\r\n]+", " ");
+			var oldxml = MakeComparableXml(anchor);
+			var newxml = MakeComparableXml(candidate);
 
 			if (oldxml != newxml)
 			{
-				//logger.WriteLine("differences found in anchor/candidate");
-				//logger.WriteLine($"oldxml/anchor {oldxml.Length}");
-				//logger.WriteLine(oldxml);
-				//logger.WriteLine($"newxml/candidate {newxml.Length}");
-				//logger.WriteLine(newxml);
-
-				for (int i= 0; i < oldxml.Length && i < newxml.Length; i++)
+#if LOG
+				logger.WriteLine("differences found in anchor/candidate");
+				logger.WriteLine($"oldxml/anchor {oldxml.Length}");
+				logger.WriteLine(oldxml);
+				logger.WriteLine($"newxml/candidate {newxml.Length}");
+				logger.WriteLine(newxml);
+#endif
+				for (int i = 0; i < oldxml.Length && i < newxml.Length; i++)
 				{
 					if (oldxml[i] != newxml[i])
 					{
@@ -254,23 +262,37 @@ namespace River.OneMoreAddIn
 		}
 
 
-		private void NormalizeCData(XElement element)
+		private string MakeComparableXml(XElement element)
 		{
-			/*
-			 * Solves one specific case where CDATA contains <span lang=code> without quotes
-			 * but is compared to <span lang='code'> with quotes. So this routine normalizes
-			 * those inner CDATA attribute values so they can be compared for equality.
-			 */
-			element.DescendantNodes().OfType<XCData>().ToList().ForEach(c =>
+			var original = element.Clone();
+
+			// ignore last mod timestamp incase it drifts
+			if (original.Attribute("lastModifiedTime") is XAttribute lmt) lmt.Remove();
+
+			// remove selections and optimize continguous runs
+			var range = new SelectionRange(original);
+			range.Deselect();
+
+			// Solves one specific case where CDATA contains <span lang=code> without quotes
+			// but is compared to <span lang='code'> with quotes. So this routine normalizes
+			// those inner CDATA attribute values so they can be compared for equality.
+			range.Root.DescendantNodes().OfType<XCData>().ToList().ForEach(c =>
 			{
 				var doc = new Hap.HtmlDocument
 				{
 					GlobalAttributeValueQuote = Hap.AttributeValueQuote.SingleQuote
 				};
 
+				c.Value = c.Value.Replace("; ", ";");
+
 				doc.LoadHtml(c.Value);
 				c.ReplaceWith(new XCData(doc.DocumentNode.InnerHtml));
 			});
+
+			// collapse linebreaks to single space
+			var xml = Regex.Replace(range.ToString(), @"[\r\n]+", " ");
+			// collapse embedded CSS to normalize no-space between 'properties;properties'
+			return Regex.Replace(xml, @"('[^']+)(;\s)([^']+')", "$1;$3");
 		}
 
 
@@ -278,10 +300,11 @@ namespace River.OneMoreAddIn
 		{
 			var count = 0;
 
-			var selection = range.GetSelection();
-			if (range.SelectionScope == SelectionScope.Empty)
+			var editor = new PageEditor(page);
+			var selection = range.GetSelection(true);
+			if (range.Scope == SelectionScope.TextCursor)
 			{
-				page.EditNode(selection, (s) =>
+				editor.EditNode(selection, (s) =>
 				{
 					if (s is XText text)
 					{
@@ -298,7 +321,7 @@ namespace River.OneMoreAddIn
 			}
 			else
 			{
-				page.EditSelected(range.Root, (s) =>
+				editor.EditSelected(range.Root, (s) =>
 				{
 					count++;
 					return new XElement("a", new XAttribute("href", link), s);
@@ -308,7 +331,7 @@ namespace River.OneMoreAddIn
 			// combine doubled-up <a/><a/>...
 			// WARN: this could loose styling
 
-			if (count > 0 && range.SelectionScope == SelectionScope.Empty)
+			if (count > 0 && range.Scope == SelectionScope.TextCursor)
 			{
 				var cdata = selection.GetCData();
 

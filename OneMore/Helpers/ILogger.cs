@@ -13,11 +13,59 @@ namespace River.OneMoreAddIn
 	/// </summary>
 	public interface ILogger : IDisposable
 	{
+		/// <summary>
+		/// 
+		/// </summary>
+		bool IsDebug { get; }
+
+
+		/// <summary>
+		/// 
+		/// </summary>
+		bool IsVerbose { get; }
+
 
 		/// <summary>
 		/// Gets the system file path of the log file
 		/// </summary>
 		string LogPath { get; }
+
+
+		/// <summary>
+		/// If debug logging is enabled, writes a blank line to the log file
+		/// </summary>
+		void Debug();
+
+
+		/// <summary>
+		/// If debug logging is enabled, writes a text message along with a newline.
+		/// Could be a new entry or an entry started with a Write
+		/// </summary>
+		/// <param name="message"></param>
+		void Debug(string message);
+
+
+		/// <summary>
+		/// If debug logging is enabled, writes the XML of the given XElement
+		/// </summary>
+		/// <param name="element"></param>
+		void Debug(XElement element);
+
+
+		/// <summary>
+		/// If debug logging is enabled, stops the stopwatch and Writes a message along
+		/// with the mm.ss timespan since the stopwatch was started.
+		/// </summary>
+		/// <param name="message">The message to log</param>
+		/// <param name="keepRunning">True to keep the timer running</param>
+		void DebugTime(string message, bool keepRunning = false);
+
+
+		/// <summary>
+		/// Dumps all accessible properties of the given object to JSON
+		/// </summary>
+		/// <param name="obj"></param>
+		void Dump(object obj);
 
 
 		/// <summary>
@@ -50,6 +98,36 @@ namespace River.OneMoreAddIn
 		/// Starts a diagnostics section without headers; end with Stop()
 		/// </summary>
 		void StartDiagnostic();
+
+
+		/// <summary>
+		/// If verbose logging is enabled, writes a blank line to the log file
+		/// </summary>
+		void Verbose();
+
+
+		/// <summary>
+		/// If verbose logging is enabled, writes a text message along with a newline.
+		/// Could be a new entry or an entry started with a Write
+		/// </summary>
+		/// <param name="message"></param>
+		void Verbose(string message);
+
+
+		/// <summary>
+		/// If verbose logging is enabled, writes the XML of the given XElement
+		/// </summary>
+		/// <param name="element"></param>
+		void Verbose(XElement element);
+
+
+		/// <summary>
+		/// If verbose logging is enabled, stops the stopwatch and Writes a message along
+		/// with the mm.ss timespan since the stopwatch was started.
+		/// </summary>
+		/// <param name="message">The message to log</param>
+		/// <param name="keepRunning">True to keep the timer running</param>
+		void VerboseTime(string message, bool keepRunning = false);
 
 
 		/// <summary>
@@ -87,6 +165,15 @@ namespace River.OneMoreAddIn
 		/// <param name="message"></param>
 		/// <param name="exc"></param>
 		void WriteLine(string message, Exception exc);
+
+
+		/// <summary>
+		/// Write a text message, followed by a newline, and then dump out the
+		/// given XElement as a serialized string.
+		/// </summary>
+		/// <param name="message"></param>
+		/// <param name="element"></param>
+		void WriteLine(string message, XElement element);
 
 
 		/// <summary>

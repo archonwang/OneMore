@@ -7,7 +7,7 @@ namespace River.OneMoreAddIn.Commands
 	using Resx = River.OneMoreAddIn.Properties.Resources;
 
 
-	internal partial class RefreshPageLinksDialog : UI.LocalizableForm
+	internal partial class RefreshPageLinksDialog : UI.MoreForm
 	{
 		public RefreshPageLinksDialog()
 		{
@@ -20,9 +20,9 @@ namespace River.OneMoreAddIn.Commands
 				Localize(new string[]
 				{
 					"groupBox",
-					"notebooksRadio",
-					"notebookRadio",
-					"sectionRadio",
+					"notebooksRadio=phrase_AllNotebooks",
+					"notebookRadio=phrase_AllSectionInTheCurrentNotebook",
+					"sectionRadio=phrase_TheCurrentSection",
 					"okButton=word_OK",
 					"cancelButton=word_Cancel"
 				});

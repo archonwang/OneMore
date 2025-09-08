@@ -6,10 +6,11 @@ namespace River.OneMoreAddIn.Commands
 {
 	using Microsoft.Office.Core;
 	using River.OneMoreAddIn.Settings;
+	using System;
 	using System.Diagnostics;
 	using System.Threading.Tasks;
 	using System.Windows.Forms;
-	using Resx = River.OneMoreAddIn.Properties.Resources;
+	using Resx = Properties.Resources;
 
 
 	internal class SettingsCommand : Command
@@ -23,17 +24,22 @@ namespace River.OneMoreAddIn.Commands
 
 		public override async Task Execute(params object[] args)
 		{
-			using (var dialog = new SettingsDialog(args[0] as IRibbonUI))
-			{
-				dialog.ShowDialog(owner);
+			using var dialog = new SettingsDialog(args[0] as IRibbonUI);
+			dialog.ShowDialog(owner);
 
-				if (!dialog.RestartNeeded)
-				{
-					return;
-				}
+			if (!dialog.RestartNeeded)
+			{
+				return;
 			}
 
-			if (UIHelper.ShowQuestion(Resx.SettingsDialog_Restart) != DialogResult.Yes)
+			var one = new OneNote();
+			if (one.WindowCount > 1)
+			{
+				ShowInfo(Resx.SettingsDialog_closeWindows);
+				return;
+			}
+			else if (UI.MoreMessageBox.ShowQuestion(owner,
+				Resx.SettingsDialog_Restart) != DialogResult.Yes)
 			{
 				return;
 			}

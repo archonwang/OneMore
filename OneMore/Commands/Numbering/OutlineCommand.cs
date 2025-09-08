@@ -4,6 +4,7 @@
 
 namespace River.OneMoreAddIn.Commands
 {
+	using NStandard;
 	using River.OneMoreAddIn.Models;
 	using System.Collections.Generic;
 	using System.Linq;
@@ -13,6 +14,10 @@ namespace River.OneMoreAddIn.Commands
 	using System.Xml.Linq;
 
 
+	/// <summary>
+	/// Applies numbering to headings, with options to indent content below headings or
+	/// indent tagged content.
+	/// </summary>
 	internal class OutlineCommand : Command
 	{
 		private XNamespace ns;
@@ -26,44 +31,44 @@ namespace River.OneMoreAddIn.Commands
 
 		public override async Task Execute(params object[] args)
 		{
-			using (var dialog = new OutlineDialog())
+			using var dialog = new OutlineDialog();
+			if (dialog.ShowDialog(owner) != DialogResult.OK)
 			{
-				if (dialog.ShowDialog(owner) == DialogResult.OK)
-				{
-					using (var one = new OneNote(out var page, out ns))
-					{
-						if (page.IsValid)
-						{
-							headings = page.GetHeadings(one);
-							if (dialog.CleanupNumbering)
-							{
-								RemoveOutlineNumbering();
-							}
-
-							if (dialog.NumericNumbering)
-							{
-								AddOutlineNumbering(true, 0, 0, 1, string.Empty);
-							}
-							else if (dialog.AlphaNumbering)
-							{
-								AddOutlineNumbering(false, 0, 0, 1, string.Empty);
-							}
-
-							if (dialog.Indent || dialog.IndentTagged)
-							{
-								IndentContent(page,
-									dialog.Indent,
-									dialog.IndentTagged,
-									dialog.TagSymbol,
-									dialog.RemoveTags);
-							}
-
-							// if OK then something must have happened, so save it
-							await one.Update(page);
-						}
-					}
-				}
+				return;
 			}
+
+			await using var one = new OneNote(out var page, out ns);
+			if (!page.IsValid)
+			{
+				return;
+			}
+
+			headings = page.GetHeadings(one);
+			if (dialog.CleanupNumbering)
+			{
+				RemoveOutlineNumbering();
+			}
+
+			if (dialog.NumericNumbering)
+			{
+				AddOutlineNumbering(true, 0, 1, 1, string.Empty);
+			}
+			else if (dialog.AlphaNumbering)
+			{
+				AddOutlineNumbering(false, 0, 1, 1, string.Empty);
+			}
+
+			if (dialog.Indent || dialog.IndentTagged)
+			{
+				IndentContent(page,
+					dialog.Indent,
+					dialog.IndentTagged,
+					dialog.TagSymbol,
+					dialog.RemoveTags);
+			}
+
+			// if OK then something must have happened, so save it
+			await one.Update(page);
 		}
 
 
@@ -116,30 +121,34 @@ namespace River.OneMoreAddIn.Commands
 
 		int AddOutlineNumbering(bool numeric, int index, int level, int counter, string prefix)
 		{
-			if (index > headings.Count)
-			{
-				return index;
-			}
-
 			while (index < headings.Count)
 			{
-				PrefixHeader(headings[index].Root, numeric, level, counter, prefix);
-
-				index++;
-				counter++;
-
-				if (index < headings.Count && headings[index].Level < level)
+				var heading = headings[index];
+				if (heading.Level < level)
 				{
 					break;
 				}
 
-				if (index < headings.Count && headings[index].Level > level)
+				if (heading.Level > level)
 				{
-					index = AddOutlineNumbering(numeric, index, headings[index].Level, 1, $"{prefix}{counter - 1}.");
-					if (index < headings.Count && headings[index].Level < level)
+					// build prefix for next level using a different variable to maintain
+					// value of (prefix) for next H on this level...
+					var nextPrefix = $"{prefix}{counter - 1}.";
+
+					// mark missing headers, e.g. H1 immediately followed by H3
+					for (var i = heading.Level; i > level + 1; i--)
 					{
-						break;
+						nextPrefix = $"{nextPrefix}0.";
 					}
+
+					index = AddOutlineNumbering(numeric, index, heading.Level, 1, nextPrefix);
+				}
+				else
+				{
+					PrefixHeader(heading.Root, numeric, level, counter, prefix);
+
+					index++;
+					counter++;
 				}
 			}
 
@@ -149,28 +158,38 @@ namespace River.OneMoreAddIn.Commands
 
 		private void PrefixHeader(XElement root, bool numeric, int level, int counter, string prefix)
 		{
-			var cdata = root.Element(ns + "T").GetCData();
+			// text cursor might be inside header so find first non-empty text run
+			var cdata = root.Elements(ns + "T")
+				.Select(t => t.GetCData())
+				.FirstOrDefault(c => !string.IsNullOrWhiteSpace(c.Value));
+
+			if (string.IsNullOrWhiteSpace(cdata?.Value))
+			{
+				return;
+			}
+
 			var wrapper = cdata.GetWrapper();
-			var text = wrapper.DescendantNodes().OfType<XText>().FirstOrDefault();
+			var text = wrapper.DescendantNodes().OfType<XText>().First();
 
 			if (numeric)
 			{
-				text.Value = $"{prefix}{counter}. {text.Value} ";
+				text.Value = $"{prefix}{counter}. {text.Value}";
 			}
 			else
 			{
-				switch (level % 3)
+				switch ((level - 1) % 3)
 				{
 					case 0:
 						text.Value = $"{counter}. {text.Value}";
 						break;
 
 					case 1:
-						text.Value = $"{counter.ToAlphabetic().ToLower()}. {text.Value}";
+						text.Value = $"{counter.ToAlphabetic().ToLowerInvariant()}. {text.Value}";
 						break;
 
 					case 2:
-						text.Value = $"{counter.ToRoman().ToLower()}. {text.Value}";
+						// use Invariant so langs like tr-TR convert "I" to "i" instead of "ı"
+						text.Value = $"{counter.ToRoman().ToLowerInvariant()}. {text.Value}";
 						break;
 				}
 			}

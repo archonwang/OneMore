@@ -1,5 +1,5 @@
 ﻿//************************************************************************************************
-// Copyright © 2021 Steven M Cohn.  All rights reserved.
+// Copyright © 2021 Steven M Cohn. All rights reserved.
 //************************************************************************************************
 
 #pragma warning disable S1075 // URIs should not be hardcoded
@@ -12,6 +12,7 @@ namespace OneMoreSetupActions
 	using System.IO;
 	using System.Linq;
 	using System.Net.Http;
+	using System.Net.NetworkInformation;
 	using System.Text.RegularExpressions;
 	using System.Threading;
 
@@ -22,7 +23,13 @@ namespace OneMoreSetupActions
 	/// </summary>
 	internal class EdgeWebViewAction : CustomAction
 	{
+		// WebView2 distribution:
+		// > https://docs.microsoft.com/en-us/microsoft-edge/webview2/concepts/distribution
+
+		// this is the Evergreen Bootstrapper download link from this download page:
+		// > https://developer.microsoft.com/en-us/microsoft-edge/webview2/#download-section
 		private const string DownloadUrl = "https://go.microsoft.com/fwlink/p/?LinkId=2124703";
+
 		private const string ClientKey = @"SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients";
 		private const string RuntimeId = "{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}";
 
@@ -33,16 +40,18 @@ namespace OneMoreSetupActions
 		}
 
 
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Minor Code Smell",
+			"S6605:Collection-specific \"Exists\" method should be used instead of the \"Any\" extension",
+			Justification = "<Pending>")]
 		public override int Install()
 		{
 			logger.WriteLine();
 			logger.WriteLine("EdgeWebViewAction.Install ---");
 
 			var key = Registry.LocalMachine.OpenSubKey($"{ClientKey}\\{RuntimeId}");
-			if (key != null)
+			if (key is not null)
 			{
 				logger.WriteLine("WebView2 Runtime is already installed");
-				CleanupChromium();
 				return SUCCESS;
 			}
 
@@ -50,8 +59,15 @@ namespace OneMoreSetupActions
 			Path.GetTempPath(),
 			Path.GetFileNameWithoutExtension(Path.GetRandomFileName()) + ".exe");
 
+			if (!IsNetworkAvailable())
+			{
+				logger.WriteLine("no internet connection; skipping WebView2 installation");
+				return SUCCESS;
+			}
+
 			if (!DownloadBootstrap(bootstrap))
 			{
+				logger.WriteLine("unable to download WebView2 bootstrap installer");
 				return FAILURE;
 			}
 
@@ -82,33 +98,58 @@ namespace OneMoreSetupActions
 				logger.WriteLine(exc);
 			}
 
-			// deprecate
-			CleanupChromium();
-
 			return SUCCESS;
+		}
+
+
+		private static bool IsNetworkAvailable()
+		{
+			// only recognizes changes related to Internet adapters
+			if (NetworkInterface.GetIsNetworkAvailable())
+			{
+				// however, this will include all adapters
+				var interfaces = NetworkInterface.GetAllNetworkInterfaces();
+				foreach (var face in interfaces)
+				{
+					// filter so we see only Internet adapters
+					if (face.OperationalStatus == OperationalStatus.Up)
+					{
+						if ((face.NetworkInterfaceType != NetworkInterfaceType.Tunnel) &&
+							(face.NetworkInterfaceType != NetworkInterfaceType.Loopback))
+						{
+							var statistics = face.GetIPv4Statistics();
+
+							// all testing seems to prove that once an interface comes online
+							// it has already accrued statistics for both received and sent...
+
+							if ((statistics.BytesReceived > 0) &&
+								(statistics.BytesSent > 0))
+							{
+								return true;
+							}
+						}
+					}
+				}
+			}
+
+			return false;
 		}
 
 
 		private bool DownloadBootstrap(string bootstrap)
 		{
-			using (var client = new HttpClient())
+			using var client = new HttpClient();
+			using var response = client.GetAsync(new Uri(DownloadUrl, UriKind.Absolute)).Result;
+			if (response.IsSuccessStatusCode)
 			{
-				using (var response = client.GetAsync(new Uri(DownloadUrl, UriKind.Absolute)).Result)
-				{
-					if (response.IsSuccessStatusCode)
-					{
-						using (var stream = new FileStream(bootstrap, FileMode.CreateNew))
-						{
-							response.Content.CopyToAsync(stream).Wait();
-							logger.WriteLine($"downloaded {bootstrap}");
-							return true;
-						}
-					}
-					else
-					{
-						logger.WriteLine($"download status code[{response.StatusCode}]");
-					}
-				}
+				using var stream = new FileStream(bootstrap, FileMode.CreateNew);
+				response.Content.CopyToAsync(stream).Wait();
+				logger.WriteLine($"downloaded {bootstrap}");
+				return true;
+			}
+			else
+			{
+				logger.WriteLine($"download status code[{response.StatusCode}]");
 			}
 
 			return false;
@@ -121,7 +162,7 @@ namespace OneMoreSetupActions
 			logger.WriteLine("EdgeWebViewAction.Uninstall ---");
 
 			var key = Registry.LocalMachine.OpenSubKey($"{ClientKey}\\{RuntimeId}");
-			if (key != null)
+			if (key is not null)
 			{
 				// "C:\Program Files (x86)\Microsoft\EdgeWebView\Application\96.0.1054.34\Installer\setup.exe"
 				//    --force-uninstall --uninstall --msedgewebview --system-level --verbose-logging
@@ -148,43 +189,7 @@ namespace OneMoreSetupActions
 				logger.WriteLine("WebView client key not found in Registry");
 			}
 
-			// deprecate
-			CleanupChromium();
-
 			return FAILURE;
-		}
-
-
-		/// <summary>
-		/// Temporary action to clean up the chromium folder under AppData\Roaming\OneMore.
-		/// This method can be removed after a few release cycles.
-		/// </summary>
-		private void CleanupChromium()
-		{
-			var path = Path.Combine(Environment.GetEnvironmentVariable("APPDATA"), "OneMore");
-			if (!Directory.Exists(path))
-			{
-				return;
-			}
-
-			var chrome = Directory.GetFiles(path, "chrome.exe", SearchOption.AllDirectories).FirstOrDefault();
-			if (chrome == null)
-			{
-				return;
-			}
-
-			try
-			{
-				var parent = Path.GetDirectoryName(Path.GetDirectoryName(chrome));
-				logger.WriteLine($"cleaning up chromium {parent}");
-
-				Directory.Delete(parent, true);
-			}
-			catch (Exception exc)
-			{
-				logger.WriteLine("error cleaning up chromium");
-				logger.WriteLine(exc);
-			}
 		}
 	}
 }

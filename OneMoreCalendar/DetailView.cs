@@ -7,13 +7,14 @@
 namespace OneMoreCalendar
 {
 	using River.OneMoreAddIn;
+	using River.OneMoreAddIn.Commands;
 	using System;
 	using System.Drawing;
 	using System.Linq;
 	using System.Windows.Forms;
 
 
-	internal partial class DetailView : UserControl, ICalendarView
+	internal partial class DetailView : ThemedUserControl, ICalendarView
 	{
 		private sealed class DayItem
 		{
@@ -24,6 +25,7 @@ namespace OneMoreCalendar
 
 
 		private const int HeadWidth = 170; // day
+		private const int BellWidth = 40;  // reminders
 		private const int PathWidth = 250; // path
 		private const int DateWidth = 170; // created, modified
 		private const int VPadding = 6;
@@ -52,6 +54,13 @@ namespace OneMoreCalendar
 		}
 
 
+		public override void OnThemeChange()
+		{
+			BackColor = Theme.BackColor;
+			listbox.BackColor = BackColor;
+		}
+
+
 		public event CalendarDayHandler ClickedDay;
 		public event CalendarHoverHandler HoverPage;
 		public event CalendarPageHandler ClickedPage;
@@ -60,6 +69,7 @@ namespace OneMoreCalendar
 
 		public void SetRange(DateTime startDate, DateTime endDate, CalendarPages pages)
 		{
+			SuspendLayout();
 			listbox.Items.Clear();
 
 			var date = startDate;
@@ -73,49 +83,62 @@ namespace OneMoreCalendar
 				// displayed twice in the month if both created and modified in the same month
 				daypages.AddRange(pages.Where(p =>
 					(settings.Modified && p.Modified.Date.Equals(date)) ||
-					(!settings.Modified && p.Created.Date.Equals(date))
+					(settings.Created && p.Created.Date.Equals(date))
 					));
 
 				if (daypages.Any() || settings.Empty)
 				{
-					listbox.Items.Add(new DayItem
+					var item = new ListViewItem
 					{
-						Date = date,
-						Pages = daypages
-					});
+						Tag = new DayItem
+						{
+							Date = date,
+							Pages = daypages
+						}
+					};
+
+					listbox.Items.Add(item);
 				}
 
 				date = date.AddDays(1);
 			}
 
 			Invalidate();
+			ResumeLayout();
 		}
 
 
 		private void HeaderPanelPaint(object sender, PaintEventArgs e)
 		{
-			using (var font = new Font("Segoe UI Light", 10.0f, FontStyle.Regular))
-			{
-				headerPanel.Height = font.Height + VPadding;
-				var y = (headerPanel.Height - font.Height) / 2;
+			e.Graphics.Clear(BackColor);
 
-				var size = e.Graphics.MeasureString("DATE", font);
-				e.Graphics.DrawString("DATE", font, Brushes.SlateGray,
-					(HeadWidth - size.Width) / 2, y);
+			using var font = new Font("Segoe UI Light", 10.0f, FontStyle.Regular);
+			headerPanel.Height = font.Height + VPadding;
+			var y = (headerPanel.Height - font.Height) / 2;
 
-				var width = e.ClipRectangle.Width - SystemInformation.VerticalScrollBarWidth;
+			var size = e.Graphics.MeasureString("DATE", font);
+			var width = e.ClipRectangle.Width - SystemInformation.VerticalScrollBarWidth;
 
-				e.Graphics.DrawString("SECTION", font, Brushes.SlateGray, HeadWidth + 20, y);
-				e.Graphics.DrawString("PAGE", font, Brushes.SlateGray, HeadWidth + PathWidth + 40, y);
-				e.Graphics.DrawString("CREATED", font, Brushes.SlateGray, width - DateWidth * 2, y);
-				e.Graphics.DrawString("MODIFIED", font, Brushes.SlateGray, width - DateWidth, y);
-			}
+			using var brush = new SolidBrush(Theme.MonthDayFore);
+
+			e.Graphics.DrawString("DATE", font, brush, (HeadWidth - size.Width) / 2, y);
+			e.Graphics.DrawString("SECTION", font, brush, HeadWidth + 20, y);
+
+			var editor = new ImageEditor { Style = ImageEditor.Stylization.GrayScale };
+			using var gray = editor.Apply(Properties.Resources.Reminder_01_24_Y);
+
+			e.Graphics.DrawImage(gray,
+				HeadWidth + PathWidth + 40 + (BellWidth - 15), y + 3, 12f, 12f);
+
+			e.Graphics.DrawString("PAGE", font, brush, HeadWidth + PathWidth + BellWidth + 60, y);
+			e.Graphics.DrawString("CREATED", font, brush, width - DateWidth * 2, y);
+			e.Graphics.DrawString("MODIFIED", font, brush, width - DateWidth, y);
 		}
 
 
 		private void ListBoxMeasureItem(object sender, MeasureItemEventArgs e)
 		{
-			if (listbox.Items[e.Index] is DayItem day)
+			if (listbox.Items[e.Index] is ListViewItem item && item.Tag is DayItem day)
 			{
 				e.ItemHeight = day.Pages.Count > 1
 					? (day.Pages.Count * listbox.Font.Height) + (VPadding * 3)
@@ -138,12 +161,14 @@ namespace OneMoreCalendar
 				return;
 			}
 
-			e.Graphics.FillRectangle(e.Index % 2 == 1 ? AppColors.RowBrush : Brushes.White, e.Bounds);
+			using var fill = new SolidBrush(e.Index % 2 == 1 ? Theme.DetailOddBack : Theme.DetailEvenBack);
+			e.Graphics.FillRectangle(fill, e.Bounds);
 
-			e.Graphics.DrawLine(Pens.LightGray, e.Bounds.Left, e.Bounds.Top, e.Bounds.Width, e.Bounds.Top);
+			using var line = new Pen(Theme.MonthGrid);
+			e.Graphics.DrawLine(line, e.Bounds.Left, e.Bounds.Top, e.Bounds.Width, e.Bounds.Top);
 			//e.Graphics.DrawLine(Pens.LightGray, HeadWidth, e.Bounds.Top, HeadWidth, e.Bounds.Bottom);
 
-			if (listbox.Items[e.Index] is DayItem day)
+			if (listbox.Items[e.Index] is ListViewItem item && item.Tag is DayItem day)
 			{
 				// set every time to handle scrolled view
 				day.Bounds = e.Bounds;
@@ -151,26 +176,37 @@ namespace OneMoreCalendar
 				// header
 				var head = day.Date.ToString("ddd, MMM d");
 				var size = e.Graphics.MeasureString(head, listbox.Font);
-				e.Graphics.DrawString(head, listbox.Font, Brushes.Black,
+
+				using var fore = new SolidBrush(Theme.ForeColor);
+				using var gray = new SolidBrush(Color.Gray);
+
+				e.Graphics.DrawString(head, listbox.Font, fore,
 					(HeadWidth - size.Width) / 2,
 					e.Bounds.Top + (e.Bounds.Height - size.Height) / 2);
 
 				// pages
 				var top = e.Bounds.Top + VPadding;
 				foreach (var page in day.Pages)
-				{						
+				{
 					// predict width of page title
 					size = e.Graphics.MeasureString(page.Title, listbox.Font);
 
-					var color = page.IsDeleted ? Brushes.Gray : Brushes.Black;
+					var color = page.IsDeleted ? gray : fore;
 
 					// section
 					e.Graphics.DrawString(page.Path,
 						listbox.Font, color, HeadWidth + 20, top, format);
 
+					// reminder
+					if (page.HasReminders)
+					{
+						e.Graphics.DrawImage(Properties.Resources.Reminder_01_24_Y,
+							HeadWidth + PathWidth + 40 + (BellWidth - 15), top + 3, 12f, 12f);
+					}
+
 					// title
 					var bounds = new Rectangle(
-						HeadWidth + PathWidth + 40, top, (int)size.Width + 2, (int)size.Height);
+						HeadWidth + PathWidth + BellWidth + 60, top, (int)size.Width + 2, (int)size.Height);
 
 					e.Graphics.DrawString(page.Title,
 						page.IsDeleted ? deletedFont : listbox.Font,
@@ -216,14 +252,21 @@ namespace OneMoreCalendar
 
 		private void ListBoxMouseMove(object sender, MouseEventArgs e)
 		{
-			var day = listbox.Items.OfType<DayItem>()
-				.FirstOrDefault(d => d.Bounds.Contains(e.Location));
+			//Logger.Current.WriteLine($"moveto {e.Location}");
 
-			CalendarPage page = null;
-			if (day != null)
+			if (listbox.Items.OfType<ListViewItem>()
+				.FirstOrDefault(d =>
+					listbox.GetItemRectangle(listbox.Items.IndexOf(d)).Contains(e.Location))?
+				.Tag is not DayItem day)
 			{
-				page = day.Pages.FirstOrDefault(p => p.Bounds.Contains(e.Location));
+				return;
 			}
+
+			//Logger.Current.WriteLine($"day bounds {day.Bounds}");
+
+			var page = day.Pages.FirstOrDefault(p => p.Bounds.Contains(e.Location));
+
+			//Logger.Current.WriteLine($"page bounds {page.Bounds}");
 
 			if (page == hotpage)
 			{
@@ -231,21 +274,29 @@ namespace OneMoreCalendar
 				{
 					Native.SetCursor(hand);
 				}
+
 				return;
 			}
 
+			using var g = listbox.CreateGraphics();
+			int index;
+
 			if (hotpage != null)
 			{
-				using (var g = listbox.CreateGraphics())
-				{
-					var index = listbox.Items.IndexOf(hotday);
-					g.FillRectangle(index % 2 == 1 ? AppColors.RowBrush : Brushes.White, hotpage.Bounds);
+				index = listbox.Items.OfType<ListViewItem>()
+					.Where(item => item.Tag == hotday)
+					.Select(item => listbox.Items.IndexOf(item))
+					.FirstOrDefault();
 
-					g.DrawString(hotpage.Title,
-						hotpage.IsDeleted ? deletedFont : listbox.Font,
-						hotpage.IsDeleted ? Brushes.Gray : Brushes.Black,
-						hotpage.Bounds, format);
-				}
+				using var fill = new SolidBrush(index % 2 == 1 ? Theme.DetailOddBack : Theme.DetailEvenBack);
+				g.FillRectangle(fill, hotpage.Bounds);
+
+				using var fore = new SolidBrush(hotpage.IsDeleted ? Color.Gray : Theme.ForeColor);
+
+				g.DrawString(hotpage.Title,
+					hotpage.IsDeleted ? deletedFont : listbox.Font,
+					fore,
+					hotpage.Bounds, format);
 
 				HoverPage?.Invoke(this, new CalendarPageEventArgs(null));
 
@@ -255,15 +306,18 @@ namespace OneMoreCalendar
 
 			if (page != null)
 			{
-				using (var g = listbox.CreateGraphics())
-				{
-					var index = listbox.Items.IndexOf(day);
-					g.FillRectangle(index % 2 == 1 ? AppColors.RowBrush : Brushes.White, page.Bounds);
+				index = listbox.Items.OfType<ListViewItem>()
+						.Where(item => item.Tag == day)
+						.Select(item => listbox.Items.IndexOf(item))
+						.FirstOrDefault();
 
-					g.DrawString(page.Title,
-						page.IsDeleted ? deletedFont : hotFont,
-						Brushes.DarkOrchid, page.Bounds, format);
-				}
+				using var fill2 = new SolidBrush(index % 2 == 1 ? Theme.DetailOddBack : Theme.DetailEvenBack);
+				g.FillRectangle(fill2, page.Bounds);
+
+				using var fore2 = new SolidBrush(Theme.Highlight);
+				g.DrawString(page.Title,
+					page.IsDeleted ? deletedFont : hotFont,
+					fore2, page.Bounds, format);
 
 				HoverPage?.Invoke(this, new CalendarPageEventArgs(page));
 
@@ -272,6 +326,7 @@ namespace OneMoreCalendar
 				Native.SetCursor(hand);
 			}
 		}
+
 
 		private void ListBoxResize(object sender, EventArgs e)
 		{
@@ -288,25 +343,30 @@ namespace OneMoreCalendar
 		 */
 		private void ListBoxMouseUp(object sender, MouseEventArgs e)
 		{
-			var day = listbox.Items.OfType<DayItem>()
-				.FirstOrDefault(d => d.Bounds.Contains(e.Location));
-
-			if (day != null)
+			if (listbox.Items.OfType<ListViewItem>()
+				.FirstOrDefault(d =>
+					listbox.GetItemRectangle(listbox.Items.IndexOf(d)).Contains(e.Location))?
+				.Tag is not DayItem day)
 			{
-				var page = day.Pages.FirstOrDefault(p => p.Bounds.Contains(e.Location));
-				if (page != null)
-				{
-					if (e.Button == MouseButtons.Right)
-					{
-						SnappedPage?.Invoke(this, new CalendarSnapshotEventArgs(page, page.Bounds));
-					}
-					else
-					{
-						ClickedPage?.Invoke(this, new CalendarPageEventArgs(page));
-					}
-				}
+				return;
+			}
+
+			var page = day.Pages.FirstOrDefault(p => p.Bounds.Contains(e.Location));
+			if (page == null)
+			{
+				return;
+			}
+
+			if (e.Button == MouseButtons.Right)
+			{
+				SnappedPage?.Invoke(this, new CalendarSnapshotEventArgs(page, page.Bounds));
+			}
+			else
+			{
+				ClickedPage?.Invoke(this, new CalendarPageEventArgs(page));
 			}
 		}
+
 
 		private void ListBoxScrolled(object sender, ScrollEventArgs e)
 		{

@@ -1,5 +1,5 @@
 ﻿//************************************************************************************************
-// Copyright © 2020 Steven M Cohn.  All rights reserved.
+// Copyright © 2020 Steven M Cohn. All rights reserved.
 //************************************************************************************************
 
 #pragma warning disable CS3003  // Type is not CLS-compliant
@@ -10,10 +10,10 @@ namespace River.OneMoreAddIn.Commands
 	using River.OneMoreAddIn.Settings;
 	using System;
 	using System.Windows.Forms;
-	using Resx = River.OneMoreAddIn.Properties.Resources;
+	using Resx = Properties.Resources;
 
 
-	internal partial class OutlineDialog : UI.LocalizableForm
+	internal partial class OutlineDialog : UI.MoreForm
 	{
 		private const int SysMenuId = 1000;
 
@@ -32,10 +32,9 @@ namespace River.OneMoreAddIn.Commands
 
 				Localize(new string[]
 				{
-					"numberingGroup",
 					"numberingBox",
-					"alphaRadio",
-					"numRadio",
+					"alphaRadio=word_Alphanumeric",
+					"numRadio=word_Numeric",
 					"cleanBox",
 					"indentationsGroup",
 					"indentBox",
@@ -75,14 +74,12 @@ namespace River.OneMoreAddIn.Commands
 					TagSymbol = settings.Get<int>("tagSymbol");
 					if (TagSymbol > 0)
 					{
-						using (var dialog = new UI.TagPickerDialog(0, 0))
+						using var dialog = new UI.TagPickerDialog(0, 0);
+						var glyph = dialog.GetGlyph(TagSymbol);
+						if (glyph != null)
 						{
-							var glyph = dialog.GetGlyph(TagSymbol);
-							if (glyph != null)
-							{
-								tagButton.Text = null;
-								tagButton.Image = glyph;
-							}
+							tagButton.Text = null;
+							tagButton.Image = glyph;
 						}
 					}
 				}
@@ -170,35 +167,34 @@ namespace River.OneMoreAddIn.Commands
 		{
 			var location = PointToScreen(tagButton.Location);
 
-			using (var dialog = new UI.TagPickerDialog(
+			using var dialog = new UI.TagPickerDialog(
 				location.X + tagButton.Bounds.Location.X - tagButton.Width,
-				location.Y + tagButton.Bounds.Location.Y))
+				location.Y + tagButton.Bounds.Location.Y);
+
+			dialog.Select(TagSymbol);
+
+			if (dialog.ShowDialog(this) == DialogResult.OK)
 			{
-				dialog.Select(TagSymbol);
-
-				if (dialog.ShowDialog(this) == DialogResult.OK)
+				var glyph = dialog.GetGlyph();
+				if (glyph != null)
 				{
-					var glyph = dialog.GetGlyph();
-					if (glyph != null)
-					{
-						tagButton.Text = null;
-						tagButton.Image = glyph;
-					}
-					else
-					{
-						tagButton.Text = "?";
-					}
-
-					TagSymbol = dialog.Symbol;
+					tagButton.Text = null;
+					tagButton.Image = glyph;
 				}
+				else
+				{
+					tagButton.Text = "?";
+				}
+
+				TagSymbol = dialog.Symbol;
 			}
 		}
 
 
 		private void SetOK()
 		{
-			okButton.Enabled = 
-				numberingBox.Checked || cleanBox.Checked || 
+			okButton.Enabled =
+				numberingBox.Checked || cleanBox.Checked ||
 				indentBox.Checked || indentTagBox.Checked;
 		}
 

@@ -29,24 +29,16 @@
 		private void InitializeComponent ()
 		{
 			System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(AboutDialog));
-			this.pictureBox1 = new System.Windows.Forms.PictureBox();
 			this.titleLabel = new System.Windows.Forms.Label();
 			this.versionLabel = new System.Windows.Forms.Label();
 			this.copyLabel = new System.Windows.Forms.Label();
 			this.okButton = new OneMoreCalendar.MoreButton();
+			this.pleaseLabel = new System.Windows.Forms.Label();
+			this.logoBox = new System.Windows.Forms.PictureBox();
+			this.sponsorButton = new River.OneMoreAddIn.UI.MoreButton();
 			this.homeLink = new River.OneMoreAddIn.UI.MoreLinkLabel();
-			((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
+			((System.ComponentModel.ISupportInitialize)(this.logoBox)).BeginInit();
 			this.SuspendLayout();
-			// 
-			// pictureBox1
-			// 
-			this.pictureBox1.Image = ((System.Drawing.Image)(resources.GetObject("pictureBox1.Image")));
-			this.pictureBox1.Location = new System.Drawing.Point(12, 12);
-			this.pictureBox1.Name = "pictureBox1";
-			this.pictureBox1.Size = new System.Drawing.Size(124, 125);
-			this.pictureBox1.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
-			this.pictureBox1.TabIndex = 0;
-			this.pictureBox1.TabStop = false;
 			// 
 			// titleLabel
 			// 
@@ -54,9 +46,9 @@
 			this.titleLabel.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
 			this.titleLabel.Location = new System.Drawing.Point(156, 26);
 			this.titleLabel.Name = "titleLabel";
-			this.titleLabel.Size = new System.Drawing.Size(329, 25);
+			this.titleLabel.Size = new System.Drawing.Size(284, 25);
 			this.titleLabel.TabIndex = 1;
-			this.titleLabel.Text = "OneMore Calendar for OneNote 2016";
+			this.titleLabel.Text = "OneMore Calendar for OneNote";
 			// 
 			// versionLabel
 			// 
@@ -84,8 +76,10 @@
 			// 
 			this.okButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
 			this.okButton.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-			this.okButton.Location = new System.Drawing.Point(451, 208);
+			this.okButton.Location = new System.Drawing.Point(612, 352);
 			this.okButton.Name = "okButton";
+			this.okButton.PreferredBack = System.Drawing.Color.Empty;
+			this.okButton.PreferredFore = System.Drawing.Color.Empty;
 			this.okButton.ShowBorder = true;
 			this.okButton.Size = new System.Drawing.Size(91, 38);
 			this.okButton.TabIndex = 4;
@@ -93,12 +87,50 @@
 			this.okButton.UseVisualStyleBackColor = true;
 			this.okButton.Click += new System.EventHandler(this.OK);
 			// 
+			// pleaseLabel
+			// 
+			this.pleaseLabel.AutoSize = true;
+			this.pleaseLabel.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+			this.pleaseLabel.Location = new System.Drawing.Point(156, 178);
+			this.pleaseLabel.Name = "pleaseLabel";
+			this.pleaseLabel.Padding = new System.Windows.Forms.Padding(0, 8, 0, 0);
+			this.pleaseLabel.Size = new System.Drawing.Size(393, 33);
+			this.pleaseLabel.TabIndex = 14;
+			this.pleaseLabel.Text = "Please support future development of OneMore";
+			// 
+			// logoBox
+			// 
+			this.logoBox.Image = ((System.Drawing.Image)(resources.GetObject("logoBox.Image")));
+			this.logoBox.Location = new System.Drawing.Point(12, 12);
+			this.logoBox.Name = "logoBox";
+			this.logoBox.Size = new System.Drawing.Size(124, 125);
+			this.logoBox.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
+			this.logoBox.TabIndex = 0;
+			this.logoBox.TabStop = false;
+			// 
+			// sponsorButton
+			// 
+			this.sponsorButton.Cursor = System.Windows.Forms.Cursors.Hand;
+			this.sponsorButton.FlatAppearance.BorderSize = 0;
+			this.sponsorButton.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+			this.sponsorButton.Image = ((System.Drawing.Image)(resources.GetObject("sponsorButton.Image")));
+			this.sponsorButton.ImageOver = global::OneMoreCalendar.Properties.Resources.SponsorOver;
+			this.sponsorButton.Location = new System.Drawing.Point(160, 214);
+			this.sponsorButton.Name = "sponsorButton";
+			this.sponsorButton.Size = new System.Drawing.Size(149, 53);
+			this.sponsorButton.TabIndex = 13;
+			this.sponsorButton.Tag = "https://github.com/sponsors/stevencohn";
+			this.sponsorButton.Text = " ";
+			this.sponsorButton.UseVisualStyleBackColor = true;
+			this.sponsorButton.Click += new System.EventHandler(this.GotoSponsorship);
+			// 
 			// homeLink
 			// 
 			this.homeLink.ActiveLinkColor = System.Drawing.Color.DarkOrchid;
 			this.homeLink.AutoSize = true;
 			this.homeLink.Cursor = System.Windows.Forms.Cursors.Hand;
-			this.homeLink.LinkColor = System.Drawing.SystemColors.ControlDark;
+			this.homeLink.HoverColor = System.Drawing.Color.MediumOrchid;
+			this.homeLink.LinkColor = System.Drawing.Color.DarkGray;
 			this.homeLink.Location = new System.Drawing.Point(156, 119);
 			this.homeLink.Name = "homeLink";
 			this.homeLink.Padding = new System.Windows.Forms.Padding(0, 15, 0, 0);
@@ -106,7 +138,7 @@
 			this.homeLink.TabIndex = 7;
 			this.homeLink.TabStop = true;
 			this.homeLink.Text = "https://github.com/stevencohn/OneMore";
-			this.homeLink.VisitedLinkColor = System.Drawing.SystemColors.ControlDark;
+			this.homeLink.VisitedLinkColor = System.Drawing.Color.DarkGray;
 			this.homeLink.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.GoHome);
 			// 
 			// AboutDialog
@@ -116,13 +148,16 @@
 			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
 			this.BackColor = System.Drawing.Color.White;
 			this.CancelButton = this.okButton;
-			this.ClientSize = new System.Drawing.Size(555, 260);
+			this.ClientSize = new System.Drawing.Size(716, 404);
+			this.Controls.Add(this.sponsorButton);
+			this.Controls.Add(this.pleaseLabel);
 			this.Controls.Add(this.homeLink);
 			this.Controls.Add(this.okButton);
 			this.Controls.Add(this.copyLabel);
 			this.Controls.Add(this.versionLabel);
 			this.Controls.Add(this.titleLabel);
-			this.Controls.Add(this.pictureBox1);
+			this.Controls.Add(this.logoBox);
+			this.ForeColor = System.Drawing.Color.LightGray;
 			this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
 			this.MaximizeBox = false;
 			this.MinimizeBox = false;
@@ -131,7 +166,7 @@
 			this.ShowInTaskbar = false;
 			this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
 			this.Text = "OneMore Calendar";
-			((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).EndInit();
+			((System.ComponentModel.ISupportInitialize)(this.logoBox)).EndInit();
 			this.ResumeLayout(false);
 			this.PerformLayout();
 
@@ -139,11 +174,13 @@
 
 		#endregion
 
-		private System.Windows.Forms.PictureBox pictureBox1;
+		private System.Windows.Forms.PictureBox logoBox;
 		private System.Windows.Forms.Label titleLabel;
 		private System.Windows.Forms.Label versionLabel;
 		private System.Windows.Forms.Label copyLabel;
-		private MoreButton okButton;
+		private OneMoreCalendar.MoreButton okButton;
 		private River.OneMoreAddIn.UI.MoreLinkLabel homeLink;
+		private River.OneMoreAddIn.UI.MoreButton sponsorButton;
+		private System.Windows.Forms.Label pleaseLabel;
 	}
 }

@@ -50,7 +50,7 @@ namespace OneMoreSetupActions
 			var hive = Registry.LocalMachine;
 
 			var parent = hive.OpenSubKey(path,
-				RegistryKeyPermissionCheck.ReadWriteSubTree, RegistryHelper.Rights);
+				RegistryKeyPermissionCheck.ReadWriteSubTree, RegistryHelper.WriteRights);
 
 			if (parent == null)
 			{
@@ -81,7 +81,7 @@ namespace OneMoreSetupActions
 			logger.WriteLine($@"step {stepper.Step()}: opening HKLM:\{path}\{cmdpath}");
 
 			var key = parent.OpenSubKey(cmdpath,
-				RegistryKeyPermissionCheck.ReadWriteSubTree, RegistryHelper.Rights);
+				RegistryKeyPermissionCheck.ReadWriteSubTree, RegistryHelper.WriteRights);
 
 			if (key == null)
 			{
@@ -151,40 +151,39 @@ namespace OneMoreSetupActions
 			logger.WriteLine("ProtocolHandlerAction.Uninstall ---");
 
 			// protocol handler...
-			using (var hive = RegistryKey.OpenBaseKey(
-				RegistryHive.LocalMachine, RegistryView.Default))
+			using var hive = RegistryKey.OpenBaseKey(
+				RegistryHive.LocalMachine, RegistryView.Default);
+
+			var path = @"Software\Classes\onemore";
+			logger.WriteLine($@"step {stepper.Step()}: deleting HKLM:\{path}");
+
+			try
 			{
-				var path = @"Software\Classes\onemore";
-				logger.WriteLine($@"step {stepper.Step()}: deleting HKLM:\{path}");
-
-				try
-				{
-					hive.DeleteSubKeyTree(path, false);
-				}
-				catch (Exception exc)
-				{
-					logger.WriteLine("warning deleting protocol class");
-					logger.WriteLine(exc);
-					return FAILURE;
-				}
-
-				// confirm
-				var verified = SUCCESS;
-				using (var key = hive.OpenSubKey(path, false))
-				{
-					if (key == null)
-					{
-						logger.WriteLine("key deleted");
-					}
-					else
-					{
-						logger.WriteLine("key not deleted");
-						verified = FAILURE;
-					}
-				}
-
-				return verified;
+				hive.DeleteSubKeyTree(path, false);
 			}
+			catch (Exception exc)
+			{
+				logger.WriteLine("warning deleting protocol class");
+				logger.WriteLine(exc);
+				return FAILURE;
+			}
+
+			// confirm
+			var verified = SUCCESS;
+			using (var key = hive.OpenSubKey(path, false))
+			{
+				if (key == null)
+				{
+					logger.WriteLine("key deleted");
+				}
+				else
+				{
+					logger.WriteLine("key not deleted");
+					verified = FAILURE;
+				}
+			}
+
+			return verified;
 		}
 	}
 }

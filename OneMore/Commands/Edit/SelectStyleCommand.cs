@@ -10,7 +10,7 @@ namespace River.OneMoreAddIn.Commands
 	using System.Linq;
 	using System.Threading.Tasks;
 	using System.Xml.Linq;
-	using Resx = River.OneMoreAddIn.Properties.Resources;
+	using Resx = Properties.Resources;
 
 
 	/// <summary>
@@ -37,31 +37,32 @@ namespace River.OneMoreAddIn.Commands
 
 		public override async Task Execute(params object[] args)
 		{
-			using (var one = new OneNote(out var page, out ns))
+			await using var one = new OneNote(out var page, out ns);
+
+			analyzer = new StyleAnalyzer(page.Root);
+			var style = analyzer.CollectFromSelection();
+
+			var ok = (style != null) &&
+				NormalizeTextCursor(page, analyzer);
+
+			if (!ok)
 			{
-				analyzer = new StyleAnalyzer(page.Root);
-				var style = analyzer.CollectFromSelection();
-
-				var ok = (style != null) &&
-					NormalizeTextCursor(page, analyzer);
-
-				if (!ok)
-				{
-					UIHelper.ShowInfo(one.Window, Resx.Error_BodyContext);
-					return;
-				}
-
-				var runs = page.Root.Descendants(ns + "T").ToList();
-				foreach (var run in runs)
-				{
-					AnalyzeRun(run, style);
-				}
-
-				//logger.WriteLine(page.Root);
-				//logger.WriteLine($"Catalog depth:{analyzer.Depth}, hits:{analyzer.Hits}");
-
-				await one.Update(page);
+				ShowError(Resx.Error_BodyContext);
+				return;
 			}
+
+			var runs = page.Root
+				.Elements(ns + "Outline")
+				.Descendants(ns + "T").ToList();
+
+			foreach (var run in runs)
+			{
+				AnalyzeRun(run, style);
+			}
+
+			logger.WriteLine($"Catalog depth:{analyzer.Depth}, hits:{analyzer.Hits}");
+
+			await one.Update(page);
 
 			await Task.Yield();
 		}
@@ -70,10 +71,18 @@ namespace River.OneMoreAddIn.Commands
 		// merge text cursor so we don't have to treat it as a special case
 		private bool NormalizeTextCursor(Page page, StyleAnalyzer analyzer)
 		{
-			var cursor = page.GetTextCursor();
-			if (cursor == null || page.SelectionScope != SelectionScope.Empty)
+			var range = new SelectionRange(page);
+			var cursor = range.GetSelection();
+
+			if (range.Scope != SelectionScope.TextCursor)
 			{
 				return false;
+			}
+
+			if (range.Scope == SelectionScope.SpecialCursor)
+			{
+				// positioned over a hyperlink or MathML equation
+				return true;
 			}
 
 			if (cursor.PreviousNode is XElement prev &&
@@ -97,6 +106,7 @@ namespace River.OneMoreAddIn.Commands
 						// then remove that first node from Next and append the remaining nodes
 						// to retain their own stylings; finally remove Next altogether below...
 
+						logger.WriteLine($"combining-0 '{prevSpan.Value}' and '{nextSpan.Value}'");
 						prevSpan.Value = $"{prevSpan.Value}{nextSpan.Value}";
 						nextSpan.Remove();
 						prevWrap.Add(nextWrap.Nodes());
@@ -104,20 +114,88 @@ namespace River.OneMoreAddIn.Commands
 					}
 					else
 					{
-						prevData.Value = $"{prevData.Value}{nextData.Value}";
+						var prevValue = MakeStylizedSpan(
+							prevData, prevWrap.Nodes().Last() as XElement, analyzer.CollectStyleFrom(prev));
+
+						var nextValue = MakeStylizedSpan(
+							nextData, nextWrap.Nodes().First() as XElement, analyzer.CollectStyleFrom(next));
+
+						logger.WriteLine($"combining-1 '{prevValue}' and '{nextValue}'");
+						prevData.Value = CombineSpans(prevValue, nextValue);
 					}
 				}
 				else
 				{
-					prevData.Value = $"{prevData.Value}{nextData.Value}";
+					var prevValue = MakeStylizedSpan(
+						prevData, prevWrap.Nodes().Last() as XElement, analyzer.CollectStyleFrom(prev));
+
+					var nextValue = MakeStylizedSpan(
+						nextData, nextWrap.Nodes().First() as XElement, analyzer.CollectStyleFrom(next));
+
+					logger.WriteLine($"combining-2 '{prevValue}' and '{nextValue}'");
+					prevData.Value = CombineSpans(prevValue, nextValue);
 				}
 
 				next.Remove();
 			}
 
+			var parent = cursor.Parent;
 			cursor.Remove();
+
+			logger.WriteLine($"updated parent\n{parent.ToString(SaveOptions.None)}");
+
 			return true;
 		}
+
+
+		private string MakeStylizedSpan(XCData data, XElement edge, Style parentStyle)
+		{
+			if (edge != null)
+			{
+				return data.Value;
+			}
+
+			var css = string.Empty;
+			if (!string.IsNullOrEmpty(parentStyle.FontFamily))
+			{
+				css = $"font-family:{parentStyle.FontFamily}";
+			}
+
+			if (!string.IsNullOrEmpty(parentStyle.FontSize))
+			{
+				css = $"{css};font-size:{parentStyle.FontSize}pt";
+			}
+
+			if (!string.IsNullOrEmpty(parentStyle.Color))
+			{
+				css = $"{css};color:{parentStyle.Color}";
+			}
+
+			return $"<span style='{css}'>{data.Value}</span>";
+		}
+
+
+		private string CombineSpans(string span1, string span2)
+		{
+			if (span1.StartsWith("<span") && span2.StartsWith("<span"))
+			{
+				var wrap1 = new XCData(span1).GetWrapper();
+				var wrap2 = new XCData(span2).GetWrapper();
+
+				if (wrap1.Attribute("style") is XAttribute attr1 &&
+					wrap2.Attribute("style") is XAttribute attr2)
+				{
+					if (attr1.Value == attr2.Value)
+					{
+						wrap1.Value = $"{wrap1.Value}{wrap2.Value}";
+						return wrap1.ToString(SaveOptions.DisableFormatting);
+					}
+				}
+			}
+
+			return $"{span1}{span2}";
+		}
+
 
 
 		private void AnalyzeRun(XElement run, Style style)

@@ -1,5 +1,5 @@
 ﻿//************************************************************************************************
-// Copyright © 2020 Steven M Cohn.  All rights reserved.
+// Copyright © 2020 Steven M Cohn. All rights reserved.
 //************************************************************************************************
 
 namespace River.OneMoreAddIn.Commands.Tables.Formulas
@@ -9,7 +9,8 @@ namespace River.OneMoreAddIn.Commands.Tables.Formulas
 	{
 		Number,
 		Currency,
-		Percentage
+		Percentage,
+		Time
 	}
 
 
@@ -24,21 +25,5 @@ namespace River.OneMoreAddIn.Commands.Tables.Formulas
 		Mode,
 		Variance,
 		StandardDeviation
-	}
-
-
-	internal enum FunctionStatus
-	{
-		OK,
-		UndefinedFunction,
-		WrongParameterCount,
-	}
-
-
-	internal enum SymbolStatus
-	{
-		OK,
-		None,
-		UndefinedSymbol,
 	}
 }

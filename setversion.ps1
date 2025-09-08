@@ -8,7 +8,7 @@ The version string to apply. Must be of the form major.minor or major.minor.patc
 
 param (
     [Parameter(Mandatory = $true)]
-    [ValidatePattern({^\d+\.\d+(?:\.\d+)?$})]
+    [ValidatePattern({^\d+\.\d+(?:\.\d+)?(?:\-Beta|\-Experimental)?$})]
     [string] $version
     )
 
@@ -30,6 +30,10 @@ Process
     $content | Out-File $0 -Force
 
     $0 = '.\OneMoreSetupActions\Properties\AssemblyInfo.cs'
+    $content = (Get-Content $0) -replace 'Version = "\d+\.\d+(?:\.\d+)?";',"Version = ""$version"";"
+    $content | Out-File $0 -Force
+
+    $0 = '.\OneMoreTray\Properties\AssemblyInfo.cs'
     $content = (Get-Content $0) -replace 'Version = "\d+\.\d+(?:\.\d+)?";',"Version = ""$version"";"
     $content | Out-File $0 -Force
 

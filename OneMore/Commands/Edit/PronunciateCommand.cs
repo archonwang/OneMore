@@ -1,5 +1,5 @@
 ﻿//************************************************************************************************
-// Copyright © 2020 Steven M Cohn.  All rights reserved.
+// Copyright © 2020 Steven M Cohn. All rights reserved.
 //************************************************************************************************
 
 #pragma warning disable CS0649  // never assigned to, will always be null
@@ -10,15 +10,20 @@ namespace River.OneMoreAddIn.Commands
 {
 	using System;
 	using System.Linq;
+	using System.Net.Http;
 	using System.Threading;
 	using System.Threading.Tasks;
 	using System.Web.Script.Serialization;
 	using System.Windows.Forms;
 	using System.Xml;
 	using System.Xml.Linq;
-	using Resx = River.OneMoreAddIn.Properties.Resources;
+	using Resx = Properties.Resources;
 
 
+	/// <summary>
+	/// Inserts the "ruby text" pronunciation of selected words. This uses an online service
+	/// that supports over a dozen languages.
+	/// </summary>
 	internal class PronunciateCommand : Command
 	{
 		private string isoCode;
@@ -48,77 +53,77 @@ namespace River.OneMoreAddIn.Commands
 		{
 			if (!HttpClientFactory.IsNetworkAvailable())
 			{
-				UIHelper.ShowInfo(Resx.NetwordConnectionUnavailable);
+				ShowInfo(Resx.NetwordConnectionUnavailable);
 				return;
 			}
 
-			using (var one = new OneNote(out var page, out var ns))
+			await using var one = new OneNote(out var page, out var ns);
+			var element = page.Root.Descendants(ns + "T")
+				.FirstOrDefault(e =>
+					e.Attributes("selected").Any(a => a.Value.Equals("all")) &&
+					e.FirstNode.NodeType == XmlNodeType.CDATA &&
+					((XCData)e.FirstNode).Value.Length > 0);
+
+			if (element == null)
 			{
-				var element = page.Root.Descendants(ns + "T")
-					.FirstOrDefault(e =>
-						e.Attributes("selected").Any(a => a.Value.Equals("all")) &&
-						e.FirstNode.NodeType == XmlNodeType.CDATA &&
-						((XCData)e.FirstNode).Value.Length > 0);
+				ShowError(Resx.Pronunciate_FullWord);
+				return;
+			}
 
-				if (element == null)
-				{
-					UIHelper.ShowError(Resx.Pronunciate_FullWord);
-					return;
-				}
+			var cdata = element.GetCData();
+			var wrapper = cdata.GetWrapper();
 
-				var cdata = element.GetCData();
-				var wrapper = cdata.GetWrapper();
+			var word = wrapper.Value;
+			var spaced = char.IsWhiteSpace(word[word.Length - 1]);
+			word = word.Trim();
 
-				var word = wrapper.Value;
-				var spaced = char.IsWhiteSpace(word[word.Length - 1]);
-				word = word.Trim();
+			if (string.IsNullOrEmpty(word))
+			{
+				ShowError(Resx.Pronunciate_EmptyWord);
+				return;
+			}
 
-				if (string.IsNullOrEmpty(word))
-				{
-					UIHelper.ShowError(Resx.Pronunciate_EmptyWord);
-					return;
-				}
-
-				// check for replay
-				var isoElement = args?.FirstOrDefault(a => a is XElement e && e.Name.LocalName == "isoCode") as XElement;
-				if (!string.IsNullOrEmpty(isoElement?.Value))
+			// check for replay
+			if (args is not null)
+			{
+				var index = args.IndexOf(a => a is XElement e && e.Name.LocalName == "isoCode");
+				if (index >= 0 && args[index] is XElement isoElement &&
+					!string.IsNullOrEmpty(isoElement.Value))
 				{
 					isoCode = isoElement.Value;
 				}
+			}
 
-				if (isoCode == null)
+			if (isoCode is null)
+			{
+				using var dialog = new PronunciateDialog();
+				dialog.Word = word;
+
+				if (dialog.ShowDialog(owner) != DialogResult.OK)
 				{
-					using (var dialog = new PronunciateDialog())
-					{
-						dialog.Word = word;
-
-						if (dialog.ShowDialog(owner) != DialogResult.OK)
-						{
-							IsCancelled = true;
-							return;
-						}
-
-						isoCode = dialog.Language;
-					}
+					IsCancelled = true;
+					return;
 				}
 
-				var ruby = await LookupPhonetics(word, isoCode);
-				if (!string.IsNullOrEmpty(ruby))
+				isoCode = dialog.Language;
+			}
+
+			var ruby = await LookupPhonetics(word, isoCode);
+			if (!string.IsNullOrEmpty(ruby))
+			{
+				if (ruby[0] != '/' || ruby[ruby.Length - 1] != '/')
 				{
-					if (ruby[0] != '/' || ruby[ruby.Length - 1] != '/')
-					{
-						ruby = $"/{ruby}/";
-					}
-
-					ruby = spaced ? ruby + ' ' : $" {ruby} ";
-
-					element.AddAfterSelf(
-						new XElement(ns + "T",
-							new XCData($"<span style='color:#8496B0'>{ruby}</span>"))
-						);
-
-					await one.Update(page);
+					ruby = $"/{ruby}/";
 				}
+
+				ruby = spaced ? ruby + ' ' : $" {ruby} ";
+
+				element.AddAfterSelf(
+					new XElement(ns + "T",
+						new XCData($"<span style='color:#8496B0'>{ruby}</span>"))
+					);
+
+				await one.Update(page);
 			}
 		}
 
@@ -137,24 +142,21 @@ namespace River.OneMoreAddIn.Commands
 
 				try
 				{
-					using (var source = new CancellationTokenSource(TimeSpan.FromSeconds(10)))
-					{
-						var response = await client.GetAsync(url, source.Token);
-						response.EnsureSuccessStatusCode();
-						json = await response.Content.ReadAsStringAsync();
-					}
+					using var source = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+					var response = await client.GetAsync(url, source.Token);
+					response.EnsureSuccessStatusCode();
+					json = await response.Content.ReadAsStringAsync();
 
 					//logger.WriteLine(json);
 				}
-				//catch (HttpRequestException exc) // when (..)
-				//{
-				//	logger.WriteLine("error fetching definition", exc);
-				//	logger.WriteLine($"retrying {(200 & retries)}ms");
-				//	await Task.Delay(200 * retries);
-				//}
+				catch (HttpRequestException exc) when (exc.HResult == -2146233088) //0x80131500)
+				{
+					logger.WriteLine($"could not fetch {url}");
+					retries = int.MaxValue;
+				}
 				catch (Exception exc)
 				{
-					logger.WriteLine("error fetching definition", exc);
+					logger.WriteLine($"error fetching {url}", exc);
 					logger.WriteLine($"retrying {(200 & retries)}ms");
 					await Task.Delay(200 * retries);
 				}
@@ -162,7 +164,7 @@ namespace River.OneMoreAddIn.Commands
 
 			if (string.IsNullOrEmpty(json))
 			{
-				UIHelper.ShowError(string.Format(Resx.Pronunciate_NetError, word));
+				ShowError(string.Format(Resx.Pronunciate_NetError, isoCode, word));
 				return null;
 			}
 
@@ -178,7 +180,7 @@ namespace River.OneMoreAddIn.Commands
 					return definition[0].phonetics[0].text;
 				}
 
-				UIHelper.ShowError(string.Format(Resx.Pronunciate_NoWord, word));
+				ShowError(string.Format(Resx.Pronunciate_NoWord, word));
 			}
 			catch (Exception exc)
 			{

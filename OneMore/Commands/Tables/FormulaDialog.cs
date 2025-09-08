@@ -1,20 +1,21 @@
 ﻿//************************************************************************************************
-// Copyright © 2020 Steven M Cohn.  All rights reserved.
+// Copyright © 2020 Steven M Cohn. All rights reserved.
 //************************************************************************************************
 
 namespace River.OneMoreAddIn.Commands
 {
 	using River.OneMoreAddIn.Commands.Tables.Formulas;
+	using River.OneMoreAddIn.Models;
 	using System;
-	using System.Drawing;
-	using System.Text.RegularExpressions;
-	using Resx = River.OneMoreAddIn.Properties.Resources;
+	using System.Linq;
+	using Resx = Properties.Resources;
 
 
-	internal partial class FormulaDialog : UI.LocalizableForm
+	internal partial class FormulaDialog : UI.MoreForm
 	{
 		private readonly int helpHeight;
 		private readonly Calculator calculator;
+		private readonly Table table;
 
 
 		public FormulaDialog()
@@ -33,9 +34,8 @@ namespace River.OneMoreAddIn.Commands
 				{
 					"selectedLabel",
 					"formulaLabel",
-					"formatLabel",
+					"formatLabel=word_Format",
 					"decLabel",
-					"helpButton",
 					"helpBox",
 					"statusLabel",
 					"okButton=word_OK",
@@ -43,7 +43,7 @@ namespace River.OneMoreAddIn.Commands
 				});
 
 				formatBox.Items.Clear();
-				formatBox.Items.AddRange(Resx.FormulaDialog_formatBox_Items.Split(new char[] { '\n' }));
+				formatBox.Items.AddRange(Resx.FormulaDialog_formatBox_Items.Split('\n'));
 
 				validStatusLabel.Text = Resx.FormulaDialog_status_Empty;
 			}
@@ -51,7 +51,23 @@ namespace River.OneMoreAddIn.Commands
 			formatBox.SelectedIndex = 0;
 
 			calculator = new Calculator();
-			calculator.ProcessSymbol += ResolveSymbol;
+			calculator.GetCellValue += GetCellValue;
+		}
+
+
+		public FormulaDialog(Table table)
+			: this()
+		{
+			this.table = table;
+
+			calculator.SetVariable("tablecols", table.ColumnCount);
+			calculator.SetVariable("tablerows", table.RowCount);
+
+			var cell = table.GetSelectedCells(out _).First();
+			calculator.SetVariable("col", cell.ColNum);
+			calculator.SetVariable("row", cell.RowNum);
+
+			LoadVariables(calculator);
 		}
 
 
@@ -89,6 +105,17 @@ namespace River.OneMoreAddIn.Commands
 		}
 
 
+		private static void LoadVariables(Calculator calculator)
+		{
+			using var provider = new VariableProvider();
+			var variables = provider.ReadVariables();
+			foreach (var variable in variables)
+			{
+				calculator.SetVariable(variable.Name, variable.Value);
+			}
+		}
+
+
 		private void ChangedFormula(object sender, EventArgs e)
 		{
 			var formula = formulaBox.Text.Trim();
@@ -97,38 +124,57 @@ namespace River.OneMoreAddIn.Commands
 			{
 				try
 				{
-					calculator.Execute(formula);
-					validStatusLabel.ForeColor = SystemColors.WindowText;
-					validStatusLabel.Text = Resx.word_OK;
+					var result = calculator.Compute(formula);
+					validStatusLabel.ForeColor = manager.GetColor("ControlText");
+
+					var text = Format == FormulaFormat.Time
+						? TimeSpan.FromMilliseconds(result).ToString()
+						: $"{result}";
+
+					validStatusLabel.Text = $"{Resx.word_OK} ({text})";
+					tooltip.SetToolTip(validStatusLabel, string.Empty);
+
 					okButton.Enabled = true;
 				}
-				catch
+				catch (Exception exc)
 				{
-					validStatusLabel.ForeColor = Color.Red;
+					validStatusLabel.ForeColor = manager.GetColor("ErrorText");
 					validStatusLabel.Text = Resx.FormulaDialog_status_Invalid;
+
+					tooltip.SetToolTip(validStatusLabel, exc.Message);
+
 					okButton.Enabled = false;
 				}
 			}
 			else
 			{
-				validStatusLabel.ForeColor = SystemColors.WindowText;
+				validStatusLabel.ForeColor = manager.GetColor("ControlText");
 				validStatusLabel.Text = Resx.FormulaDialog_status_Empty;
+				tooltip.SetToolTip(validStatusLabel, string.Empty);
 				okButton.Enabled = false;
 			}
 		}
 
 
-		private void ResolveSymbol(object sender, SymbolEventArgs e)
+		private void GetCellValue(object sender, GetCellValueEventArgs e)
 		{
-			if (Regex.Match(e.Name, @"^([a-zA-Z]{1,3})(\d{1,3})$").Success)
+			var cell = table.GetCell(e.Name.ToUpper());
+			if (cell is null)
 			{
-				e.Result = 1.0;
-				e.Status = SymbolStatus.OK;
+				e.Value = string.Empty;
+				return;
 			}
-			else
+
+			e.Value = cell.GetText().Trim()
+				.Replace(AddIn.Culture.NumberFormat.CurrencySymbol, string.Empty)
+				.Replace(AddIn.Culture.NumberFormat.PercentSymbol, string.Empty);
+
+			if (TimeSpan.TryParse(e.Value, AddIn.Culture, out var tvalue))
 			{
-				e.Status = SymbolStatus.UndefinedSymbol;
+				e.Value = tvalue.TotalMilliseconds.ToString();
 			}
+
+			logger.Verbose($"FormulaDialog.GetCellValue({e.Name}) = [{e.Value}]");
 		}
 
 

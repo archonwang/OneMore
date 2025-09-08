@@ -1,5 +1,5 @@
 ﻿//************************************************************************************************
-// Copyright © 2016 Steven M Cohn.  All rights reserved.
+// Copyright © 2016 Steven M Cohn. All rights reserved.
 //************************************************************************************************
 
 namespace River.OneMoreAddIn
@@ -39,28 +39,41 @@ namespace River.OneMoreAddIn
 		}
 
 
-		/// <summary>
-		/// Gets the main OneNote window
-		/// </summary>
-		public IWin32Window Owner
-		{
-			get
-			{
-				if (owner == null || !Native.IsWindow(owner.Handle))
-				{
-					using (var one = new OneNote())
-					{
-						owner = one.Window;
-					}
-				}
+		/*
+		 * Inheritors MUST override Execute...
+		 */
 
-				return owner;
-			}
+		/// <summary>
+		/// The entry point for the command which may take zero or more arguments
+		/// </summary>
+		/// <param name="args">The argument list</param>
+		public virtual async Task Execute(params object[] args)
+		{
+			await Task.Yield();
 		}
 
 
-		// = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-		// Settings used by CommandFactory
+		/*
+		 * Inheritors may override GetReplayArguments...
+		 */
+
+		/// <summary>
+		/// Called by CommandFactory to request any contextual arguments to be used if this
+		/// command is immediately replayed; they will be stored in the setting file in the
+		/// mru collection.
+		/// </summary>
+		/// <returns>
+		/// An XElement describing the replay arguments, customized for this command. There is no
+		/// standard schema for this for all commands; instead, each command is responsible for
+		/// generating and consuming its own replay information.
+		/// </returns>
+		public virtual XElement GetReplayArguments()
+		{
+			return null;
+		}
+
+
+		// Setters used by CommandFactory...
 
 		public Command SetFactory(CommandFactory value)
 		{
@@ -96,32 +109,27 @@ namespace River.OneMoreAddIn
 		}
 
 
-		/// <summary>
-		/// Called by CommandFactory to request any contextual arguments to be used if this
-		/// command is immediately replayed; they will be stored in the setting file in the
-		/// lastAction collection.
-		/// </summary>
-		/// <returns>
-		/// An XElement describing the replay arguments, customized for this command. There is no
-		/// standard schema for this for all commands; instead, each command is responsible for
-		/// generating and consuming its own replay information.
-		/// </returns>
-		public virtual XElement GetReplayArguments()
+		// MessageBox helpers...
+
+		protected void ShowError(string message)
 		{
-			return null;
+			UI.MoreMessageBox.ShowError(owner, message);
 		}
 
 
-		// = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-		// Must override by inheritors...
-
-		/// <summary>
-		/// The entry point for the command which may take zero or more arguments
-		/// </summary>
-		/// <param name="args">The argument list</param>
-		public virtual async Task Execute(params object[] args)
+		protected void ShowInfo(string message)
 		{
-			await Task.Yield();
+			UI.MoreMessageBox.Show(owner, message);
+		}
+
+
+		protected void ShowMessage(string message)
+		{
+			var box = new UI.MoreMessageBox();
+			box.SetButtons(MessageBoxButtons.OK);
+			box.SetIcon(MessageBoxIcon.None);
+
+			UI.MoreMessageBox.Show(owner, message);
 		}
 	}
 }

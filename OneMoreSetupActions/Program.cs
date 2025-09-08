@@ -1,15 +1,18 @@
 ﻿//************************************************************************************************
-// Copyright © 2021 Steven M Cohn.  All rights reserved.
+// Copyright © 2021 Steven M Cohn. All rights reserved.
 //************************************************************************************************
 
 #pragma warning disable S1118 // Utility classes should not have public constructors
+#pragma warning disable S6605 // "Exists" method should be used instead of the "Any" extension
 
 namespace OneMoreSetupActions
 {
 	using System;
 	using System.Diagnostics;
+	using System.Linq;
 	using System.Runtime.InteropServices;
 	using System.Security.Principal;
+	using System.Windows.Forms;
 
 
 	class Program
@@ -19,6 +22,7 @@ namespace OneMoreSetupActions
 
 		private static Logger logger;
 		private static Stepper stepper;
+		private static Architecture onArchitecture;
 
 
 		static void Main(string[] args)
@@ -30,7 +34,7 @@ namespace OneMoreSetupActions
 			// - Can comment this out for debugging
 			ShowWindow(Process.GetCurrentProcess().MainWindowHandle, 0);
 
-			if (args.Length == 0 || string.IsNullOrEmpty(args[0]))
+			if (args.Length == 0 || string.IsNullOrWhiteSpace(args[0]))
 			{
 				// nothing to do
 				return;
@@ -39,11 +43,47 @@ namespace OneMoreSetupActions
 			logger = new Logger("OneMoreSetup");
 			stepper = new Stepper();
 
-			ReportContext();
+			var command = args[0];
+
+			logger.WriteLine();
+			if (command == "--install" || command == "--uninstall")
+			{
+				logger.WriteLine(new string('=', 70));
+				logger.WriteLine($"starting action: {command} .. {DateTime.Now}");
+			}
+			else
+			{
+				logger.WriteLine(new string('-', 50));
+				logger.WriteLine($"direct action: {command} .. {DateTime.Now}");
+			}
+
+			ReportContext(args.Any(a => a == "--install" || a == "--uninstall"));
 
 			int status;
 
-			switch (args[0])
+			var architecture = Architecture.X86;
+			foreach (var arg in args)
+			{
+				if (arg.Equals("--x64", StringComparison.InvariantCultureIgnoreCase))
+				{
+					architecture = Architecture.X64;
+				}
+				else if (arg.Equals("--ARM64", StringComparison.InvariantCultureIgnoreCase))
+				{
+					architecture = Architecture.Arm64;
+				}
+			}
+
+			var action = new CheckBitnessAction(logger, stepper, architecture);
+			status = action.Install();
+			if (status != CustomAction.SUCCESS)
+			{
+				Environment.Exit(status);
+			}
+
+			onArchitecture = action.OneNoteArchitecture;
+
+			switch (command)
 			{
 				case "--install":
 					status = Install();
@@ -59,6 +99,10 @@ namespace OneMoreSetupActions
 					status = new ActiveSetupAction(logger, stepper).Install();
 					break;
 
+				case "--install-checkonenote":
+					status = new CheckOneNoteAction(logger, stepper).Install();
+					break;
+
 				case "--install-edge":
 					status = new EdgeWebViewAction(logger, stepper).Install();
 					break;
@@ -67,8 +111,12 @@ namespace OneMoreSetupActions
 					status = new ProtocolHandlerAction(logger, stepper).Install();
 					break;
 
+				case "--install-registry":
+					status = new RegistryAction(logger, stepper, onArchitecture).Install();
+					break;
+
 				case "--install-registrywow":
-					status = new RegistryWowAction(logger, stepper).Install();
+					status = new RegistryWowAction(logger, stepper, onArchitecture).Install();
 					break;
 
 				case "--install-shutdown":
@@ -83,8 +131,12 @@ namespace OneMoreSetupActions
 					status = new EdgeWebViewAction(logger, stepper).Uninstall();
 					break;
 
+				case "--uninstall-registry":
+					status = new RegistryAction(logger, stepper, onArchitecture).Uninstall();
+					break;
+
 				case "--uninstall-registrywow":
-					status = new RegistryWowAction(logger, stepper).Uninstall();
+					status = new RegistryWowAction(logger, stepper, onArchitecture).Uninstall();
 					break;
 
 				case "--uninstall-shutdown":
@@ -92,7 +144,7 @@ namespace OneMoreSetupActions
 					break;
 
 				default:
-					logger.WriteLine($"unrecognized command: {args[0]}");
+					logger.WriteLine($"unrecognized command: {command}");
 					status = CustomAction.FAILURE;
 					break;
 			}
@@ -101,8 +153,10 @@ namespace OneMoreSetupActions
 		}
 
 
-		static void ReportContext()
+		static void ReportContext(bool requireElevated)
 		{
+			// current user...
+
 			var sid = WindowsIdentity.GetCurrent().User.Value;
 			var username = new SecurityIdentifier(sid).Translate(typeof(NTAccount)).ToString();
 
@@ -111,6 +165,29 @@ namespace OneMoreSetupActions
 
 			var elve = elevated ? "elevated" : string.Empty;
 			logger.WriteLine($"OneMore installer running as user {username} ({sid}) {elve}");
+
+			// invoking user...
+
+			var domain = Environment.UserDomainName;
+			username = Environment.UserName;
+
+			var userdom = domain != null
+				? $@"{domain.ToUpper()}\{username.ToLower()}"
+				: username.ToLower();
+
+			logger.WriteLine($"on behalf of {userdom}");
+
+			if (!elevated && requireElevated)
+			{
+				logger.WriteLine($"aborting without elevated privileges");
+
+				MessageBox.Show(
+					"This installer must be run as an administrator using elevated privileges",
+					"Not Elevated",
+					MessageBoxButtons.OK, MessageBoxIcon.Error);
+
+				Environment.Exit(CustomAction.FAILURE);
+			}
 		}
 
 
@@ -122,25 +199,43 @@ namespace OneMoreSetupActions
 			logger.WriteLine();
 			logger.WriteLine($"Register... version {AssemblyInfo.Version}");
 
+			var status = new CheckOneNoteAction(logger, stepper).Install();
+			if (status != CustomAction.SUCCESS)
+			{
+				MessageBox.Show(
+					"The OneNote installation looks to be invalid. OneMore may not appear in the" +
+					"OneNote ribbon until OneNote is repaired. For more information, check the logs at\n" +
+					logger.LogPath,
+					"OneNote Configuration Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+
+				// treat as warning for now...
+				//return CustomAction.FAILURE;
+			}
+
 			try
 			{
 				if (new ShutdownOneNoteAction(logger, stepper).Install() == CustomAction.SUCCESS &&
+					new RegistryAction(logger, stepper, onArchitecture).Install() == CustomAction.SUCCESS &&
 					new ProtocolHandlerAction(logger, stepper).Install() == CustomAction.SUCCESS &&
 					new TrustedProtocolAction(logger, stepper).Install() == CustomAction.SUCCESS &&
 					new EdgeWebViewAction(logger, stepper).Install() == CustomAction.SUCCESS)
 				{
-					logger.WriteLine("completed successfully");
+					logger.WriteLine("install completed successfully");
 					return CustomAction.SUCCESS;
 				}
 
-				logger.WriteLine("completed suspiciously");
+				logger.WriteLine("install completed suspiciously");
 				return CustomAction.SUCCESS;
 				//return FAILURE;
 			}
 			catch (Exception exc)
 			{
-				logger.WriteLine("error registering");
+				logger.WriteLine("install failed; error registering");
 				logger.WriteLine(exc);
+
+				MessageBox.Show($"Error installing. Check the logs {logger.LogPath}",
+					"Action Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+
 				return CustomAction.FAILURE;
 			}
 		}
@@ -159,23 +254,28 @@ namespace OneMoreSetupActions
 				var ok0 = new ShutdownOneNoteAction(logger, stepper).Uninstall() == CustomAction.SUCCESS;
 				var ok1 = new ProtocolHandlerAction(logger, stepper).Uninstall() == CustomAction.SUCCESS;
 				var ok2 = new TrustedProtocolAction(logger, stepper).Uninstall() == CustomAction.SUCCESS;
-				var ok3 = new RegistryWowAction(logger, stepper).Uninstall() == CustomAction.SUCCESS;
+				var ok3 = new RegistryWowAction(logger, stepper, onArchitecture).Uninstall() == CustomAction.SUCCESS;
+				var ok4 = new RegistryAction(logger, stepper, onArchitecture).Uninstall() == CustomAction.SUCCESS;
 
-				if (ok0 && ok1 && ok2 && ok3)
+				if (ok0 && ok1 && ok2 && ok3 && ok4)
 				{
-					logger.WriteLine("completed successfully");
+					logger.WriteLine("uninstall completed successfully");
 				}
 				else
 				{
-					logger.WriteLine("completed with warnings");
+					logger.WriteLine("uninstall completed with warnings");
 				}
 
 				return CustomAction.SUCCESS;
 			}
 			catch (Exception exc)
 			{
-				logger.WriteLine("error unregistering");
+				logger.WriteLine("uninstall failed; error unregistering");
 				logger.WriteLine(exc);
+
+				MessageBox.Show($"Error uninstalling. Check the logs {logger.LogPath}",
+					"Action Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+
 				return CustomAction.FAILURE;
 			}
 		}

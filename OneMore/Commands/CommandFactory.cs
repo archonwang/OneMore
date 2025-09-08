@@ -5,14 +5,13 @@
 namespace River.OneMoreAddIn
 {
 	using Microsoft.Office.Core;
-	using OneMoreAddIn.Settings;
+	using River.OneMoreAddIn.UI;
 	using System;
 	using System.Collections.Generic;
 	using System.Linq;
+	using System.Reflection;
 	using System.Threading.Tasks;
-	using System.Windows.Forms;
-	using System.Xml.Linq;
-	using Resx = River.OneMoreAddIn.Properties.Resources;
+	using Resx = Properties.Resources;
 
 
 	/// <summary>
@@ -22,7 +21,6 @@ namespace River.OneMoreAddIn
 	{
 		private readonly ILogger logger;
 		private readonly IRibbonUI ribbon;
-		private readonly IWin32Window owner;
 		private readonly List<IDisposable> trash;
 
 
@@ -32,14 +30,38 @@ namespace River.OneMoreAddIn
 		/// <param name="logger">The logger</param>
 		/// <param name="ribbon">The OneNote ribbon</param>
 		/// <param name="trash">A colleciton of IDisposables for cleanup on shutdown</param>
-		/// <param name="owner">The owner window</param>
 		public CommandFactory(
-			ILogger logger, IRibbonUI ribbon, List<IDisposable> trash, IWin32Window owner)
+			ILogger logger, IRibbonUI ribbon, List<IDisposable> trash)
 		{
 			this.logger = logger;
 			this.ribbon = ribbon;
-			this.owner = owner;
 			this.trash = trash;
+		}
+
+
+		/// <summary>
+		/// Make an instance of the given command type with internal properties set so
+		/// the command is ready for use.
+		/// </summary>
+		/// <typeparam name="T">The Command type to instantiate</typeparam>
+		/// <returns>An instance of T</returns>
+		public async Task<Command> Make<T>() where T : Command, new()
+		{
+			var command = new T();
+
+			// need to rediscover active OneNote window for each command instantiation
+			// otherwise closing the primary or last-used active window will leave owner
+			// set to an invalid window handle
+			await using var one = new OneNote();
+			var owner = one.OwnerWindow;
+
+			command.SetFactory(this)
+				.SetLogger(logger)
+				.SetRibbon(ribbon)
+				.SetOwner(owner)
+				.SetTrash(trash);
+
+			return command;
 		}
 
 
@@ -53,12 +75,20 @@ namespace River.OneMoreAddIn
 		public async Task<Command> Run<T>(params object[] args) where T : Command, new()
 		{
 			var command = new T();
-			await Run("Running", command, args);
 
-			if (!command.IsCancelled)
+			// this extra Task.Run was added to "fix" a problem where batched File/Import was not
+			// working correctly, although it worked fine from the command palette and Replay...
+			// TODO: not sure why this fixes it! needs more research
+
+			await Task.Run(async () =>
 			{
-				RecordLastAction(command, args);
-			}
+				await Run("Running", command, args);
+
+				if (!command.IsCancelled)
+				{
+					new CommandProvider().SaveToMRU(command, args);
+				}
+			});
 
 			return command;
 		}
@@ -68,6 +98,12 @@ namespace River.OneMoreAddIn
 		{
 			var type = command.GetType();
 			logger.Start($"{note} command {type.Name}");
+
+			// need to rediscover active OneNote window for each command instantiation
+			// otherwise closing the primary or last-used active window will leave owner
+			// set to an invalid window handle
+			await using var one = new OneNote();
+			var owner = one.OwnerWindow;
 
 			command.SetFactory(this)
 				.SetLogger(logger)
@@ -91,61 +127,8 @@ namespace River.OneMoreAddIn
 				logger.WriteLine(exc);
 				logger.WriteLine();
 
-				UIHelper.ShowError(string.Format(Resx.Command_ErrorMsg, msg));
-			}
-		}
-
-
-		private void RecordLastAction(Command command, params object[] args)
-		{
-			// ignore commands that pass the ribbon as an argument
-			if (args.Any(a => a != null && a.GetType().Name.Contains("ComObject")))
-			{
-				return;
-			}
-
-			try
-			{
-				// SettingsProvider will only return an XElement if it has child elements so
-				// wrap the argument list in an <arguments> element, which itself may be empty
-				var arguments = new XElement("arguments");
-
-				foreach (var arg in args)
-				{
-					if (arg != null)
-					{
-						arguments.Add(new XElement("arg",
-							new XAttribute("type", arg.GetType().FullName),
-							new XAttribute("value", arg.ToString())
-							));
-					}
-				}
-
-				var setting = new XElement("command",
-					new XAttribute("type", command.GetType().FullName),
-					arguments
-					);
-
-				var provider = new SettingsProvider();
-				var settings = provider.GetCollection("lastAction");
-				settings.Clear();
-
-				// setting name should equate to the XML root element name here
-				// the XML is not wrapped with an extra parent, so no worries
-				settings.Add("command", setting);
-
-				var replay = command.GetReplayArguments();
-				if (replay != null)
-				{
-					settings.Add("context", new XElement("context", replay));
-				}
-
-				provider.SetCollection(settings);
-				provider.Save();
-			}
-			catch (Exception exc)
-			{
-				logger.WriteLine("error recording last action", exc);
+				MoreMessageBox.ShowErrorWithLogLink(
+					owner, string.Format(Resx.Command_ErrorMsg, msg));
 			}
 		}
 
@@ -156,53 +139,48 @@ namespace River.OneMoreAddIn
 		/// <returns>Task</returns>
 		public async Task ReplayLastAction()
 		{
-			var provider = new SettingsProvider();
-			var settings = provider.GetCollection("lastAction");
-			var action = settings.Get<XElement>("command");
-			if (action != null)
+			var provider = new CommandProvider();
+			var action = provider.LoadLastAction();
+			if (action == null)
 			{
-				try
-				{
-					var command = (Command)Activator.CreateInstance(
-						Type.GetType(action.Attribute("type").Value)
-						);
-
-					var args = new List<object>();
-					foreach (var arg in action.Element("arguments").Elements("arg"))
-					{
-						var type = Type.GetType(arg.Attribute("type").Value);
-						if (type.IsEnum)
-						{
-							args.Add(Enum.Parse(type, arg.Attribute("value").Value));
-						}
-						else
-						{
-							args.Add(Convert.ChangeType(
-								arg.Attribute("value").Value,
-								Type.GetType(arg.Attribute("type").Value)
-								));
-						}
-					}
-
-					var context = settings.Get<XElement>("context");
-					if (context != null && context.HasElements)
-					{
-						args.Add(context.Elements().First());
-					}
-
-					await Run("Replaying", command, args.ToArray());
-				}
-				catch (Exception exc)
-				{
-					provider.RemoveCollection("lastAction");
-					provider.Save();
-
-					logger.WriteLine("error parsing last action; history cleared", exc);
-				}
+				return;
 			}
-			else
+
+			try
 			{
-				await Task.Yield();
+				var command = (Command)Activator.CreateInstance(
+					Type.GetType(action.Attribute("type").Value)
+					);
+
+				var args = new List<object>();
+				foreach (var arg in action.Element("arguments").Elements("arg"))
+				{
+					var type = Type.GetType(arg.Attribute("type").Value);
+					if (type.IsEnum)
+					{
+						args.Add(Enum.Parse(type, arg.Attribute("value").Value));
+					}
+					else
+					{
+						args.Add(Convert.ChangeType(
+							arg.Attribute("value").Value,
+							Type.GetType(arg.Attribute("type").Value)
+							));
+					}
+				}
+
+				var context = action.Elements("context").FirstOrDefault();
+				if (context != null && context.HasElements)
+				{
+					args.Add(context.Elements().First());
+				}
+
+				await Run("Replaying", command, args.ToArray());
+			}
+			catch (Exception exc)
+			{
+				provider.ClearMRU();
+				logger.WriteLine("error parsing last action; history cleared", exc);
 			}
 		}
 
@@ -226,7 +204,13 @@ namespace River.OneMoreAddIn
 				return;
 			}
 
-			if (!(Activator.CreateInstance(type) is Command command))
+			if (type.GetCustomAttribute(typeof(CommandServiceAttribute), false) == null)
+			{
+				logger.WriteLine($"factory failed to invoke {action}; not a protocol service command");
+				return;
+			}
+
+			if (Activator.CreateInstance(type) is not Command command)
 			{
 				logger.WriteLine($"factory failed to create instance of '{name}'");
 				return;

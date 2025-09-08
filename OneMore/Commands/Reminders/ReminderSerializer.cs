@@ -71,7 +71,7 @@ namespace River.OneMoreAddIn.Commands
 
 			var reminders = DecodeContent(meta.Attribute("content").Value);
 
-			var old = reminders.FirstOrDefault(r => r.ObjectId == reminder.ObjectId);
+			var old = reminders.Find(r => r.ObjectId == reminder.ObjectId);
 			if (old != null)
 			{
 				reminders.Remove(old);
@@ -125,11 +125,14 @@ namespace River.OneMoreAddIn.Commands
 			var parts = content.Split(Delimiter);
 			foreach (var part in parts)
 			{
-				var reminder = Decode(part);
-				// possible deserialization error
-				if (reminder != null)
+				if (!string.IsNullOrWhiteSpace(part))
 				{
-					reminders.Add(reminder);
+					var reminder = Decode(part);
+					// possible deserialization error
+					if (reminder != null)
+					{
+						reminders.Add(reminder);
+					}
 				}
 			}
 
@@ -147,23 +150,25 @@ namespace River.OneMoreAddIn.Commands
 			try
 			{
 				var bytes = Convert.FromBase64String(value);
-				using (var stream = new MemoryStream(bytes))
-				{
-					using (var zipper = new GZipStream(stream, CompressionMode.Decompress))
-					{
-						using (var reader = new StreamReader(zipper, Encoding.UTF8))
-						{
-							var json = reader.ReadToEnd();
-							// TODO: read-makes-right version check here...
+				using var stream = new MemoryStream(bytes);
+				using var zipper = new GZipStream(stream, CompressionMode.Decompress);
+				using var reader = new StreamReader(zipper, Encoding.UTF8);
+				var json = reader.ReadToEnd();
 
-							var content = JsonConvert.DeserializeObject<Reminder>(
-								json,
-								new JsonSerializerSettings { DateFormatString = JDateFormat });
+				// TODO: read-makes-right version check here...
 
-							return content;
-						}
-					}
-				}
+				var content = JsonConvert.DeserializeObject<Reminder>(
+					json,
+					new JsonSerializerSettings { DateFormatString = JDateFormat });
+
+				// convert kind from Unspecified to Utc
+				content.Completed = DateTime.SpecifyKind(content.Completed, DateTimeKind.Utc);
+				content.Due = DateTime.SpecifyKind(content.Due, DateTimeKind.Utc);
+				content.SnoozeTime = DateTime.SpecifyKind(content.SnoozeTime, DateTimeKind.Utc);
+				content.Start = DateTime.SpecifyKind(content.Start, DateTimeKind.Utc);
+				content.Started = DateTime.SpecifyKind(content.Started, DateTimeKind.Utc);
+
+				return content;
 			}
 			catch (Exception exc)
 			{
@@ -191,16 +196,16 @@ namespace River.OneMoreAddIn.Commands
 				var json = JsonConvert.SerializeObject(content,
 					new JsonSerializerSettings { DateFormatString = JDateFormat });
 
-				using (var stream = new MemoryStream())
-				{
-					using (var zipper = new GZipStream(stream, CompressionMode.Compress))
-					{
-						var bytes = Encoding.UTF8.GetBytes(json);
-						zipper.Write(bytes, 0, bytes.Length);
-					}
+				using var stream = new MemoryStream();
 
-					return Convert.ToBase64String(stream.ToArray());
+				// do not simplify this statement to ensure stream is Flushed and Closed
+				using (var zipper = new GZipStream(stream, CompressionMode.Compress))
+				{
+					var bytes = Encoding.UTF8.GetBytes(json);
+					zipper.Write(bytes, 0, bytes.Length);
 				}
+
+				return Convert.ToBase64String(stream.ToArray());
 			}
 			catch (Exception exc)
 			{

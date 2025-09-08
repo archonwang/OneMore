@@ -9,17 +9,21 @@ namespace River.OneMoreAddIn.Commands
 	using System.Linq;
 	using System.Threading.Tasks;
 	using System.Xml.Linq;
-	using WindowsInput;
-	using WindowsInput.Native;
 	using Hap = HtmlAgilityPack;
-	using Resx = River.OneMoreAddIn.Properties.Resources;
-	using Win = System.Windows;
+	using Resx = Properties.Resources;
 
 
 	/// <summary>
-	/// Paste the copied cells into the target table, overlaying cells rather than inserting
-	/// a nested table. The target table is expanded with extra rows or columns as needed.
+	/// Paste copied cells into a table, overlaying cells rather than inserting a nested table as
+	/// OneNote does by default. The target table is expanded with extra rows or columns as needed.
+	/// All cell formatting, including cell shading, is preserved. This is useful for moving cells
+	/// around within a table or copying cells from one table to another.
 	/// </summary>
+	/// <remarks>
+	/// When copying cells with Ctrl-C and pasting back into the same table, the old cells are not
+	/// erased.If your intention is to move the cells, leaving blank cells behind, then instead
+	/// use Ctrl-X to copy and cut prior to running this paste command.
+	/// </remarks>
 	internal class PasteCellsCommand : Command
 	{
 		private OneNote one;
@@ -32,7 +36,7 @@ namespace River.OneMoreAddIn.Commands
 
 		public override async Task Execute(params object[] args)
 		{
-			using (one = new OneNote(out var page, out var ns))
+			await using (one = new OneNote(out var page, out var ns))
 			{
 				// make sure cursor is positioned in a target table...
 
@@ -51,7 +55,7 @@ namespace River.OneMoreAddIn.Commands
 				if (anchor == null)
 				{
 					logger.WriteLine("could not find anchor cell");
-					UIHelper.ShowInfo(one.Window, "could not find anchor cell; this shouldn't happen!");
+					ShowInfo("could not find anchor cell; this shouldn't happen!");
 					IsCancelled = true;
 					return;
 				}
@@ -61,7 +65,7 @@ namespace River.OneMoreAddIn.Commands
 				var spage = await GetSourcePage();
 				if (spage == null)
 				{
-					UIHelper.ShowInfo(one.Window, Resx.PasteCellsCommand_NoContent);
+					ShowInfo(Resx.PasteCellsCommand_NoContent);
 					IsCancelled = true;
 					return;
 				}
@@ -69,7 +73,7 @@ namespace River.OneMoreAddIn.Commands
 				var source = GetSourceTable(spage);
 				if (source == null)
 				{
-					UIHelper.ShowInfo(one.Window, Resx.PasteCellsCommand_NoContent);
+					ShowInfo(Resx.PasteCellsCommand_NoContent);
 					IsCancelled = true;
 					return;
 				}
@@ -116,7 +120,7 @@ namespace River.OneMoreAddIn.Commands
 
 			if (cell == null)
 			{
-				UIHelper.ShowInfo(one.Window, Resx.PasteCellsCommand_SelectCell);
+				ShowInfo(Resx.PasteCellsCommand_SelectCell);
 				return null;
 			}
 
@@ -124,7 +128,7 @@ namespace River.OneMoreAddIn.Commands
 			if (root == null)
 			{
 				logger.WriteLine("error finding <one:Table>");
-				UIHelper.ShowInfo(one.Window, "error finding <one:Table>; this shouldn't happen!");
+				ShowInfo("error finding <one:Table>; this shouldn't happen!");
 				return null;
 			}
 
@@ -135,14 +139,8 @@ namespace River.OneMoreAddIn.Commands
 		private async Task<Page> GetSourcePage()
 		{
 			// the Clipboard will contain HTML of the copied cells wrapped in a <table>
-			var content = await SingleThreaded.Invoke(() =>
-			{
-				return Win.Clipboard.ContainsText(Win.TextDataFormat.Html)
-					? Win.Clipboard.GetText(Win.TextDataFormat.Html)
-					: null;
-			});
-
-			if (string.IsNullOrEmpty(content))
+			var content = await ClipboardProvider.GetHtml();
+			if (string.IsNullOrWhiteSpace(content))
 			{
 				return null;
 			}
@@ -213,13 +211,9 @@ namespace River.OneMoreAddIn.Commands
 			// focus on the OneNote main window provides a direct path for SendKeys
 			Native.SetForegroundWindow(one.WindowHandle);
 
-			new InputSimulator().Keyboard
-				.ModifiedKeyStroke(VirtualKeyCode.CONTROL, VirtualKeyCode.VK_V);
+			await ClipboardProvider.Paste();
 
-			// yeah this is dumb but have to wait for paste to complete
-			await Task.Delay(200);
-
-			var page = one.GetPage(pageId);
+			var page = await one.GetPage(pageId);
 			one.DeleteHierarchy(pageId);
 
 			await one.NavigateTo(currentPageId);

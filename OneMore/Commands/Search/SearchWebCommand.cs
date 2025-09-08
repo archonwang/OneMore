@@ -1,11 +1,12 @@
 ﻿//************************************************************************************************
-// Copyright © 2020 Steven M Cohn.  All rights reserved.
+// Copyright © 2020 Steven M Cohn. All rights reserved.
 //************************************************************************************************
-
-using System.Threading.Tasks;
 
 namespace River.OneMoreAddIn.Commands
 {
+	using System.Threading.Tasks;
+
+
 	internal class SearchWebCommand : Command
 	{
 		public SearchWebCommand()
@@ -18,10 +19,8 @@ namespace River.OneMoreAddIn.Commands
 			var uri = (string)args[0];
 			string text;
 
-			using (var one = new OneNote(out var page, out _))
-			{
-				text = page.GetSelectedText();
-			}
+			await using var one = new OneNote(out var page, out _);
+			text = new Models.PageEditor(page).GetSelectedText();
 
 			if (text.Length > 0)
 			{

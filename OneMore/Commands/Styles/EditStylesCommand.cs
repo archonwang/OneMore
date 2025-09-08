@@ -11,6 +11,9 @@ namespace River.OneMoreAddIn.Commands
 	using System.Windows.Forms;
 
 
+	/// <summary>
+	/// Edit style theme
+	/// </summary>
 	internal class EditStylesCommand : Command
 	{
 		public EditStylesCommand()
@@ -22,28 +25,28 @@ namespace River.OneMoreAddIn.Commands
 
 		public override async Task Execute(params object[] args)
 		{
-			Color pageColor;
-			using (var one = new OneNote(out var page, out _))
+			await using var one = new OneNote(out var page, out _, OneNote.PageDetail.Basic);
+			var pageColor = page.GetPageColor(out var automatic, out var black);
+
+			if (automatic)
 			{
-				pageColor = page.GetPageColor(out _, out var black);
-				if (black)
-				{
-					// if Office Black theme, translate to softer Black Shadow
-					pageColor = BasicColors.BlackSmoke;
-				}
+				pageColor = Color.Transparent;
+			}
+			else if (black)
+			{
+				// if Office Black theme, translate to slightly softer shade
+				pageColor = BasicColors.BlackSmoke;
 			}
 
 			var theme = new ThemeProvider().Theme;
 
-			using (var dialog = new StyleDialog(theme, pageColor))
+			var dialog = new StyleDialog(theme, pageColor, black);
+			if (dialog.ShowDialog(owner) == DialogResult.OK)
 			{
-				if (dialog.ShowDialog(owner) == DialogResult.OK)
-				{
-					ThemeProvider.Save(dialog.Theme);
-					ThemeProvider.RecordTheme(dialog.Theme.Key);
+				ThemeProvider.Save(dialog.Theme);
+				ThemeProvider.RecordTheme(dialog.Theme.Key);
 
-					ribbon.Invalidate();
-				}
+				ribbon.Invalidate();
 			}
 
 			ribbon.Invalidate();

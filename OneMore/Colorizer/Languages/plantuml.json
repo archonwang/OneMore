@@ -1,0 +1,131 @@
+{
+  "name": "PlantUML",
+  "aliases": [
+    "PlantUML",
+    "puml"
+  ],
+  "rules": [
+    {
+      "pattern": "(/'(?:[^']|[\\r\\n]|(?:'+(?:[^'/]|[\\r\\n])))*'+/)",
+      "captures": [
+        "PlantComment"
+      ]
+    },
+    {
+      "pattern": "(/'[^\\r\\n]*)$",
+      "scope": "Comment",
+      "captures": [
+        "PlantComment"
+      ]
+    },
+    {
+      "pattern": "^([^\\r\\n]*'/)",
+      "scope": "",
+      "captures": [
+        "PlantComment"
+      ]
+    },
+    {
+      "pattern": "^\\s*('.*)$",
+      "captures": [
+        "PlantComment"
+      ]
+    },
+    {
+      "pattern": "('[^\\n]*?(?<!\\\\)')",
+      "captures": [
+        "String"
+      ]
+    },
+    {
+      "pattern": "(?s)(\"[^\\n]*?(?<!\\\\)\")",
+      "captures": [
+        "String"
+      ]
+    },
+    {
+      "pattern": "^\\s*(note\\s+(?:over|left|right))[^:]*$",
+      "scope": "PlantNote",
+      "captures": [
+        "Keyword"
+      ]
+    },
+    {
+      "pattern": "(^\\s*)(end note)$",
+      "scope": "",
+      "captures": [
+        "PlantComment",
+        "Keyword"
+      ]
+    },
+    {
+      "pattern": "^\\s*(note\\s+(?:over|left|right))[^:]*\\:?\\s+(.+)$",
+      "captures": [
+        "Keyword",
+        "PlantNote"
+      ]
+    },
+    {
+      "pattern": "^\\s*(title)\\s+(.+)$",
+      "captures": [
+        "Keyword",
+        "PlainText"
+      ]
+    },
+    {
+      "pattern": "^\\s*((?:@start|@end)(?:board|bpm|creole|cute|def|ditaa|dot|flow|gantt|git|jcckit|json|latex|math|mindmap|nwdiag|project|salt|tree|uml|wbs|wire|yaml))",
+      "captures": [
+        "PlantBlock"
+      ]
+    },
+    {
+      "pattern": "\\b(abstract|actor|agent|annotation|archimate|artifact|boundary|card|cloud|collections|component|control|database|diamond|entity|enum|file|folder|frame|hexagon|json|label|node|object|package|participant|person|queue|rectangle|stack|state|storage|usecase|class|interface)\\b",
+      "captures": [
+        "PlantClass"
+      ]
+    },
+    {
+      "pattern": "^\\s*(allowmixing|autonumber|scale|skin|skinparam|\\x21include)\\b",
+      "captures": [
+        "PlantSkin"
+      ]
+    },
+    {
+      "pattern": "\\s((?:-{1,2}(?:>|>>|\\\\|\\/|\\\\\\\\|\\/\\/|\\?|o|x))|(?:<|<<|\\\\|\\/|\\\\\\\\|\\/\\/|\\?|o|x)-{1,2})\\s+[^:]+(?::\\s*(.*))?$",
+      "captures": [
+        "PlantArrow",
+        "String"
+      ]
+    },
+    {
+      "pattern": "\\b(across|activate|again|allow_mixing|allowmixing|also|alt|as|bold|bottom|box|break|caption|center|circle|color|create|critical|dashed|deactivate|description|destroy|detach|dotted|down|else|elseif|empty|end|endif|endwhile|false|footbox|footer|fork|group|header|hide|hnote|if|is|italic|kill|left|legend|link|loop|mainframe|map|members|namespace|newpage|normal|note|of|on|opt|order|over|package|page|par|partition|plain|ref|repeat|return|right|rnote|rotate|show|split|sprite|start|stereotype|stop|style|then|title|top|true|up|while)\\b",
+      "captures": [
+        "Keyword"
+      ]
+    },
+    {
+      "pattern": "\\b(Container_Boundary|Enterprise_Boudnary|System_Boundary)\\b",
+      "captures": [
+        "Keyword"
+      ]
+    },
+    {
+      "pattern": "\\b((?:Component|Container|Person|System)(?:Db|Queue)?(?:_Ext|)?)\\b",
+      "captures": [
+        "Keyword"
+      ]
+    },
+    {
+      "pattern": "\\b((?:Bi)?(?:Rel|Lay)(?:_U|_Up|_D|_Down|_L|_Left|_R|_Right|_Back|_Neighbor)?)\\b",
+      "captures": [
+        "Keyword"
+      ]
+    },
+    {
+      "pattern": "\\b([0-9]{1,})\\b",
+      "captures": [
+        "Number"
+      ]
+    }
+  ]
+}

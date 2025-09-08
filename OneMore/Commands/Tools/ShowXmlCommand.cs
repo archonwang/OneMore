@@ -7,19 +7,22 @@ namespace River.OneMoreAddIn.Commands
 	using System.Threading.Tasks;
 
 
+	/// <summary>
+	/// Display the XML representation of the current page, section, and notebook.
+	/// </summary>
 	internal class ShowXmlCommand : Command
 	{
-		public ShowXmlCommand ()
+		public ShowXmlCommand()
 		{
+			// prevent replay
+			IsCancelled = true;
 		}
 
 
 		public override async Task Execute(params object[] args)
 		{
-			using (var dialog = new ShowXmlDialog())
-			{
-				dialog.ShowDialog(owner);
-			}
+			using var dialog = new ShowXmlDialog();
+			dialog.ShowDialog(owner);
 
 			await Task.Yield();
 		}

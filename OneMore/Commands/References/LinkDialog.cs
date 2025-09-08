@@ -1,13 +1,13 @@
 ﻿//************************************************************************************************
-// Copyright © 2020 Steven M Cohn.  All rights reserved.
+// Copyright © 2020 Steven M Cohn. All rights reserved.
 //************************************************************************************************
 
 namespace River.OneMoreAddIn.Commands
 {
-	using Resx = River.OneMoreAddIn.Properties.Resources;
+	using Resx = Properties.Resources;
 
 
-	internal partial class LinkDialog : UI.LocalizableForm
+	internal partial class LinkDialog : UI.MoreForm
 	{
 		public LinkDialog()
 		{
@@ -21,17 +21,21 @@ namespace River.OneMoreAddIn.Commands
 				{
 					"introLabel",
 					"groupBox",
-					"notebooksRadio",
-					"notebookRadio",
-					"sectionRadio",
+					"notebooksRadio=phrase_AllNotebooks",
+					"notebookRadio=phrase_AllSectionInTheCurrentNotebook",
+					"sectionRadio=phrase_TheCurrentSection",
 					"synopsisBox",
-					"unindexedBox",
 					"okButton=word_OK",
 					"cancelButton=word_Cancel"
 				});
-
-				tooltip.SetToolTip(unindexedBox, Resx.LinkDialog_unindexedBox_Tooltip);
 			}
+		}
+
+
+		public LinkDialog(string title)
+			: this()
+		{
+			titleLabel.Text = title;
 		}
 
 
@@ -47,8 +51,5 @@ namespace River.OneMoreAddIn.Commands
 
 
 		public bool Synopsis => synopsisBox.Checked;
-
-
-		public bool Unindexed => unindexedBox.Checked;
 	}
 }

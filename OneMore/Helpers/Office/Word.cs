@@ -8,6 +8,8 @@ namespace River.OneMoreAddIn.Helpers.Office
 	using System.IO;
 	using System.Linq;
 	using System.Runtime.InteropServices;
+	using System.Text;
+	using System.Text.RegularExpressions;
 	using System.Xml.Linq;
 	using MSWord = Microsoft.Office.Interop.Word;
 
@@ -53,19 +55,42 @@ namespace River.OneMoreAddIn.Helpers.Office
 
 			try
 			{
-				target = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+				var tempPath = Path.GetTempPath();
+				target = Path.Combine(tempPath, Path.GetRandomFileName());
 				object format = MSWord.WdSaveFormat.wdFormatHTML;
 
 				// open document
 				word.Documents.Open(ref source);
 				var doc = word.ActiveDocument;
 
+				doc.WebOptions.Encoding = Microsoft.Office.Core.MsoEncoding.msoEncodingUTF8;
+
 				// save as HTML
 				doc.SaveAs2(ref target, ref format);
 				doc.Close();
 
 				// read HTML
-				string html = File.ReadAllText(target.ToString());
+				var tarpath = target.ToString();
+				var html = File.ReadAllText(tarpath);
+
+				// patch image paths so images get imported too
+				var subfolder = Path.Combine(
+					tempPath,
+					$"{Path.GetFileNameWithoutExtension(tarpath)}_files");
+
+				if (Directory.Exists(subfolder))
+				{
+					var matches = Regex.Matches(html, @"<img[^>]+src=""([^""]+)""");
+					var builder = new StringBuilder(html);
+					for (var i = matches.Count - 1; i >= 0; i--)
+					{
+						Match match = matches[i];
+						builder.Insert(match.Groups[1].Index, tempPath);
+					}
+
+					html = builder.ToString();
+				}
+
 				return html;
 			}
 			catch (Exception exc)
@@ -117,7 +142,7 @@ namespace River.OneMoreAddIn.Helpers.Office
 			}
 			catch (Exception exc)
 			{
-				Logger.Current.WriteLine(exc);
+				Logger.Current.WriteLine("error converting to html", exc);
 			}
 			finally
 			{
@@ -137,7 +162,7 @@ namespace River.OneMoreAddIn.Helpers.Office
 		}
 
 
-		public void LinkupAttachments(string docPath, XElement root)
+		public void ResolveAttachmentRefs(string docPath, XElement root, bool embedded)
 		{
 			// This code was first recorded as a Word VM macro by using the Find and Replace UI
 			// and then opening the macro in the VB script editor...
@@ -198,28 +223,33 @@ namespace River.OneMoreAddIn.Helpers.Office
 
 					if (source != null)
 					{
-						var target = Path.Combine(path, text);
+						string target = source;
 
-						try
+						if (!embedded)
 						{
-							// copy cached/source file to md output directory
-							File.Copy(source, target, true);
+							// linking to a target file, copied to output directory...
+							target = Path.Combine(path, text);
+
+							try
+							{
+								if (File.Exists(target))
+								{
+									// attempt to remove to avoid any permissions issues
+									File.Delete(target);
+								}
+
+								// copy cached/source file to md output directory
+								File.Copy(source, target, true);
+							}
+							catch (Exception exc)
+							{
+								Logger.Current.WriteLine($"error copying to {target}", exc);
+								// error copying
+								continue;
+							}
 						}
-						catch
-						{
-							// error copying
-							continue;
-						}
 
-						word.Selection.Text = text;
-
-						object range = word.Selection.Range;
-
-						// get a well-formed URL but also decode it so avoid encoding problems
-						// with wide unicode characters in the path, Chinese, Hebrew, etc.
-						object uri = System.Web.HttpUtility.UrlDecode(new Uri(target).AbsoluteUri);
-
-						word.Selection.Hyperlinks.Add(range, ref uri);
+						RenderAttachment(word.Selection, target, text, embedded);
 
 						updated = true;
 					}
@@ -230,6 +260,47 @@ namespace River.OneMoreAddIn.Helpers.Office
 			{
 				doc.Save();
 			}
+		}
+
+
+		private void RenderAttachment(
+			MSWord.Selection selection, string target, string text, bool embedded)
+		{
+			var ext = Path.GetExtension(target);
+
+			var association = RegistryHelper.GetAssociation(ext);
+			if (association != null)
+			{
+				selection.Text = String.Empty;
+
+				object filename = target;
+				object linkToFile = !embedded;
+				object displayAsIcon = true;
+				object iconIndex = association.IconIndex;
+				object iconFilename = association.IconFilename;
+				object iconLabel = Path.GetFileName(target);
+
+				selection.InlineShapes.AddOLEObject(
+					association.ProgID,
+					ref filename,
+					ref linkToFile,
+					ref displayAsIcon,
+					ref iconFilename,
+					ref iconIndex,
+					ref iconLabel
+					);
+
+				return;
+			}
+
+			// get a well-formed URL but also decode it so avoid encoding problems
+			// with wide unicode characters in the path, Chinese, Hebrew, etc.
+
+			selection.Text = text;
+
+			object range = word.Selection.Range;
+			object uri = System.Web.HttpUtility.UrlDecode(new Uri(target).AbsoluteUri);
+			word.Selection.Hyperlinks.Add(range, ref uri);
 		}
 	}
 }

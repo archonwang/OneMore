@@ -13,7 +13,7 @@ namespace River.OneMoreAddIn.Settings
 	using System.ComponentModel;
 	using System.IO;
 	using System.Windows.Forms;
-	using Resx = River.OneMoreAddIn.Properties.Resources;
+	using Resx = Properties.Resources;
 
 
 	internal partial class SnippetsSheet : SheetBase
@@ -37,24 +37,25 @@ namespace River.OneMoreAddIn.Settings
 			InitializeComponent();
 
 			Name = "SnippetsSheet";
-			Title = Resx.SnippetsSheet_Text;
+			Title = Resx.word_Snippets;
 
 			if (NeedsLocalizing())
 			{
 				Localize(new string[]
 				{
-					"introLabel",
-					"deleteLabel",
-					"deleteButton"
+					"introBox",
+					"renameButton=word_Rename",
+					"deleteButton=word_Delete"
 				});
 
 				nameColumn.HeaderText = Resx.word_Name;
 			}
 
-			toolStrip.Rescale();
-
 			gridView.AutoGenerateColumns = false;
 			gridView.Columns[0].DataPropertyName = "Name";
+
+			(_, float scaleY) = UI.Scaling.GetScalingFactors();
+			gridView.RowTemplate.Height = (int)(16 * scaleY);
 
 			this.ribbon = ribbon;
 			snipsProvider = new SnippetsProvider();
@@ -93,12 +94,9 @@ namespace River.OneMoreAddIn.Settings
 
 			var snippet = snippets[rowIndex];
 
-			var result = MessageBox.Show(
+			var result = UI.MoreMessageBox.Show(this,
 				string.Format(Resx.SnippetsSheet_ConfirmDelete, snippet.Name),
-				"OneMore",
-				MessageBoxButtons.YesNo, MessageBoxIcon.Question,
-				MessageBoxDefaultButton.Button2,
-				MessageBoxOptions.DefaultDesktopOnly);
+				MessageBoxButtons.YesNo, MessageBoxIcon.Question);
 
 			if (result != DialogResult.Yes)
 				return;
@@ -123,6 +121,32 @@ namespace River.OneMoreAddIn.Settings
 			}
 
 			return false;
+		}
+
+		private void RenameItem(object sender, EventArgs e)
+		{
+			if (gridView.SelectedCells.Count == 0)
+				return;
+
+			int rowIndex = gridView.SelectedCells[0].RowIndex;
+			if (rowIndex >= snippets.Count)
+				return;
+
+			var snippet = snippets[rowIndex];
+
+			using var dialog = new SaveSnippetDialog();
+			dialog.SnippetName = snippet.Name;
+
+			if (dialog.ShowDialog(this) == DialogResult.OK)
+			{
+				var path = snipsProvider.Rename(snippet.Path, dialog.SnippetName);
+				if (!string.IsNullOrEmpty(path))
+				{
+					snippet.Name = dialog.SnippetName;
+					snippet.Path = path;
+					updated = true;
+				}
+			}
 		}
 	}
 }

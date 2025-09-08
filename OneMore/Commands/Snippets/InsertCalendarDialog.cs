@@ -1,16 +1,17 @@
 ﻿//************************************************************************************************
-// Copyright © 2020 Steven M Cohn.  All rights reserved.
+// Copyright © 2020 Steven M Cohn. All rights reserved.
 //************************************************************************************************
 
 namespace River.OneMoreAddIn.Commands
 {
 	using System;
+	using System.Drawing;
 	using System.Globalization;
 	using System.Windows.Forms;
-	using Resx = River.OneMoreAddIn.Properties.Resources;
+	using Resx = Properties.Resources;
 
 
-	internal partial class InsertCalendarDialog : UI.LocalizableForm
+	internal partial class InsertCalendarDialog : UI.MoreForm
 	{
 		public InsertCalendarDialog()
 		{
@@ -27,7 +28,7 @@ namespace River.OneMoreAddIn.Commands
 					"firstLabel",
 					"colorLabel",
 					"clickLabel",
-					"formatLabel",
+					"formatLabel=word_Format",
 					"smallRadio",
 					"largeRadio",
 					"indentBox",
@@ -52,9 +53,13 @@ namespace River.OneMoreAddIn.Commands
 			{
 				mondayButton.Checked = true;
 			}
+		}
 
-			// this is set in the forms designer as 222, 235, 246 
-			//colorBox.BackColor = System.Drawing.Color.FromArgb(0, 222, 235, 246); // "#DEEBF6"
+
+		protected override void OnLoad(EventArgs e)
+		{
+			base.OnLoad(e);
+			shadingBox.BackColor = Color.AliceBlue;
 		}
 
 
@@ -80,16 +85,15 @@ namespace River.OneMoreAddIn.Commands
 		{
 			var location = PointToScreen(shadingBox.Location);
 
-			using (var dialog = new UI.MoreColorDialog(Resx.PageColorDialog_Text,
+			using var dialog = new UI.MoreColorDialog(Resx.PageColorDialog_Text,
 				location.X + shadingBox.Bounds.Location.X + (shadingBox.Width / 2),
-				location.Y - 50))
-			{
-				dialog.Color = shadingBox.BackColor;
+				location.Y - 50);
 
-				if (dialog.ShowDialog() == DialogResult.OK)
-				{
-					shadingBox.BackColor = dialog.Color;
-				}
+			dialog.Color = shadingBox.BackColor;
+
+			if (dialog.ShowDialog(this) == DialogResult.OK)
+			{
+				shadingBox.BackColor = dialog.Color;
 			}
 		}
 	}

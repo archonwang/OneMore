@@ -1,5 +1,5 @@
 ﻿//************************************************************************************************
-// Copyright © 2016 Steven M Cohn.  Yada yada...
+// Copyright © 2016 Steven M Cohn. All rights reserved.
 //************************************************************************************************
 
 namespace River.OneMoreAddIn.UI
@@ -41,7 +41,7 @@ namespace River.OneMoreAddIn.UI
 
 		private bool once;
 		private readonly string title;
-		private readonly int x;
+		private int x;
 		private readonly int y;
 
 		public MoreColorDialog(string title, int x, int y)
@@ -60,11 +60,19 @@ namespace River.OneMoreAddIn.UI
 
 		protected override IntPtr HookProc(IntPtr hWnd, int msg, IntPtr wparam, IntPtr lparam)
 		{
-			// must call base HookProc before chaning window pos or SetWindowPos won't work
+			// must call base HookProc before changing window pos or SetWindowPos won't work
 			var hook = base.HookProc(hWnd, msg, wparam, lparam);
 
 			if ((msg == WM_INITDIALOG) && once)
 			{
+				if (x < 0)
+				{
+					// special case to right-justify window instead of left-justify
+					var bounds = new Native.Rectangle();
+					Native.GetWindowRect(hWnd, ref bounds);
+					x = -x - (bounds.Right - bounds.Left);
+				}
+
 				SetWindowText(hWnd, title);
 				SetWindowPos(hWnd, IntPtr.Zero, x, y, 0, 0, UFLAGS);
 				once = false;
@@ -76,7 +84,7 @@ namespace River.OneMoreAddIn.UI
 
 		private void LoadCustomColors()
 		{
-			var path = Path.Combine(PathFactory.GetAppDataPath(), Properties.Resources.CustomColorsFilesname);
+			var path = Path.Combine(PathHelper.GetAppDataPath(), Properties.Resources.CustomColorsFilesname);
 			if (File.Exists(path))
 			{
 				var doc = XElement.Load(path, LoadOptions.None);
@@ -84,7 +92,7 @@ namespace River.OneMoreAddIn.UI
 
 				var colors = doc.Elements(ns + "color").Select(e => e.Value);
 
-				if (colors?.Count() > 0)
+				if (colors.Any())
 				{
 					var list = new List<int>();
 
@@ -115,8 +123,8 @@ namespace River.OneMoreAddIn.UI
 					}
 				}
 
-				var path = PathFactory.GetAppDataPath();
-				if (PathFactory.EnsurePathExists(path))
+				var path = PathHelper.GetAppDataPath();
+				if (PathHelper.EnsurePathExists(path))
 				{
 					path = Path.Combine(path, Properties.Resources.CustomColorsFilesname);
 					doc.Save(path, SaveOptions.None);

@@ -4,6 +4,7 @@
 
 namespace River.OneMoreAddIn.Commands
 {
+	using Microsoft.Win32;
 	using River.OneMoreAddIn.Models;
 	using River.OneMoreAddIn.UI;
 	using System;
@@ -18,12 +19,28 @@ namespace River.OneMoreAddIn.Commands
 	using Windows.Storage;
 	using Windows.Storage.Streams;
 	using Hap = HtmlAgilityPack;
-	using Resx = River.OneMoreAddIn.Properties.Resources;
-	using Win = System.Windows;
+	using Resx = Properties.Resources;
 
 
+	/// <summary>
+	/// Imports the content of a Web page given its URL. The content can be added as a new page 
+	/// in the current section, as a new child page of the current page, or appended to the 
+	/// content of the current page. Can run in one of two modes. By default, the page is imported
+	/// as HTML and "optimized" by OneNote, meaning that styles are generally not preserved due
+	/// to the inherent limitations of OneNote.
+	/// 
+	/// The second mode is to import the Web page as a series of static images.This will preserve
+	/// most styling and layout of the page.It does this by internally printing the page to a PDF
+	/// and then importing each page of the PDF as an image. This can be a time consuming process,
+	/// taking up to 30 seconds, so give it time. The first time this mode is used, OneMore
+	/// downloads a local copy of the chromium browser so this will take some extra time.
+	/// Subsequent uses should be faster however.
+	/// </summary>
 	internal class ImportWebCommand : Command
 	{
+		private const string ClientKey = @"SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients";
+		private const string RuntimeId = "{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}";
+
 		private sealed class WebPageInfo
 		{
 			public string Content;
@@ -45,7 +62,14 @@ namespace River.OneMoreAddIn.Commands
 		{
 			if (!HttpClientFactory.IsNetworkAvailable())
 			{
-				UIHelper.ShowInfo(Resx.NetwordConnectionUnavailable);
+				ShowInfo(Resx.NetwordConnectionUnavailable);
+				return;
+			}
+
+			var key = Registry.LocalMachine.OpenSubKey($"{ClientKey}\\{RuntimeId}");
+			if (key == null)
+			{
+				ShowError("Unable to use this command; Edge WebView2 is not installed");
 				return;
 			}
 
@@ -63,12 +87,14 @@ namespace River.OneMoreAddIn.Commands
 
 			if (importImages)
 			{
-				await ImportAsImages();
+				ImportAsImages();
 			}
 			else
 			{
 				ImportAsContent();
 			}
+
+			await Task.Yield();
 		}
 
 
@@ -76,10 +102,10 @@ namespace River.OneMoreAddIn.Commands
 
 		#region ImportAsImages
 
-		private async Task ImportAsImages()
+		private void ImportAsImages()
 		{
 			progress = new ProgressDialog(ImportImages);
-			await progress.RunModeless();
+			progress.RunModeless();
 		}
 
 
@@ -101,7 +127,7 @@ namespace River.OneMoreAddIn.Commands
 			await SingleThreaded.Invoke(() =>
 			{
 				// WebView2 needs a message pump so host in its own invisible worker dialog
-				using (var form = new WebViewWorkerDialog(
+				using var form = new WebViewDialog(
 					new WebViewWorker(async (webview) =>
 					{
 						webview.Source = new Uri(address);
@@ -116,10 +142,9 @@ namespace River.OneMoreAddIn.Commands
 						await webview.CoreWebView2.PrintToPdfAsync(pdfFile);
 						progress.Increment();
 						return true;
-					})))
-				{
-					form.ShowDialog(progress);
-				}
+					}));
+
+				form.ShowDialog(progress);
 			});
 
 			if (token.IsCancellationRequested)
@@ -139,12 +164,12 @@ namespace River.OneMoreAddIn.Commands
 			try
 			{
 				Page page = null;
-				using (var one = new OneNote())
+				await using (var one = new OneNote())
 				{
 					page = target == ImportWebTarget.Append
-						? one.GetPage()
+						? await one.GetPage()
 						: await CreatePage(one,
-							target == ImportWebTarget.ChildPage ? one.GetPage() : null, address);
+							target == ImportWebTarget.ChildPage ? await one.GetPage() : null, address);
 				}
 
 				var ns = page.Namespace;
@@ -165,33 +190,30 @@ namespace River.OneMoreAddIn.Commands
 					//logger.WriteLine($"rasterizing page {i}");
 					var pdfpage = doc.GetPage((uint)i);
 
-					using (var stream = new InMemoryRandomAccessStream())
-					{
-						await pdfpage.RenderToStreamAsync(stream);
+					using var stream = new InMemoryRandomAccessStream();
+					await pdfpage.RenderToStreamAsync(stream);
 
-						using (var image = new Bitmap(stream.AsStream()))
-						{
-							var data = Convert.ToBase64String(
-								(byte[])new ImageConverter().ConvertTo(image, typeof(byte[]))
-								);
+					using var image = new Bitmap(stream.AsStream());
 
-							container.Add(new XElement(ns + "OE",
-								new XElement(ns + "Image",
-									new XAttribute("format", "png"),
-									new XElement(ns + "Size",
-										new XAttribute("width", $"{image.Width}.0"),
-										new XAttribute("height", $"{image.Height}.0")),
-									new XElement(ns + "Data", data)
-								)),
-								new Paragraph(ns, " ")
-							);
-						}
-					}
+					var data = Convert.ToBase64String(
+						(byte[])new ImageConverter().ConvertTo(image, typeof(byte[]))
+						);
+
+					container.Add(new XElement(ns + "OE",
+						new XElement(ns + "Image",
+							new XAttribute("format", "png"),
+							new XElement(ns + "Size",
+								new XAttribute("width", $"{image.Width}.0"),
+								new XAttribute("height", $"{image.Height}.0")),
+							new XElement(ns + "Data", data)
+						)),
+						new Paragraph(ns, " ")
+					);
 				}
 
 				progress.SetMessage($"Updating page");
 
-				using (var one = new OneNote())
+				await using (var one = new OneNote())
 				{
 					await one.Update(page);
 				}
@@ -207,22 +229,22 @@ namespace River.OneMoreAddIn.Commands
 
 		private async Task<Page> CreatePage(OneNote one, Page parent, string title)
 		{
-			var section = one.GetSection();
+			var section = await one.GetSection();
 			var sectionId = section.Attribute("ID").Value;
 
 			one.CreatePage(sectionId, out var pageId);
-			var page = one.GetPage(pageId);
+			var page = await one.GetPage(pageId);
 
 			if (parent != null)
 			{
 				// get current section again after new page is created
-				section = one.GetSection();
+				section = await one.GetSection();
 
 				var parentElement = section.Elements(parent.Namespace + "Page")
-					.FirstOrDefault(e => e.Attribute("ID").Value == parent.PageId);
+					.First(e => e.Attribute("ID").Value == parent.PageId);
 
 				var childElement = section.Elements(parent.Namespace + "Page")
-					.FirstOrDefault(e => e.Attribute("ID").Value == pageId);
+					.First(e => e.Attribute("ID").Value == pageId);
 
 				if (childElement != parentElement.NextNode)
 				{
@@ -257,7 +279,7 @@ namespace River.OneMoreAddIn.Commands
 			using (progress = new ProgressDialog(8))
 			{
 				progress.SetMessage($"Importing {address}...");
-				progress.ShowTimedDialog(owner, ImportHtml);
+				progress.ShowTimedDialog(ImportHtml);
 			}
 		}
 
@@ -316,13 +338,13 @@ namespace River.OneMoreAddIn.Commands
 			//content = PreMailer.MoveCssInline(baseUri, doc.DocumentNode.OuterHtml,
 			//	stripIdAndClassAttributes: true, removeComments: true).Html;
 
-			using (var one = new OneNote())
+			await using (var one = new OneNote())
 			{
 				Page page;
 
 				if (target == ImportWebTarget.Append)
 				{
-					page = one.GetPage();
+					page = await one.GetPage();
 
 					if (token.IsCancellationRequested)
 					{
@@ -350,7 +372,7 @@ namespace River.OneMoreAddIn.Commands
 					}
 
 					page = await CreatePage(one,
-						target == ImportWebTarget.ChildPage ? one.GetPage() : null,
+						target == ImportWebTarget.ChildPage ? await one.GetPage() : null,
 						title
 						);
 				}
@@ -374,7 +396,7 @@ namespace River.OneMoreAddIn.Commands
 
 		private void Giveup(string msg)
 		{
-			UIHelper.ShowInfo($"Cannot load web page.\n\n{msg}");
+			ShowInfo($"Cannot load web page.\n\n{msg}");
 		}
 
 
@@ -389,7 +411,7 @@ namespace River.OneMoreAddIn.Commands
 		/// <param name="uri"></param>
 		/// <returns></returns>
 		public async Task<Page> ImportSubpage(
-			OneNote one, Page parent, Uri uri, CancellationToken token)
+			OneNote one, Page parent, Uri uri, string linkText, CancellationToken token)
 		{
 			logger.WriteLine($"importing subpage {uri.AbsoluteUri}");
 
@@ -422,14 +444,22 @@ namespace River.OneMoreAddIn.Commands
 				return null;
 			}
 
-			if (string.IsNullOrEmpty(info.Title))
+			string title;
+			if (linkText != null)
 			{
-				info.Title = doc.DocumentNode.SelectSingleNode("//title")?.InnerText;
+				title = linkText;
 			}
+			else
+			{
+				if (string.IsNullOrEmpty(info.Title))
+				{
+					info.Title = doc.DocumentNode.SelectSingleNode("//title")?.InnerText;
+				}
 
-			var title = string.IsNullOrEmpty(info.Title)
-				? $"<a href=\"{uri.AbsoluteUri}\">{uri.AbsoluteUri}</a>"
-				: $"<a href=\"{uri.AbsoluteUri}\">{info.Title}</a>";
+				title = string.IsNullOrEmpty(info.Title)
+					? $"<a href=\"{uri.AbsoluteUri}\">{uri.AbsoluteUri}</a>"
+					: $"<a href=\"{uri.AbsoluteUri}\">{info.Title}</a>";
+			}
 
 			if (token.IsCancellationRequested)
 			{
@@ -456,18 +486,12 @@ namespace River.OneMoreAddIn.Commands
 
 		// = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Major Bug",
+			"S2583:Conditionally executed code should be reachable", Justification = "<Pending>")]
 		private async Task<WebPageInfo> DownloadWebContent(Uri uri)
 		{
-			// This JavaScript copies the HTML of the entire web page to the clipboard
-			// and returns the text of the page <title>
-			const string javascript =
-@"var range = document.createRange();
-range.selectNodeContents(document.body);
-var selection = window.getSelection();
-selection.removeAllRanges();
-selection.addRange(range);
-document.execCommand('copy');
-document.getElementsByTagName('title')[0].innerText;";
+			const string GetTitleJS = "document.getElementsByTagName('title')[0].innerText;";
+			const string GetContentJS = "document.documentElement.outerHTML;";
 
 			string content = null;
 			string title = null;
@@ -476,7 +500,7 @@ document.getElementsByTagName('title')[0].innerText;";
 			await SingleThreaded.Invoke(() =>
 			{
 				// WebView2 needs a message pump so host in its own invisible worker dialog
-				using (var form = new WebViewWorkerDialog(
+				using var form = new WebViewDialog(
 					startup:
 					new WebViewWorker(async (webview) =>
 					{
@@ -488,44 +512,31 @@ document.getElementsByTagName('title')[0].innerText;";
 					work:
 					new WebViewWorker(async (webview) =>
 					{
-						//logger.WriteLine("getting webview content");
-						await Task.Delay(200);
-
-						title = await webview.ExecuteScriptAsync(javascript);
+						title = await webview.ExecuteScriptAsync(GetTitleJS);
 						//logger.WriteLine($"title=[{title}]");
 
-						await Task.Delay(100);
-
-						if (Win.Clipboard.ContainsText(Win.TextDataFormat.Html))
-						{
-							content = Win.Clipboard.GetText(Win.TextDataFormat.Html);
-							var index = content.IndexOf(
-								"<html", StringComparison.InvariantCultureIgnoreCase);
-
-							if (index > 0)
-							{
-								content = content.Substring(index);
-							}
-						}
-						else
-						{
-							content = null;
-						}
-
+						content = await webview.ExecuteScriptAsync(GetContentJS);
 						//logger.WriteLine($"content=[{content}]");
 
 						await Task.Yield();
 						return true;
-					})))
-				{
-					form.ShowDialog();
-				}
+					}));
+
+				form.ShowDialog(/* leave empty */);
 			});
 
-			if (title != null && title.Length > 1 &&
+			if (!string.IsNullOrWhiteSpace(title) &&
 				title[0] == '"' && title[title.Length - 1] == '"')
 			{
+				// remove double quotes
 				title = title.Substring(1, title.Length - 2);
+			}
+
+			if (!string.IsNullOrWhiteSpace(content))
+			{
+				// unescape and remove double quotes
+				content = Regex.Unescape(content);
+				content = content.Substring(1, content.Length - 2);
 			}
 
 			var bycount = content == null ? 0 : content.Length;
@@ -575,7 +586,13 @@ document.getElementsByTagName('title')[0].innerText;";
 				var src = image.GetAttributeValue("src", string.Empty);
 				if (!string.IsNullOrEmpty(src))
 				{
-					src = new Uri(oneUri, src).AbsoluteUri;
+					var uri = new Uri(oneUri, src);
+					if (!uri.Host.StartsWith("onemore."))
+					{
+						uri = new UriBuilder(uri) { Host = $"onemore.{uri.Host}" }.Uri;
+					}
+					src = uri.AbsoluteUri;
+
 					var anchor = Hap.HtmlNode.CreateNode($"<a href=\"{src}\">{src}</a>");
 					image.ParentNode.ReplaceChild(anchor, image);
 				}
@@ -654,12 +671,12 @@ document.getElementsByTagName('title')[0].innerText;";
 				logger.WriteLine("pass 2 patching images and anchors");
 
 				// fetch page again with temp links
-				page = one.GetPage(page.PageId, OneNote.PageDetail.All);
+				page = await one.GetPage(page.PageId, OneNote.PageDetail.All);
 
 				var updated = false;
 				if (hasImages)
 				{
-					updated |= PatchImages(page);
+					updated |= await PatchImages(page);
 				}
 
 				if (hasAnchors)
@@ -680,7 +697,7 @@ document.getElementsByTagName('title')[0].innerText;";
 		}
 
 
-		private bool PatchImages(Page page)
+		private async Task<bool> PatchImages(Page page)
 		{
 			try
 			{
@@ -693,7 +710,7 @@ document.getElementsByTagName('title')[0].innerText;";
 
 				// download and embed images
 				var cmd = new GetImagesCommand(regex);
-				if (cmd.GetImages(page))
+				if (await cmd.GetImages(page))
 				{
 					return true;
 				}
@@ -718,7 +735,9 @@ document.getElementsByTagName('title')[0].innerText;";
 				var updated = false;
 				var regex = new Regex(@"<a\s+href=""[^:]+://onemore-link([\d]+)\.");
 
-				var list = page.Root.DescendantNodes().OfType<XCData>()
+				var list = page.Root
+					.Elements(page.Namespace + "Outline")
+					.DescendantNodes().OfType<XCData>()
 					.Select(e => new
 					{
 						Data = e,
@@ -730,7 +749,9 @@ document.getElementsByTagName('title')[0].innerText;";
 				foreach (var item in list)
 				{
 					var key = item.Match.Groups[1].Value;
-					var anchor = page.Root.DescendantNodes().OfType<XCData>()
+					var anchor = page.Root
+						.Elements(page.Namespace + "Outline")
+						.DescendantNodes().OfType<XCData>()
 						.Where(c => Regex.IsMatch(c.Value, $@"<a\s+href=""[^:]+://onemore-anchor({key})\."))
 						.Select(e => e.Parent)
 						.FirstOrDefault();
@@ -749,7 +770,7 @@ document.getElementsByTagName('title')[0].innerText;";
 
 							// a cdata may contain more than one <a>
 							wrapper.Descendants("a")
-								.FirstOrDefault(a => a.Attribute("href").Value.Contains($"://onemore-link{key}."))
+								.FirstOrDefault(a => a.Attribute("href").Value.Contains($"://onemore-link{key}."))?
 								.SetAttributeValue("href", hyperlink);
 
 							item.Data.Value = wrapper.GetInnerXml();

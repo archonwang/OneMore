@@ -9,10 +9,15 @@ namespace River.OneMoreAddIn.Commands
 	using System.Collections.Generic;
 	using System.Linq;
 	using System.Threading.Tasks;
+	using System.Windows.Forms;
 	using System.Xml.Linq;
-	using Resx = River.OneMoreAddIn.Properties.Resources;
+	using Resx = Properties.Resources;
 
 
+	/// <summary>
+	/// Generates a detailed report page of all active and inactive reminders.
+	/// </summary>
+	[CommandService]
 	internal class ReportRemindersCommand : Command
 	{
 		private sealed class Item
@@ -33,6 +38,8 @@ namespace River.OneMoreAddIn.Commands
 		private const string MediumPriorityColor = "#5B9BD5";
 		private const string HeaderCss = "font-family:'Segoe UI Light';font-size:10.0pt";
 
+		private OneNote.Scope scope;
+		private bool showCompleted;
 		private OneNote one;
 		private Page page;
 		private XNamespace ns;
@@ -58,24 +65,51 @@ namespace River.OneMoreAddIn.Commands
 
 		public override async Task Execute(params object[] args)
 		{
-			using (one = new OneNote())
+			await using (one = new OneNote())
 			{
-				if (!await CollectReminders())
-				{
-					return;
-				}
-
 				string pageId;
 				if (args.Length > 0 && args[0] is string refreshArg && refreshArg == "refresh")
 				{
-					page = one.GetPage();
+					if (args.Length < 1 || args[1] is not string scopeArg ||
+						!Enum.TryParse(scopeArg, out scope))
+					{
+						scope = OneNote.Scope.Notebooks;
+					}
+
+					if (args.Length < 2 || args[2] is not string completedArg ||
+						!bool.TryParse(completedArg, out showCompleted))
+					{
+						// opposite of default in dialog, but this is backwards-compatible
+						showCompleted = true;
+					}
+
+					if (!await CollectReminders(scope))
+					{
+						return;
+					}
+
+					page = await one.GetPage();
 					ns = page.Namespace;
 					pageId = page.PageId;
 					ClearContent();
 				}
 				else
 				{
-					pageId = await FindReport();
+					using var dialog = new ReportRemindersDialog();
+					if (dialog.ShowDialog(owner) != DialogResult.OK)
+					{
+						return;
+					}
+
+					scope = dialog.Scope;
+					showCompleted = dialog.IncludeCompleted;
+
+					if (!await CollectReminders(scope))
+					{
+						return;
+					}
+
+					pageId = await FindReport(scope);
 					if (pageId == string.Empty)
 					{
 						return;
@@ -84,14 +118,14 @@ namespace River.OneMoreAddIn.Commands
 					if (pageId == null)
 					{
 						one.CreatePage(one.CurrentSectionId, out pageId);
-						page = one.GetPage(pageId);
+						page = await one.GetPage(pageId);
 						ns = page.Namespace;
 						page.SetMeta(MetaNames.ReminderReport, OneNote.Scope.Notebooks.ToString());
 						page.Title = Resx.ReminderReport_Title;
 					}
 					else
 					{
-						page = one.GetPage(pageId);
+						page = await one.GetPage(pageId);
 						ns = page.Namespace;
 						ClearContent();
 					}
@@ -105,7 +139,7 @@ namespace River.OneMoreAddIn.Commands
 				var now = DateTime.Now.ToShortFriendlyString();
 				container.Add(
 					new Paragraph($"{Resx.ReminderReport_LastUpdated} {now} " +
-						$"(<a href=\"onemore://ReportRemindersCommand/refresh\">{Resx.word_Refresh}</a>)"),
+						$"(<a href=\"onemore://ReportRemindersCommand/refresh/{scope}/{showCompleted}\">{Resx.word_Refresh}</a>)"),
 					new Paragraph(string.Empty)
 					);
 
@@ -113,7 +147,7 @@ namespace River.OneMoreAddIn.Commands
 				// wth only CR instead of NLCR so allow for any possibility
 				var delims = new[] { Environment.NewLine, "\r", "\n" };
 
-				priorities = Resx.RemindDialog_priorityBox_Text
+				priorities = Resx.phrase_priorityOptions
 					.Split(delims, StringSplitOptions.RemoveEmptyEntries);
 
 				statuses = Resx.RemindDialog_statusBox_Text
@@ -135,12 +169,18 @@ namespace River.OneMoreAddIn.Commands
 		}
 
 
-		private async Task<bool> CollectReminders()
+		private async Task<bool> CollectReminders(OneNote.Scope scope)
 		{
-			var hierarchy = await one.SearchMeta(string.Empty, MetaNames.Reminder);
+			var nodeID = string.Empty;
+			if (scope == OneNote.Scope.Sections)
+				nodeID = one.CurrentNotebookId;
+			else if (scope == OneNote.Scope.Pages)
+				nodeID = one.CurrentSectionId;
+
+			var hierarchy = await one.SearchMeta(nodeID, MetaNames.Reminder);
 			if (hierarchy == null)
 			{
-				UIHelper.ShowInfo(one.Window, "Could not create report at this time. Restart OneNote");
+				ShowError("Could not create report at this time. Restart OneNote");
 				return false;
 			}
 
@@ -152,11 +192,11 @@ namespace River.OneMoreAddIn.Commands
 
 			if (!metas.Any())
 			{
-				UIHelper.ShowInfo(one.Window, Resx.ReminderReport_noReminders);
+				ShowError(Resx.ReminderReport_noReminders);
 				return false;
 			}
 
-			var culture = System.Globalization.CultureInfo.CurrentUICulture;
+			var culture = AddIn.Culture;
 			var calendar = culture.Calendar;
 			var weekRule = culture.DateTimeFormat.CalendarWeekRule;
 			var firstDay = culture.DateTimeFormat.FirstDayOfWeek;
@@ -181,14 +221,30 @@ namespace River.OneMoreAddIn.Commands
 						WoYear = calendar.GetWeekOfYear(reminder.Due, weekRule, firstDay)
 					};
 
-					if (reminder.Status == ReminderStatus.Completed ||
-						reminder.Status == ReminderStatus.Deferred)
+					// not sure why duplicates might appear but filter them out
+					// as items are added to the appropriate lists...
+
+					if (reminder.Status == ReminderStatus.Completed)
 					{
-						inactive.Add(item);
+						if (showCompleted &&
+							!inactive.Exists(m => m.Reminder.ObjectId == item.Reminder.ObjectId))
+						{
+							inactive.Add(item);
+						}
+					}
+					else if (reminder.Status == ReminderStatus.Deferred)
+					{
+						if (!inactive.Exists(m => m.Reminder.ObjectId == item.Reminder.ObjectId))
+						{
+							inactive.Add(item);
+						}
 					}
 					else
 					{
-						active.Add(item);
+						if (!active.Exists(m => m.Reminder.ObjectId == item.Reminder.ObjectId))
+						{
+							active.Add(item);
+						}
 					}
 				}
 			}
@@ -197,9 +253,15 @@ namespace River.OneMoreAddIn.Commands
 		}
 
 
-		private async Task<string> FindReport()
+		private async Task<string> FindReport(OneNote.Scope scope)
 		{
-			var hierarchy = await one.SearchMeta(string.Empty, MetaNames.ReminderReport);
+			var nodeID = string.Empty;
+			if (scope == OneNote.Scope.Sections)
+				nodeID = one.CurrentNotebookId;
+			else if (scope == OneNote.Scope.Pages)
+				nodeID = one.CurrentSectionId;
+
+			var hierarchy = await one.SearchMeta(nodeID, MetaNames.ReminderReport);
 			if (hierarchy == null)
 			{
 				return null;
@@ -217,33 +279,48 @@ namespace River.OneMoreAddIn.Commands
 				return null;
 			}
 
-			var current = one.GetPageInfo();
+			var current = await one.GetPageInfo();
 
-			await one.NavigateTo(pageId, string.Empty);
-			// absurd but NavigateTo needs time to settle down
-			await Task.Delay(100);
+			try
+			{
+				await one.NavigateTo(pageId, string.Empty);
+				// absurd but NavigateTo needs time to settle down
+				await Task.Delay(100);
+			}
+			catch (Exception exc)
+			{
+				logger.WriteLine("error finding previous report, creating new report", exc);
+				return null;
+			}
 
-			var answer = UIHelper.ShowQuestion(Resx.RemindCommand_Reuse, true, true);
-			if (answer == System.Windows.Forms.DialogResult.Yes)
+			DialogResult answer;
+			using (var dialog = new ReportRemindersReuseDialog())
+			{
+				if (dialog.ShowDialog(owner) == DialogResult.Cancel)
+				{
+					// kind of hacky but...
+					return String.Empty;
+				}
+
+				answer = dialog.Option;
+			}
+
+			// OK = reuse, Yes = create
+			if (answer == DialogResult.OK)
 			{
 				return pageId;
 			}
 
 			await one.NavigateTo(current.PageId, string.Empty);
 			await Task.Delay(100);
-
-			// kind of hacky but ok...
-			return answer == System.Windows.Forms.DialogResult.Cancel ? String.Empty : null;
+			return null;
 		}
 
 
 		private void ClearContent()
 		{
-			var chalkOutlines = page.Root.Elements(ns + "Outline")
-				.Where(e => !e.Elements(ns + "Meta")
-					.Any(m => m.Attribute("name").Value == MetaNames.TaggingBank));
-
-			if (chalkOutlines != null)
+			var chalkOutlines = page.BodyOutlines;
+			if (chalkOutlines.Any())
 			{
 				// assume the first outline is the report, reuse it as our container
 				chalkOutlines.First().Elements().Remove();
@@ -272,19 +349,19 @@ namespace River.OneMoreAddIn.Commands
 
 			table.SetColumnWidth(0, 220);
 			table.SetColumnWidth(1, 70);
-			table.SetColumnWidth(2, 145);
+			table.SetColumnWidth(2, 140);
 			table.SetColumnWidth(3, 130);
 			table.SetColumnWidth(4, 60);
 			table.SetColumnWidth(5, 60);
 
 			var row = table[0];
 			row.SetShading(HeaderShading);
-			row[0].SetContent(new Paragraph(Resx.ReminderReport_ReminderColumn).SetStyle(HeaderCss));
+			row[0].SetContent(new Paragraph(Resx.word_Reminder).SetStyle(HeaderCss));
 			row[1].SetContent(new Paragraph(Resx.word_Status).SetStyle(HeaderCss));
 			row[2].SetContent(new Paragraph(Resx.RemindDialog_startDateLabel_Text).SetStyle(HeaderCss));
 			row[3].SetContent(new Paragraph(Resx.RemindDialog_dueDateLabel_Text).SetStyle(HeaderCss));
 			row[4].SetContent(new Paragraph(Resx.RemindDialog_priorityLabel_Text).SetStyle(HeaderCss));
-			row[5].SetContent(new Paragraph(Resx.RemindDialog_percentLabel_Text).SetStyle(HeaderCss));
+			row[5].SetContent(new Paragraph(Resx.phrase_PctComplete).SetStyle(HeaderCss));
 
 			var now = DateTime.UtcNow;
 
@@ -374,7 +451,7 @@ namespace River.OneMoreAddIn.Commands
 
 			var row = table[0];
 			row.SetShading(HeaderShading);
-			row[0].SetContent(new Paragraph(Resx.ReminderReport_ReminderColumn).SetStyle(HeaderCss));
+			row[0].SetContent(new Paragraph(Resx.word_Reminder).SetStyle(HeaderCss));
 			row[1].SetContent(new Paragraph(Resx.word_Status).SetStyle(HeaderCss));
 			row[2].SetContent(new Paragraph(Resx.word_Planned).SetStyle(HeaderCss));
 			row[3].SetContent(new Paragraph(Resx.word_Actual).SetStyle(HeaderCss));
@@ -419,6 +496,8 @@ namespace River.OneMoreAddIn.Commands
 		{
 			var index = page.AddTagDef(item.Reminder.Symbol, string.Empty);
 			var uri = one.GetHyperlink(item.Meta.Parent.Attribute("ID").Value, item.Reminder.ObjectId);
+
+			// TODO: what do we do about broken links? ....
 
 			// uri might be null if making a cross-machine query since objectIDs are ephemeral
 			var text = uri != null

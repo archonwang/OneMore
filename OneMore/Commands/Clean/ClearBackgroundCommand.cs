@@ -2,6 +2,8 @@
 // Copyright © 2021 Steven M Cohn.  All rights reserved.
 //************************************************************************************************
 
+#pragma warning disable S2583 // Conditionally executed code should be reachable
+
 namespace River.OneMoreAddIn.Commands
 {
 	using River.OneMoreAddIn.Models;
@@ -9,24 +11,22 @@ namespace River.OneMoreAddIn.Commands
 	using System.Collections.Generic;
 	using System.Drawing;
 	using System.Linq;
+	using System.Text.RegularExpressions;
 	using System.Threading.Tasks;
 	using System.Xml.Linq;
 
 
 	/// <summary>
-	/// Clear the background color or (table cell) shading of the selected text and reset the
+	/// Clear the background color or table cell shading of the selected text and reset the
 	/// text color to add contrast with page background.
 	/// </summary>
 	internal class ClearBackgroundCommand : Command
 	{
-		private const string White = "#FFFFFF";
-		private const string Black = "#000000";
-
-		private OneNote one;
 		private XNamespace ns;
 		private Page page;
-		private bool darkPage;
-		private StyleAnalyzer analyzer;
+		private Color pageColor;
+		private string pcolor;
+		private SelectionRange range;
 
 
 		public ClearBackgroundCommand()
@@ -36,18 +36,21 @@ namespace River.OneMoreAddIn.Commands
 
 		public override async Task Execute(params object[] args)
 		{
-			using (one = new OneNote(out page, out ns))
+			await using var one = new OneNote(out page, out ns);
+			pageColor = page.GetPageColor(out var _, out var _);
+			pcolor = page.GetQuickStyle(StandardStyles.Normal).Color;
+
+			range = new SelectionRange(page);
+
+			var runs = range.GetSelections(defaulToAnytIfNoRange: true);
+			logger.WriteLine($"found {runs.Count()} runs, scope={range.Scope}");
+
+			var updated = ClearTextBackground(runs);
+			updated = ClearCellBackground() || updated;
+
+			if (updated)
 			{
-				darkPage = page.GetPageColor(out _, out _).GetBrightness() < 0.5;
-				analyzer = new StyleAnalyzer(page.Root);
-
-				var updated = ClearTextBackground(page.GetSelectedElements(all: true));
-				updated |= ClearCellBackground();
-
-				if (updated)
-				{
-					await one.Update(page);
-				}
+				await one.Update(page);
 			}
 		}
 
@@ -55,30 +58,52 @@ namespace River.OneMoreAddIn.Commands
 		private bool ClearTextBackground(IEnumerable<XElement> runs, bool deep = false)
 		{
 			var updated = false;
+			var regex = new Regex(@"<span[^>]*(background:[^;']+)(;mso-highlight:[^;']+)?");
 
 			foreach (var run in runs)
 			{
-				var style = new Style(analyzer.CollectFrom(run, true));
-
-				if (!string.IsNullOrEmpty(style.Highlight))
+				var cdata = run.GetCData();
+				if (cdata == null)
 				{
-					style.Highlight = Style.Automatic;
+					continue;
+				}
+#if LOG
+				var original = cdata.Value;
+				var parstyle = run.Parent.Attribute("style")?.Value;
+#endif
+				// remove CDATA 'background' and 'mso-highlight' CSS properties...
+
+				var matches = regex.Matches(cdata.Value);
+
+				for (int i = matches.Count - 1; i >= 0; i--)
+				{
+					for (int j = matches[i].Groups.Count - 1; j >= 1; j--)
+					{
+						cdata.Value = cdata.Value.Remove(
+							matches[i].Groups[j].Index,
+							matches[i].Groups[j].Length);
+
+						updated = true;
+					}
 				}
 
-				var darkText = !style.Color.Equals(Style.Automatic)
-					&& ColorTranslator.FromHtml(style.Color).GetBrightness() < 0.5;
+				// correct for contrast...
 
-				// if dark-on-dark or light-on-light
-				if (darkText == darkPage)
+				if (cdata.Value.Contains("<span"))
 				{
-					style.Color = darkText ? White : Black;
+					var rewrap = false;
+					var wrapper = cdata.GetWrapper();
+					wrapper.Elements("span").ForEach(e => rewrap = CheckContrast(e) || rewrap);
+
+					// #pragma
+					if (rewrap)
+					{
+						cdata.Value = wrapper.GetInnerXml();
+						updated = true;
+					}
 				}
 
-				var stylizer = new Stylizer(style);
-				stylizer.ApplyStyle(run);
-
-				ClearHyperlinkBackground(run);
-				updated = true;
+				updated = CheckContrast(run.Parent) || updated;
 
 				// deep prevents runs from being processed multiple times
 
@@ -87,46 +112,53 @@ namespace River.OneMoreAddIn.Commands
 
 				if (!deep && run.Parent.Attribute("collapsed")?.Value == "1")
 				{
-					updated |= ClearTextBackground(
+					updated = ClearTextBackground(
 						run.Parent.Descendants(ns + "T").Where(e => e != run),
-						true);
+						true) || updated;
 				}
+#if LOG
+				if (cdata.Value != original)
+				{
+					logger.WriteLine("---------");
+					logger.WriteLine($"original: [{original}]");
+					logger.WriteLine($"modified: [{cdata.Value}]");
+				}
+				if (run.Parent.Attribute("style")?.Value != parstyle)
+				{
+					logger.WriteLine("---------");
+					logger.WriteLine($"parentst: [{parstyle}]");
+					logger.WriteLine($"modified: [{run.Parent.Attribute("style")?.Value}]");
+				}
+#endif
 			}
 
 			return updated;
 		}
 
 
-		private void ClearHyperlinkBackground(XElement run)
+		private bool CheckContrast(XElement element)
 		{
-			// hyperlinks are further styled with their own span, usually including both the
-			// background and mso-highlight css attributes, but we only care about background
-			// attribute since rebuilding it with a Style object will wipe out mso-highlight.
-			// OneNote will manage the font color of hyperlinks so don't bother with that
-
-			var cdata = run.GetCData();
-			var wrapper = cdata.GetWrapper();
-
-			var found = false;
-			wrapper.Descendants("span")
-				.Where(e => e.Attribute("style") != null &&
-					e.Attribute("style").Value.Contains("background"))
-				.Select(e => e.Attribute("style"))
-				.ForEach(a =>
-				{
-					var style = new Style(a.Value)
-					{
-						Highlight = Style.Automatic
-					};
-
-					a.Value = style.ToCss();
-					found = true;
-				});
-
-			if (found)
+			var css = element.Attribute("style")?.Value;
+			if (css != null)
 			{
-				cdata.Value = wrapper.GetInnerXml();
+				var style = new Style(css, false) { ApplyColors = true };
+
+				if (!string.IsNullOrWhiteSpace(style.Color) &&
+					style.Color != StyleBase.Automatic)
+				{
+					var color = ColorHelper.FromHtml(style.Color);
+					if (color.LowContrast(pageColor))
+					{
+						logger.WriteLine($"pageColor:{pageColor.ToRGBHtml()} (dark:{pageColor.Invert().ToRGBHtml()}) ~ {color.ToRGBHtml()} (dark:{color.Invert().ToRGBHtml()}) -> {pcolor}");
+
+						style.Color = pcolor;
+						element.Attribute("style").Value = style.ToCss();
+						return true;
+					}
+				}
 			}
+
+			return false;
 		}
 
 
@@ -134,7 +166,7 @@ namespace River.OneMoreAddIn.Commands
 		{
 			IEnumerable<XElement> cells;
 
-			if (page.SelectionScope == SelectionScope.Empty)
+			if (range.Scope == SelectionScope.TextCursor)
 			{
 				cells = page.Root.Descendants(ns + "Cell")
 					.Where(e => e.Attribute("shadingColor") != null);
@@ -150,14 +182,13 @@ namespace River.OneMoreAddIn.Commands
 			}
 
 			var updated = false;
-
 			foreach (var cell in cells)
 			{
 				var attr = cell.Attribute("shadingColor");
-				var darkCell = ColorTranslator.FromHtml(attr.Value).GetBrightness() < 0.5;
 
 				// if dark-on-light or light-on-dark
-				if (darkCell != darkPage)
+				var shade = ColorTranslator.FromHtml(attr.Value);
+				if (pageColor.IsDark() != shade.IsDark())
 				{
 					attr.Remove();
 					updated = true;

@@ -15,6 +15,17 @@ namespace River.OneMoreAddIn.Commands
 	using System.Xml.Linq;
 
 
+	/// <summary>
+	/// Generates a report showing all pages that contain links to other pages. This can be scope
+	/// to the current section, current notebook, or all notebooks. The report is produced as a
+	/// new page in the current section.
+	/// </summary>
+	/// <remarks>
+	/// By default, links are scanned within the chosen scope, e.g.just the current section.
+	/// If you want to include links beyond the current scope, check the Include cross-notebook
+	/// references checkbox.Depending on the number of pages and notebooks, this can be time
+	/// consuming.
+	/// </remarks>
 	internal class MapCommand : Command
 	{
 		private const string RightArrow = "\u2192";
@@ -36,19 +47,19 @@ namespace River.OneMoreAddIn.Commands
 
 		public override async Task Execute(params object[] args)
 		{
-			using (var dialog = new MapDialog())
+			using var dialog = new MapDialog();
+			if (dialog.ShowDialog(owner) != System.Windows.Forms.DialogResult.OK)
 			{
-				if (dialog.ShowDialog(owner) != System.Windows.Forms.DialogResult.OK)
-				{
-					return;
-				}
-
-				scope = dialog.Scope;
-				fullCatalog = dialog.FullCatalog;
+				return;
 			}
 
+			scope = dialog.Scope;
+			fullCatalog = dialog.FullCatalog;
+
 			var progressDialog = new UI.ProgressDialog(Execute);
-			await progressDialog.RunModeless();
+			progressDialog.RunModeless();
+
+			await Task.Yield();
 		}
 
 
@@ -60,7 +71,7 @@ namespace River.OneMoreAddIn.Commands
 			logger.Start();
 			logger.StartClock();
 
-			using (one = new OneNote())
+			await using (one = new OneNote())
 			{
 				var hierarchy = await GetHierarchy();
 
@@ -137,7 +148,7 @@ namespace River.OneMoreAddIn.Commands
 								}
 								else
 								{
-									var p = one.GetPage(hyperlink.PageID, OneNote.PageDetail.Basic);
+									var p = await one.GetPage(hyperlink.PageID, OneNote.PageDetail.Basic);
 									title = p.Title;
 									titles.Add(hyperlink.PageID, title);
 								}
@@ -156,7 +167,7 @@ namespace River.OneMoreAddIn.Commands
 
 					if (titles.Count == 0)
 					{
-						UIHelper.ShowMessage("No linked pages were found");
+						ShowError("No linked pages were found");
 						return;
 					}
 
@@ -179,21 +190,15 @@ namespace River.OneMoreAddIn.Commands
 
 		private async Task<XElement> GetHierarchy()
 		{
-			XElement hierarchy;
-			switch (scope)
+			XElement hierarchy = scope switch
 			{
-				case OneNote.Scope.Notebooks: // all notebooks
-					hierarchy = await one.GetNotebooks(OneNote.Scope.Pages);
-					break;
-
-				case OneNote.Scope.Sections: // all sectios in current notebook
-					hierarchy = await one.GetNotebook(OneNote.Scope.Pages);
-					break;
-
-				default: // current section
-					hierarchy = one.GetSection();
-					break;
-			}
+				// all notebooks
+				OneNote.Scope.Notebooks => await one.GetNotebooks(OneNote.Scope.Pages),
+				// all sectios in current notebook
+				OneNote.Scope.Sections => await one.GetNotebook(OneNote.Scope.Pages),
+				// current section
+				_ => await one.GetSection(),
+			};
 
 			ns = one.GetNamespace(hierarchy);
 
@@ -221,7 +226,7 @@ namespace River.OneMoreAddIn.Commands
 		{
 			var catalog = fullCatalog ? OneNote.Scope.Notebooks : scope;
 
-			return await one.BuildHyperlinkMap(catalog, token,
+			return await new HyperlinkProvider(one).BuildHyperlinkMap(catalog, token,
 				async (count) =>
 				{
 					progress.SetMaximum(count);
@@ -268,20 +273,20 @@ namespace River.OneMoreAddIn.Commands
 
 		private async Task BuildMapPage(XElement hierarchy)
 		{
-			var section = one.GetSection();
+			var section = await one.GetSection();
 			var sectionId = section.Attribute("ID").Value;
 
 			one.CreatePage(sectionId, out var pageId);
 
-			var page = one.GetPage(pageId);
+			var page = await one.GetPage(pageId);
 			page.SetMeta(MetaNames.PageMap, "true");
 
-			switch (scope)
+			page.Title = scope switch
 			{
-				case OneNote.Scope.Notebooks: page.Title = "Page Map of All Notebooks"; break;
-				case OneNote.Scope.Sections: page.Title = "Page Map of This Notebook"; break;
-				default: page.Title = "Page Map of This Section"; break;
-			}
+				OneNote.Scope.Notebooks => "Page Map of All Notebooks",
+				OneNote.Scope.Sections => "Page Map of This Notebook",
+				_ => "Page Map of This Section",
+			};
 
 			var container = page.EnsureContentContainer();
 
@@ -382,7 +387,7 @@ namespace River.OneMoreAddIn.Commands
 			var quick = standard.GetDefaults();
 
 			var styles = page.GetQuickStyles();
-			var style = styles.FirstOrDefault(s => s.Name == quick.Name);
+			var style = styles.Find(s => s.Name == quick.Name);
 
 			if (style != null)
 			{

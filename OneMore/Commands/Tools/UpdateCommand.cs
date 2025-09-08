@@ -5,6 +5,7 @@
 namespace River.OneMoreAddIn.Commands
 {
 	using River.OneMoreAddIn.Commands.Tools.Updater;
+	using River.OneMoreAddIn.UI;
 	using System.Threading.Tasks;
 	using System.Windows.Forms;
 
@@ -27,7 +28,7 @@ namespace River.OneMoreAddIn.Commands
 			{
 				if (args.Length > 0 && args[0] is bool report && report)
 				{
-					UIHelper.ShowInfo(Properties.Resources.NetwordConnectionUnavailable);
+					ShowInfo(Properties.Resources.NetwordConnectionUnavailable);
 				}
 
 				return;
@@ -39,7 +40,8 @@ namespace River.OneMoreAddIn.Commands
 			{
 				if (args.Length > 0 && args[0] is bool report && report)
 				{
-					UIHelper.ShowInfo("Error fetching latest release; please see logs");
+					MoreMessageBox.ShowErrorWithLogLink(owner,
+						"Error fetching latest release; please see logs");
 				}
 
 				return;
@@ -50,24 +52,15 @@ namespace River.OneMoreAddIn.Commands
 				if (args.Length > 0 && args[0] is bool report && report)
 				{
 					// up to date...
-					using (var dialog = new UpdateDialog(updater) { VerticalOffset = -2 })
-					{
-						dialog.ShowDialog(args.Length > 1 && args[0] is AboutDialog about
-							? about : new OneNote().Window);
-					}
+					using var dialog = new UpdateDialog(updater);
+					dialog.ShowDialog(owner);
 				}
 
 				return;
 			}
 
-			DialogResult answer;
-			using (var dialog = new UpdateDialog(updater) { VerticalOffset = -2 })
-			{
-				answer = dialog.ShowDialog(args.Length > 1 && args[0] is AboutDialog about
-					? about : new OneNote().Window);
-			}
-
-			if (answer == DialogResult.OK)
+			using var question = new UpdateDialog(updater);
+			if (question.ShowDialog(owner) == DialogResult.OK)
 			{
 				Updated = await updater.Update();
 			}

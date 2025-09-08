@@ -7,6 +7,7 @@
 
 namespace River.OneMoreAddIn.Styles
 {
+	using Microsoft.Win32;
 	using System;
 	using System.Drawing;
 	using System.Globalization;
@@ -19,8 +20,10 @@ namespace River.OneMoreAddIn.Styles
 	{
 		public static readonly string Automatic = "automatic";
 		public static readonly string Transparent = "Transparent";
-		public static readonly string DefaultFontFamily = "Calibri";
-		public static readonly double DefaultFontSize = 11.0;
+		public static readonly string DefaultCodeFamily = "Lucida Console";
+		public static readonly double DefaultCodeSize = 10.0;
+
+		private const string EditingKey = @"Software\Microsoft\Office\16.0\OneNote\Options\Editing";
 
 		protected string color;
 		protected string highlight;
@@ -32,16 +35,48 @@ namespace River.OneMoreAddIn.Styles
 		protected readonly ILogger logger;
 
 
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Minor Code Smell",
+			"S3963:\"static\" fields should be initialized inline",
+			Justification = "<Pending>")]
+		static StyleBase()
+		{
+			DefaultFontFamily = "Calibri";
+			DefaultFontSize = 11.0;
+
+			// fetch default font attributes from Registyr
+			var key = Registry.CurrentUser.OpenSubKey(EditingKey, false);
+			if (key is not null)
+			{
+				if (key.GetValue("DefaultFontFace") is string family &&
+					!string.IsNullOrWhiteSpace(family))
+				{
+					DefaultFontFamily = family;
+				}
+
+				if (key.GetValue("DefaultFontSize") is string size &&
+					double.TryParse(size,
+						NumberStyles.AllowDecimalPoint,
+						CultureInfo.InvariantCulture, out var result))
+				{
+					DefaultFontSize = result;
+				}
+			}
+		}
+
+
 		/// <summary>
 		/// Initializes a new instance with defaults.
 		/// </summary>
-		protected StyleBase()
+		protected StyleBase(bool setDefaults = true)
 		{
-			Color = Automatic;
-			Highlight = Automatic;
-			FontFamily = DefaultFontFamily;
-			fontSize = DefaultFontSize;
-			ApplyColors = true;
+			if (setDefaults)
+			{
+				Color = Automatic;
+				Highlight = Automatic;
+				FontFamily = DefaultFontFamily;
+				fontSize = DefaultFontSize;
+				ApplyColors = true;
+			}
 
 			logger = Logger.Current;
 		}
@@ -54,7 +89,8 @@ namespace River.OneMoreAddIn.Styles
 		/// Inheritors may extend their own constructor to manage additional properties
 		/// as appropriate.
 		/// </param>
-		protected StyleBase(StyleBase other) : this()
+		protected StyleBase(StyleBase other)
+			: this()
 		{
 			Name = other.Name;
 			StyleType = other.StyleType;
@@ -72,9 +108,15 @@ namespace River.OneMoreAddIn.Styles
 			spaceBefore = other.spaceBefore;
 			spaceAfter = other.spaceAfter;
 			spacing = other.spacing;
+			Ignored = other.Ignored;
 
 			ApplyColors = other.ApplyColors;
 		}
+
+
+		public static string DefaultFontFamily { get; private set; }
+
+		public static double DefaultFontSize { get; private set; }
 
 
 		/// <summary>
@@ -148,6 +190,11 @@ namespace River.OneMoreAddIn.Styles
 			get { return fontSize.ToString("0.0#", CultureInfo.InvariantCulture); }
 			set { fontSize = Convert.ToDouble(value, CultureInfo.InvariantCulture); }
 		}
+
+		/// <summary>
+		/// Gets or sets a Boolean indicating whether spelling should be ignored in affect text
+		/// </summary>
+		public bool Ignored { get; set; }
 
 		/// <summary>
 		/// Gets or sets a Boolean indicating whether the font style is bold.
@@ -227,7 +274,7 @@ namespace River.OneMoreAddIn.Styles
 		/// <returns>true if the objects match; false otherwise</returns>
 		public override bool Equals(object obj)
 		{
-			if (!(obj is StyleBase style))
+			if (obj is not StyleBase style)
 			{
 				return false;
 			}
@@ -237,7 +284,8 @@ namespace River.OneMoreAddIn.Styles
 
 			return
 				//StyleType == style.StyleType &&
-				FontFamily == style.FontFamily &&
+				// font-family value may be inconsistent when pasting HTML
+				FontFamily.ToLower() == style.FontFamily.ToLower() &&
 				FontSize == style.FontSize &&
 				//ApplyColors == style.ApplyColors &&
 				Color == style.Color &&
@@ -250,7 +298,8 @@ namespace River.OneMoreAddIn.Styles
 				IsSuperscript == style.IsSuperscript &&
 				SpaceBefore == style.SpaceBefore &&
 				SpaceAfter == style.SpaceAfter &&
-				Spacing == style.Spacing;
+				Spacing == style.Spacing &&
+				Ignored == style.Ignored;
 		}
 
 

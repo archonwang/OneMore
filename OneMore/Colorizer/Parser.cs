@@ -1,10 +1,14 @@
 ﻿//************************************************************************************************
-// Copyright © 2020 Steven M Cohn.  All rights reserved.
+// Copyright © 2020 Steven M Cohn. All rights reserved.
 //************************************************************************************************                
+
+//#define DEBUGLOG // uncomment to enable the DebugLog() conditional method
 
 namespace River.OneMoreAddIn.Colorizer
 {
 	using System;
+	using System.Collections.Generic;
+	using System.Diagnostics;
 	using System.Linq;
 	using System.Text.RegularExpressions;
 
@@ -18,9 +22,42 @@ namespace River.OneMoreAddIn.Colorizer
 	/// for different visualizations such as HTML, RTF, or OneNote. See the Colorizer class
 	/// for a OneNote visualizer.
 	/// </remarks>
-	internal class Parser
+	internal class Parser : Loggable
 	{
+		#region Note
+		// Due to the way the regular expression are defined, we may end up with a MatchCollection
+		// that groups together scoped captured, out of sequence from how they appear in the text.
+		// For example, XML like <foo a1="v1" a2="v2/> will be captured as
+		//
+		//  Matches[0].Group[0].Capture[0] = "<"    ; index=1
+		//  Matches[0].Group[1].Capture[0] = "foo"  ; index=2
+		//  Matches[0].Group[2].Capture[0] = "a1"   ; index=6
+		//  Matches[0].Group[2].Capture[1] = "a2"   ; index=14
+		//  Matches[0].Group[3].Capture[0] = "="    ; index=8
+		//  Matches[0].Group[3].Capture[1] = "="    ; index=16
+		//  Matches[0].Group[4].Capture[0] = """    ; index=9
+		//  Matches[0].Group[4].Capture[1] = """    ; index=17
+		//  Matches[0].Group[5].Capture[0] = "v1"   ; index=10
+		//  Matches[0].Group[5].Capture[1] = "v2"   ; index=18
+		//  Matches[0].Group[6].Capture[0] = """    ; index=12
+		//  Matches[0].Group[6].Capture[1] = """    ; index=20
+		//  Matches[0].Group[7].Capture[0] = "/>"   ; index=21
+		//
+		// Notice that the index of each capture is not in sequence and that scoped values, like
+		// "a1" and "a2" are grouped together. CollectCaptures.OrderBy will project these into a
+		// list of OrderedCapture items that can be sorted by index offset
+		#endregion
+		private sealed class OrderedCapture
+		{
+			public int Scope;
+			public int Index;
+			public int Length;
+			public string Value;
+		}
+
+
 		private readonly ICompiledLanguage language;
+		private readonly Regex crPattern;
 		private MatchCollection matches;
 		private int captureIndex;
 		private string scopeOverride;
@@ -29,6 +66,7 @@ namespace River.OneMoreAddIn.Colorizer
 		public Parser(ICompiledLanguage language)
 		{
 			this.language = language;
+			crPattern = new Regex(@"(?:\r\n)|(?:\n\r)", RegexOptions.Compiled);
 		}
 
 
@@ -63,13 +101,13 @@ namespace River.OneMoreAddIn.Colorizer
 
 			// collapse \r\n sequence to just \n to make parsing easier;
 			// this sequence appears when using C# @"verbatim" multiline strings
-			source = Regex.Replace(source, @"(?:\r\n)|(?:\n\r)", "\n");
+			source = crPattern.Replace(source, "\n");
 
 			matches = language.Regex.Matches(source);
 
 			if (matches.Count == 0)
 			{
-				//Logger.Current.WriteLine($"reporting nomatch \"{source}\"");
+				logger.Debug($"report(\"{source}\", null); - no match");
 
 				captureIndex = 0;
 				report(source, null);
@@ -78,109 +116,130 @@ namespace River.OneMoreAddIn.Colorizer
 
 			var index = 0;
 
-			for (captureIndex = 0; captureIndex < matches.Count; captureIndex++)
+			var captures = CollectCaptures(matches).OrderBy(c => c.Index).ToList();
+			for (captureIndex = 0; captureIndex < captures.Count; captureIndex++)
 			{
-				var match = matches[captureIndex];
+				var capture = captures[captureIndex];
 
-				if (match.Length > 0)
+				// report text prior to capture or in between captures...
+
+				if (index < capture.Index)
 				{
-					// Groups will contain a list of all possible captures in the regex, for both
-					// successful and unsuccessful captures. The 0th entry is the capture but
-					// doesn't indicate the group name. The next Successful entry is this capture
-					// and indicates the group name which should be an index offset of the capture
-					// in the entire regex; we can use that to index the appropriate scope.
+					DebugLog(
+						$"report(\"{source.Substring(index, capture.Index - index)}\", " +
+						$"{scopeOverride ?? "null"}); - space");
 
-					var groups = match.Groups.Cast<Group>().Skip(1).Where(g => g.Success);
-					foreach (var group in groups)
-					{
-						if (group.Index > index)
-						{
-							//Logger.Current.WriteLine(
-							//	$"reporting prior1 \"{source.Substring(index, group.Index - index)}\" " +
-							//	$"scopeOverride:({scopeOverride ?? "null"})");
-
-							// default text prior to match or in between matches
-							report(source.Substring(index, group.Index - index), scopeOverride ?? null);
-						}
-
-						if (int.TryParse(group.Name, out var scope))
-						{
-							//Logger.Current.WriteLine(
-							//	$"reporting \"{group.Value}\" " +
-							//	$"scope:({scope}) scopeOverride:({scopeOverride ?? "null"})");
-
-							report(group.Value,
-								string.IsNullOrEmpty(scopeOverride)
-								? language.Scopes[scope]
-								: scopeOverride);
-
-							// check scope override
-							var over = 2; // start after our preset scopes added by Compiler
-							var r = 0;
-							while ((r < language.Rules.Count) && (over < scope))
-							{
-								over += language.Rules[r].Captures.Count;
-								r++;
-							}
-							if (r < language.Rules.Count)
-							{
-								var newOverride = language.Rules[r].Scope;
-
-								if (newOverride == string.Empty)
-									scopeOverride = null;
-								else
-									scopeOverride = newOverride == scopeOverride ? null : newOverride;
-
-								//Logger.Current.WriteLine($"scopeOverride = ({scopeOverride ?? "null"}) from rule {r}");
-							}
-						}
-						else
-						{
-							//Logger.Current.WriteLine(
-							//	$"reporting alternate \"{group.Value}\" " +
-							//	$"scopeOverride:({scopeOverride ?? "null"})");
-
-							// shouldn't happen but report as default text anyway
-							report(group.Value, scopeOverride ?? null);
-						}
-
-						index = group.Index + group.Length;
-					}
+					report(source.Substring(index, capture.Index - index), scopeOverride ?? null);
 				}
-				else
+
+				// report capture...
+
+				var scope = string.IsNullOrEmpty(scopeOverride)
+					? language.Scopes[capture.Scope]
+					: scopeOverride;
+
+				logger.Debug(
+					$"report(\"{capture.Value}\", {scope}); " +
+					(scopeOverride is null ? string.Empty : $"- scopeOverride:{scopeOverride}"));
+
+				report(capture.Value, scope);
+				index = capture.Index + capture.Length;
+
+				// check scope override...
+
+				if (capture.Scope < 2)
 				{
-					if (match.Index > index)
-					{
-						//Logger.Current.WriteLine(
-						//	$"reporting prior2 \"{source.Substring(index, match.Index - index)}\" " +
-						//	$"scopeOverride:({scopeOverride ?? "null"})");
+					// linebreak
+					continue;
+				}
 
-						// default text prior to match or in between matches
-						report(source.Substring(index, match.Index - index), scopeOverride ?? null);
-						index = match.Index;
+				// capture.Scope will index the collated capture across all rules.
+				// skip compiler-added scopes (0=*=entire string, 1=$=end of line)
+				var over = 2;
+				var ri = 0;
+				while ((ri < language.Rules.Count) && (over < capture.Scope))
+				{
+					over += language.Rules[ri].Captures.Count;
+					ri++;
+				}
+
+				if (ri < language.Rules.Count)
+				{
+					var rule = language.Rules[ri];
+					var newOverride = rule.Scope;
+
+					if (!string.IsNullOrEmpty(scopeOverride) && newOverride == scopeOverride)
+					{
+						DebugLog(
+							$".. reverting {scopeOverride} scope override " +
+							$"from rule {{ri}} /{{rule.Pattern}}/\"");
+
+						scopeOverride = null;
 					}
-
-					// captured end-of-line? or line break?
-					var group = match.Groups.Cast<Group>().Skip(1).FirstOrDefault(g => g.Success);
-
-					if ((group != null) && int.TryParse(group.Name, out var scope))
+					else
 					{
-						//Logger.Current.WriteLine(
-						//	$"reporting empty scope:({scope}) scopeOverride:({scopeOverride ?? "null"})");
+						DebugLog(
+							$".. newOverride ({newOverride ?? "null"}) from rule {ri} /{rule.Pattern}/");
 
-						report(string.Empty, language.Scopes[scope]);
-						index++;
+						// special case of multi-line comments, started by a rule with
+						// the "comment" scope and ended by a rule with the "" scope
+						// ignore other scopes until the ending "" scope is discovered
+
+						if (newOverride == string.Empty)
+							scopeOverride = null;
+						else if (scopeOverride != "comment")
+							scopeOverride = newOverride;
+
+						DebugLog($".. scopeOverride ({scopeOverride ?? "null"})");
 					}
 				}
 			}
-
 			if (index < source.Length)
 			{
-				//Logger.Current.WriteLine($"reporting post \"{source.Substring(index)}\"");
+				DebugLog($"report(\"{source.Substring(index)}\", null); - remaining");
 
 				// remaining source after all captures
 				report(source.Substring(index), null);
 			}
+		}
+
+
+		private IEnumerable<OrderedCapture> CollectCaptures(MatchCollection matches)
+		{
+			for (var mi = 0; mi < matches.Count; mi++)
+			{
+				var match = matches[mi];
+				var groups = match.Groups.Cast<Group>().Skip(1).Where(g => g.Success).ToList();
+				for (var gi = 0; gi < groups.Count; gi++)
+				{
+					var group = groups[gi];
+					for (var ci = 0; ci < group.Captures.Count; ci++)
+					{
+						var capture = group.Captures[ci];
+
+						if (!int.TryParse(group.Name, out var scope))
+						{
+							scope = -1;
+						}
+
+						yield return new OrderedCapture
+						{
+							Scope = scope,
+							Index = capture.Index,
+							Length = capture.Length,
+							Value = capture.Value
+						};
+					}
+				}
+			}
+		}
+
+
+		// #define DEBUGRIBBON to enable this method; otherwise compiler will remove it entirely
+		[Conditional("DEBUGLOG")]
+		private void DebugLog(string message)
+		{
+			logger.WriteLine(message);
 		}
 	}
 }

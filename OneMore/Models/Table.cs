@@ -24,6 +24,8 @@ namespace River.OneMoreAddIn.Models
 	/// </summary>
 	internal class Table : TableProperties
 	{
+		public const int MaxColumnWidth = 1000000;
+
 		private readonly XElement columns;
 		private readonly List<TableRow> rows;
 		private int numCells;
@@ -310,10 +312,10 @@ namespace River.OneMoreAddIn.Models
 
 		public void SetColumnWidth(int index, float width)
 		{
-			var column = columns.Elements(ns + "Column").Skip(index)?.FirstOrDefault();
+			var column = columns.Elements(ns + "Column").Skip(index).FirstOrDefault();
 			if (column != null)
 			{
-				column.SetAttributeValue("width", width.ToString("0.0#", CultureInfo.InvariantCulture));
+				column.SetAttributeValue("width", width.ToInvariantString());
 				column.SetAttributeValue("isLocked", "true");
 			}
 		}

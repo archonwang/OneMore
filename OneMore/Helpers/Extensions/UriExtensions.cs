@@ -12,7 +12,7 @@ namespace River.OneMoreAddIn
 	{
 
 		/// <summary>
-		/// Determines if this Uri is the same logical page as the given Uri
+		/// OneMore Extension >> Determines if this Uri is the same logical page as the given Uri
 		/// </summary>
 		/// <param name="uri">The current Uri instance</param>
 		/// <param name="other">The Uri to compare</param>
@@ -33,8 +33,11 @@ namespace River.OneMoreAddIn
 			var last = uri.Segments[uri.Segments.Length - 1];
 			if (last.Contains("index.htm") || last.Contains("home.htm"))
 			{
-				var builder = new UriBuilder(uri);
-				builder.Path = string.Concat(uri.Segments.Take(uri.Segments.Length - 1));
+				var builder = new UriBuilder(uri)
+				{
+					Path = string.Concat(uri.Segments.Take(uri.Segments.Length - 1))
+				};
+
 				return builder.Uri;
 			}
 

@@ -28,8 +28,10 @@
 		/// </summary>
 		private void InitializeComponent()
 		{
-			this.introBox = new System.Windows.Forms.TextBox();
-			this.commandsBox = new System.Windows.Forms.CheckedListBox();
+			System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(ContextMenuSheet));
+			this.introBox = new UI.MoreMultilineLabel();
+			this.contentPanel = new System.Windows.Forms.Panel();
+			this.linePanel = new System.Windows.Forms.Panel();
 			this.SuspendLayout();
 			// 
 			// introBox
@@ -37,36 +39,44 @@
 			this.introBox.BackColor = System.Drawing.SystemColors.ControlLightLight;
 			this.introBox.BorderStyle = System.Windows.Forms.BorderStyle.None;
 			this.introBox.Dock = System.Windows.Forms.DockStyle.Top;
+			this.introBox.ForeColor = System.Drawing.SystemColors.ControlText;
 			this.introBox.Location = new System.Drawing.Point(10, 10);
-			this.introBox.Multiline = true;
 			this.introBox.Name = "introBox";
-			this.introBox.ReadOnly = true;
-			this.introBox.Size = new System.Drawing.Size(600, 66);
+			this.introBox.ThemedBack = "ControlLightLight";
+			this.introBox.ThemedFore = "ControlText";
+			this.introBox.Size = new System.Drawing.Size(757, 158);
 			this.introBox.TabIndex = 1;
-			this.introBox.Text = "Choose commands to display in the Page context menu. Menu items include all comma" +
-    "nds in that menu. Restart OneNote to see changes.\r\n";
+			this.introBox.Text = resources.GetString("introBox.Text");
 			// 
-			// commandsBox
+			// contentPanel
 			// 
-			this.commandsBox.BorderStyle = System.Windows.Forms.BorderStyle.None;
-			this.commandsBox.CheckOnClick = true;
-			this.commandsBox.Dock = System.Windows.Forms.DockStyle.Fill;
-			this.commandsBox.FormattingEnabled = true;
-			this.commandsBox.Location = new System.Drawing.Point(10, 76);
-			this.commandsBox.Name = "commandsBox";
-			this.commandsBox.Size = new System.Drawing.Size(600, 384);
-			this.commandsBox.TabIndex = 3;
+			this.contentPanel.Dock = System.Windows.Forms.DockStyle.Fill;
+			this.contentPanel.Location = new System.Drawing.Point(10, 173);
+			this.contentPanel.Name = "contentPanel";
+			this.contentPanel.Size = new System.Drawing.Size(757, 398);
+			this.contentPanel.TabIndex = 2;
+			// 
+			// linePanel
+			// 
+			this.linePanel.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(115)))), ((int)(((byte)(53)))), ((int)(((byte)(110)))));
+			this.linePanel.Dock = System.Windows.Forms.DockStyle.Top;
+			this.linePanel.Location = new System.Drawing.Point(10, 168);
+			this.linePanel.Name = "linePanel";
+			this.linePanel.Size = new System.Drawing.Size(757, 5);
+			this.linePanel.TabIndex = 3;
 			// 
 			// ContextMenuSheet
 			// 
 			this.AutoScaleDimensions = new System.Drawing.SizeF(9F, 20F);
 			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
 			this.BackColor = System.Drawing.SystemColors.ControlLightLight;
-			this.Controls.Add(this.commandsBox);
+			this.Controls.Add(this.contentPanel);
+			this.Controls.Add(this.linePanel);
 			this.Controls.Add(this.introBox);
+			this.ForeColor = System.Drawing.SystemColors.ControlText;
 			this.Name = "ContextMenuSheet";
 			this.Padding = new System.Windows.Forms.Padding(10);
-			this.Size = new System.Drawing.Size(620, 470);
+			this.Size = new System.Drawing.Size(777, 581);
 			this.ResumeLayout(false);
 			this.PerformLayout();
 
@@ -74,7 +84,8 @@
 
 		#endregion
 
-		private System.Windows.Forms.TextBox introBox;
-		private System.Windows.Forms.CheckedListBox commandsBox;
+		private UI.MoreMultilineLabel introBox;
+		private System.Windows.Forms.Panel contentPanel;
+		private System.Windows.Forms.Panel linePanel;
 	}
 }

@@ -10,7 +10,7 @@ namespace River.OneMoreAddIn.Commands
 	using Resx = River.OneMoreAddIn.Properties.Resources;
 
 
-	internal partial class ToggleDttmDialog : UI.LocalizableForm
+	internal partial class ToggleDttmDialog : UI.MoreForm
 	{
 		public ToggleDttmDialog()
 		{
@@ -25,9 +25,7 @@ namespace River.OneMoreAddIn.Commands
 					"toggleGroup",
 					"hideRadio",
 					"showRadio",
-					"scopeGroup",
-					"pageRadio",
-					"sectionRadio",
+					"scopeGroup=word_Scope",
 					"okButton=word_OK",
 					"cancelButton=word_Cancel"
 				});
@@ -46,6 +44,6 @@ namespace River.OneMoreAddIn.Commands
 		/// Gets a Boolean value indicating if the scope should be constrained to the current
 		/// page. Otherwise, the scope is all pages in the current section
 		/// </summary>
-		public bool PageOnly => pageRadio.Checked;
+		public bool PageOnly => scopeSelector.Scope == UI.SelectorScope.Page;
 	}
 }

@@ -2,6 +2,8 @@
 // Copyright © 2021 Steven M Cohn.  All rights reserved.
 //************************************************************************************************
 
+#pragma warning disable S6605 // "Exists" method should be used instead of the "Any" extension
+
 namespace OneMoreSetupActions
 {
 	using Microsoft.Win32;
@@ -13,9 +15,20 @@ namespace OneMoreSetupActions
 
 	internal static class RegistryHelper
 	{
-		public const string OneNoteID = "{88AB88AB-CDFB-4C68-9C3A-F10B75A5BC61}";
+		public const string OneMoreID = "{88AB88AB-CDFB-4C68-9C3A-F10B75A5BC61}";
 
-		public static readonly RegistryRights Rights =
+		public static readonly RegistryRights DeleteRights =
+			RegistryRights.EnumerateSubKeys |
+			RegistryRights.Delete |
+			RegistryRights.QueryValues |
+			RegistryRights.ReadKey;
+
+		public static readonly RegistryRights ReadRights =
+			RegistryRights.EnumerateSubKeys |
+			RegistryRights.QueryValues |
+			RegistryRights.ReadKey;
+
+		public static readonly RegistryRights WriteRights =
 			RegistryRights.CreateSubKey |
 			RegistryRights.EnumerateSubKeys |
 			RegistryRights.QueryValues |
@@ -90,6 +103,47 @@ namespace OneMoreSetupActions
 
 
 		/// <summary>
+		/// Safely return the value of a property under the named subkey.
+		/// </summary>
+		/// <param name="key"></param>
+		/// <param name="subkeyName"></param>
+		/// <param name="propName"></param>
+		/// <returns></returns>
+		public static string GetSubKeyPropertyValue(
+			this RegistryKey key, string subkeyName, string propName, bool verbose = true)
+		{
+			try
+			{
+				using (var sub = key.OpenSubKey(subkeyName, false))
+				{
+					if (sub == null)
+					{
+						if (verbose)
+						{
+							logger?.WriteLine($"could not find subkey {key.Name}\\{subkeyName}");
+						}
+						return null;
+					}
+
+					var value = (string)sub.GetValue(propName);
+					if (value == null && verbose)
+					{
+						logger?.WriteLine($"could not find property {key.Name}\\{subkeyName}\\{propName}");
+					}
+
+					return value;
+				}
+			}
+			catch (Exception exc)
+			{
+				logger?.WriteLine($"error reading subkey property {key.Name}\\{subkeyName}\\{propName}");
+				logger?.WriteLine(exc);
+				return null;
+			}
+		}
+
+
+		/// <summary>
 		/// Returns the SID of the currently logged in user that is running the installer, 
 		/// which may differ from the current user context because the installer may be
 		/// impersonating an elevated user on behalf of the logged in user.
@@ -118,6 +172,12 @@ namespace OneMoreSetupActions
 					logger?.WriteLine($"{note} for user {userdom} ({sid})");
 					return sid;
 				}
+				catch (IdentityNotMappedException)
+				{
+					// might be SYSTEM account which we don't want so break out to fallback
+					tries = int.MaxValue;
+					logger?.WriteLine($"{userdom} identity not mapped, falling back");
+				}
 				catch (Exception exc)
 				{
 					tries++;
@@ -131,9 +191,23 @@ namespace OneMoreSetupActions
 
 			foreach (var sid in Registry.Users.GetSubKeyNames())
 			{
-				var key = Registry.Users.OpenSubKey($@"{sid}\Volatile Environment");
-				if (key != null)
+				// ignore built-in SIDs like .DEFAULT and S-1-5-20
+				// and look for SIDs more like S-1-5-21-3128529791-1469164102-3035925930-1000
+				if (sid.Length < 10 || sid.EndsWith("_Classes"))
 				{
+					logger?.WriteLine($"skipping {sid}");
+					continue;
+				}
+
+				logger?.WriteLine($"checking {sid}");
+
+				// the ephemeral "Volatile Environment" key will only exist for logged-in users
+				var key = Registry.Users.OpenSubKey($@"{sid}\Volatile Environment");
+				if (key is not null)
+				{
+					logger?.WriteLine($"volatile {sid}");
+
+					// "system" will not have a USERNAME env var but the logged in user will
 					var vname = key.GetValue("USERNAME") as string;
 					if (!string.IsNullOrEmpty(vname))
 					{
@@ -143,11 +217,15 @@ namespace OneMoreSetupActions
 							? $@"{vdomain.ToUpper()}\{vname.ToLower()}"
 							: vname.ToLower();
 
-						if (candidate == userdom)
-						{
-							return sid;
-						}
+						// presuming there is only one logged-in user,
+						// so chose the first volative candiate found!
+						logger?.WriteLine($"fallback assuming identity {candidate} with SID {sid}");
+						return sid;
 					}
+				}
+				else
+				{
+					logger?.WriteLine($"skipping non-volative {sid}");
 				}
 			}
 

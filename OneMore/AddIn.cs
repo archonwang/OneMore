@@ -5,18 +5,18 @@
 #pragma warning disable CS3001  // Type is not CLS-compliant
 #pragma warning disable S1215   // "GC.Collect" should not be called
 #pragma warning disable IDE0042 // Deconstruct variable declaration
+#pragma warning disable S3885   // Use Load instead of LoadFrom
 
 namespace River.OneMoreAddIn
 {
 	using Extensibility;
 	using Microsoft.Office.Core;
-	using River.OneMoreAddIn.Helpers.Office;
 	using River.OneMoreAddIn.Settings;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Globalization;
-	using System.Management;
+	using System.IO;
 	using System.Runtime.InteropServices;
 	using System.Threading.Tasks;
 
@@ -30,14 +30,12 @@ namespace River.OneMoreAddIn
 	[ProgId("River.OneMoreAddin")]
 	public partial class AddIn : IDTExtensibility2, IRibbonExtensibility
 	{
-		private const uint ReasonableClockSpeed = 1800;
 
 		private IRibbonUI ribbon;                   // the ribbon control
 		private ILogger logger;                     // our diagnostic logger
 		private CommandFactory factory;
-		private readonly Process process;           // current process, to kill if necessary
+		//private readonly Process process;         // current process, to kill if necessary
 		private List<IDisposable> trash;            // track disposables
-		private uint clockSpeed;                    // Mhz of CPU
 
 
 		// Lifecycle...
@@ -51,33 +49,97 @@ namespace River.OneMoreAddIn
 
 			logger = Logger.Current;
 			trash = new List<IDisposable>();
-			process = Process.GetCurrentProcess();
+			//process = Process.GetCurrentProcess();
 
-			UIHelper.PrepareUI();
+			UI.Scaling.PrepareUI();
 
+			Helpers.SessionLogger.WriteSessionHeader();
+
+			Self = this;
+
+			AppDomain.CurrentDomain.AssemblyResolve += CustomAssemblyResolve;
+			AppDomain.CurrentDomain.UnhandledException += CatchUnhandledException;
+		}
+
+
+		/// <summary>
+		/// Special handler to load third-party DLL references from nugets like GTranslate
+		/// which for some reason aren't found using the default path traversal.
+		/// </summary>
+		/// <param name="sender"></param>
+		/// <param name="args"></param>
+		/// <returns></returns>
+		private System.Reflection.Assembly CustomAssemblyResolve(object sender, ResolveEventArgs args)
+		{
+			logger.Debug($"AssemblyResolve of '{args.Name}'");
+
+			var path = new Uri(Path.Combine(
+				Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().CodeBase),
+				args.Name.Substring(0, args.Name.IndexOf(',')) + ".dll"
+				)).LocalPath;
+
+			try
+			{
+				logger.Debug($"resolving {path}");
+				var asm = System.Reflection.Assembly.LoadFrom(path);
+				return asm;
+			}
+			catch (Exception exc)
+			{
+				logger.Debug($"AssemblyResolve exception {exc.Message} for {path}");
+				return null;
+			}
+		}
+
+
+		/// <summary>
+		/// Catch-all
+		/// </summary>
+		/// <param name="sender"></param>
+		/// <param name="e"></param>
+		private void CatchUnhandledException(object sender, UnhandledExceptionEventArgs e)
+		{
+			//Debugger.Launch();
+
+			var entry = new EventLog("Application") { Source = "OneMore" };
+
+			var msg = "OneMore UnhandledException";
+			if (e.IsTerminating)
+			{
+				msg += ", Terminating";
+			}
+
+			msg += ": ";
+
+			if (e.ExceptionObject is not null)
+			{
+				msg += Environment.NewLine + (e.ExceptionObject is Exception exc
+					? exc.FormatDetails()
+					: e.ExceptionObject.GetType().FullName);
+			}
+			else
+			{
+				msg += "null ExceptionObject in CatchUnhandledException";
+			}
+
+			entry.WriteEntry(msg, EventLogEntryType.Error, 881);
+			logger.WriteLine($"Unhandled appdomain exception: {msg}");
+
+			Array custom = null;
+			OnBeginShutdown(ref custom);
+		}
+
+
+		private static CultureInfo GetCultureSetting()
+		{
 			var thread = System.Threading.Thread.CurrentThread;
 
-			var settings = new SettingsProvider().GetCollection("GeneralSheet");
+			var settings = new SettingsProvider().GetCollection(nameof(GeneralSheet));
 			var lang = settings.Get("language", thread.CurrentUICulture.Name);
-			Culture = CultureInfo.GetCultureInfo(lang);
-			thread.CurrentCulture = Culture;
-			thread.CurrentUICulture = Culture;
-
-			GetCurrentClockSpeed();
-
-			logger.WriteLine();
-			logger.Start(
-				$"Starting {process.ProcessName} {process.Id}, CPU={clockSpeed}Mhz, " +
-				$"{thread.CurrentCulture.Name}/{thread.CurrentUICulture.Name}, " +
-				$"v{AssemblyInfo.Version}, OneNote {Office.GetOneNoteVersion()}, " +
-				$"Office {Office.GetOfficeVersion()}");
-
-			var hostproc = Process.GetProcessesByName("ONENOTE");
-			if (hostproc.Length > 0)
-			{
-				var module = hostproc[0].MainModule;
-				logger.WriteLine($"{module.FileName} ({module.FileVersionInfo.ProductVersion})");
-			}
+			var culture = CultureInfo.GetCultureInfo(lang);
+			thread.CurrentCulture = culture;
+			thread.CurrentUICulture = culture;
+			return culture;
 		}
 
 
@@ -85,27 +147,13 @@ namespace River.OneMoreAddIn
 		/// Gets the thread culture for use in subsequent threads; used primarily for 
 		/// debugging when explicitly setting the culture in the AddIn() constructor
 		/// </summary>
-		public static CultureInfo Culture { get; private set; }
+		public static CultureInfo Culture { get; private set; } = GetCultureSetting();
 
 
-
-		private void GetCurrentClockSpeed()
-		{
-			// using this as a means of short-circuiting the Ensure methods for slower machines
-			// to speed up the display of the menus. CurrentClockSpeed will vary depending on
-			// battery capacity and other factors, whereas MaxClockSpeed is a constant
-
-			clockSpeed = ReasonableClockSpeed;
-			using (var searcher = 
-				new ManagementObjectSearcher("select CurrentClockSpeed from Win32_Processor"))
-			{
-				foreach (var item in searcher.Get())
-				{
-					clockSpeed = (uint)item["CurrentClockSpeed"];
-					item.Dispose();
-				}
-			}
-		}
+		/// <summary>
+		/// Gets the AddIn instance for use in reflection like CommandPaletteCommand
+		/// </summary>
+		public static AddIn Self { get; private set; }
 
 
 		// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -152,12 +200,10 @@ namespace River.OneMoreAddIn
 
 			try
 			{
-				using (var one = new OneNote())
-				{
-					factory = new CommandFactory(logger, ribbon, trash,
-						// looks complicated but necessary for this to work
-						new Win32WindowHandle(new IntPtr((long)one.WindowHandle)));
-				}
+				// hotkeys
+				Task.Run(async () => { await RegisterHotkeys(); });
+
+				factory = new CommandFactory(logger, ribbon, trash);
 
 				// command listener for Refresh links
 				new CommandService(factory).Startup();
@@ -165,10 +211,13 @@ namespace River.OneMoreAddIn
 				// reminder task scanner
 				new Commands.ReminderService().Startup();
 
-				// hotkeys
-				RegisterHotkeys();
+				// navigation listener
+				new Commands.NavigationService().Startup();
 
-				// activate enablers and update check
+				// hashtags scanner
+				new Commands.HashtagService().Startup();
+
+				// update check
 				Task.Run(async () => { await SetGeneralOptions(); });
 
 				logger.WriteLine($"ready");
@@ -176,7 +225,7 @@ namespace River.OneMoreAddIn
 			catch (Exception exc)
 			{
 				Logger.Current.WriteLine("error starting add-on", exc);
-				UIHelper.ShowError(Properties.Resources.StartupFailureMessage);
+				UI.MoreMessageBox.ShowError(null, Properties.Resources.StartupFailureMessage);
 			}
 
 			logger.End();
@@ -186,8 +235,7 @@ namespace River.OneMoreAddIn
 		private async Task SetGeneralOptions()
 		{
 			var provider = new SettingsProvider();
-			var settings = provider.GetCollection("GeneralSheet");
-			EnablersEnabled = settings.Get("enablers", true);
+			var settings = provider.GetCollection(nameof(GeneralSheet));
 
 			if (settings.Get("checkUpdates", false))
 			{
@@ -221,7 +269,7 @@ namespace River.OneMoreAddIn
 
 				HotkeyManager.Unregister();
 
-				UIHelper.Shutdown();
+				System.Windows.Forms.Application.Exit();
 			}
 			catch (Exception exc)
 			{
@@ -267,10 +315,10 @@ namespace River.OneMoreAddIn
 		}
 
 
-		private string DescribeCustom(Array custom)
+		private static string DescribeCustom(Array custom)
 		{
 			var description = string.Empty;
-			if (custom != null)
+			if (custom is not null)
 			{
 				// custom is a base-1 array
 				for (var i = custom.GetLowerBound(0); i <= custom.GetUpperBound(0); i++)

@@ -7,6 +7,7 @@
 namespace River.OneMoreAddIn.Commands
 {
 	using River.OneMoreAddIn.Models;
+	using River.OneMoreAddIn.UI;
 	using System;
 	using System.IO;
 	using System.IO.Compression;
@@ -33,24 +34,24 @@ namespace River.OneMoreAddIn.Commands
 		{
 			if (!HttpClientFactory.IsNetworkAvailable())
 			{
-				UIHelper.ShowInfo(Properties.Resources.NetwordConnectionUnavailable);
+				ShowInfo(Properties.Resources.NetwordConnectionUnavailable);
 				return;
 			}
 
-			using (one = new OneNote())
+			await using (one = new OneNote())
 			{
 				var context = SynchronizationContext.Current;
 
 				var results = await one.SearchMeta(string.Empty, "omKeyboardShortcuts");
 				if (results == null)
 				{
-					UIHelper.ShowInfo(one.Window, "Could not show page at this time. Restart OneNote");
+					ShowError("Could not show page at this time. Restart OneNote");
 					return;
 				}
 
 				var ns = one.GetNamespace(results);
 
-				var pageId = results?.Descendants(ns + "Meta")
+				var pageId = results.Descendants(ns + "Meta")
 					.Where(e => e.Attribute("name").Value == "omKeyboardShortcuts")
 					.Select(e => e.Parent.Attribute("ID").Value)
 					.FirstOrDefault();
@@ -80,7 +81,8 @@ namespace River.OneMoreAddIn.Commands
 				}
 				else
 				{
-					UIHelper.ShowMessage("Could not download or import template, see log file for details");
+					MoreMessageBox.ShowErrorWithLogLink(owner,
+						"Could not download or import template, see log file for details");
 				}
 			}
 		}
@@ -92,27 +94,23 @@ namespace River.OneMoreAddIn.Commands
 			logger.WriteLine("downloading template");
 
 			var client = HttpClientFactory.Create();
-			client.DefaultRequestHeaders.Add("User-Agent", "OneMore");
 
 			string path = null;
 
 			try
 			{
-				using (var response = await client.GetAsync(TemplateUrl).ConfigureAwait(false))
+				using var response = await client.GetAsync(TemplateUrl).ConfigureAwait(false);
+				if (response.IsSuccessStatusCode)
 				{
-					if (response.IsSuccessStatusCode)
-					{
-						path = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-						using (var output = File.Create(path))
-						{
-							await response.Content.CopyToAsync(output).ConfigureAwait(false);
-						}
+					path = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
 
-						return path;
-					}
+					using var output = File.Create(path);
+					await response.Content.CopyToAsync(output).ConfigureAwait(false);
 
-					logger.WriteLine($"error download shortcuts template ({response.StatusCode}): {response.ReasonPhrase}, {TemplateUrl}");
+					return path;
 				}
+
+				logger.WriteLine($"error download shortcuts template ({response.StatusCode}): {response.ReasonPhrase}, {TemplateUrl}");
 			}
 			catch (Exception exc)
 			{
@@ -130,16 +128,12 @@ namespace River.OneMoreAddIn.Commands
 
 			try
 			{
-				using (var stream = new FileStream(path, FileMode.Open))
-				using (var archive = new ZipArchive(stream))
-				{
-					var entry = archive.Entries.First();
+				using var stream = new FileStream(path, FileMode.Open);
+				using var archive = new ZipArchive(stream);
+				var entry = archive.Entries[0];
 
-					using (var reader = new StreamReader(entry.Open()))
-					{
-						return new Page(XElement.Parse(reader.ReadToEnd()));
-					}
-				}
+				using var reader = new StreamReader(entry.Open());
+				return new Page(XElement.Parse(reader.ReadToEnd()));
 			}
 			catch (Exception exc)
 			{

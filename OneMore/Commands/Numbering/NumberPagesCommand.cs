@@ -11,6 +11,9 @@ namespace River.OneMoreAddIn.Commands
 	using System.Xml.Linq;
 
 
+	/// <summary>
+	/// Numbers pages using one of two different outline numbering schemes
+	/// </summary>
 	internal class NumberPagesCommand : Command
 	{
 		private sealed class PageBasics
@@ -34,51 +37,51 @@ namespace River.OneMoreAddIn.Commands
 
 		public override async Task Execute(params object[] args)
 		{
-			using (var dialog = new NumberPagesDialog())
+			using var dialog = new NumberPagesDialog();
+			if (dialog.ShowDialog(owner) != DialogResult.OK)
 			{
-				if (dialog.ShowDialog(owner) == DialogResult.OK)
-				{
-					using (one = new OneNote())
+				return;
+			}
+
+			await using (one = new OneNote())
+			{
+				var section = await one.GetSection();
+				ns = one.GetNamespace(section);
+
+				var pages = section.Elements(ns + "Page")
+					.Select(e => new PageBasics
 					{
-						var section = one.GetSection();
-						ns = one.GetNamespace(section);
+						ID = e.Attribute("ID").Value,
+						Name = e.Attribute("name").Value,
+						Level = int.Parse(e.Attribute("pageLevel").Value)
+					});
 
-						var pages = section.Elements(ns + "Page")
-							.Select(e => new PageBasics
-							{
-								ID = e.Attribute("ID").Value,
-								Name = e.Attribute("name").Value,
-								Level = int.Parse(e.Attribute("pageLevel").Value)
-							})
-							.ToList();
+				if (pages.Any())
+				{
+					logger.StartClock();
 
-						if (pages?.Count > 0)
-						{
-							logger.StartClock();
+					var list = pages.ToList();
+					var index = 0;
 
-							var index = 0;
-
-							if (dialog.CleanupNumbering)
-							{
-								cleaner = new RemovePageNumbersCommand();
-							}
-
-							using (progress = new UI.ProgressDialog())
-							{
-								progress.SetMaximum(pages.Count);
-								progress.Show(owner);
-
-								await ApplyNumbering(
-									pages, index, pages[0].Level,
-									dialog.NumericNumbering, string.Empty);
-
-								progress.Close();
-							}
-
-							logger.StopClock();
-							logger.WriteTime("numbered pages");
-						}
+					if (dialog.CleanupNumbering)
+					{
+						cleaner = new RemovePageNumbersCommand();
 					}
+
+					using (progress = new UI.ProgressDialog())
+					{
+						progress.SetMaximum(list.Count);
+						progress.Show();
+
+						await ApplyNumbering(
+							list, index, list[0].Level,
+							dialog.NumericNumbering, string.Empty);
+
+						progress.Close();
+					}
+
+					logger.StopClock();
+					logger.WriteTime("numbered pages");
 				}
 			}
 		}
@@ -91,7 +94,7 @@ namespace River.OneMoreAddIn.Commands
 
 			while (index < pages.Count && pages[index].Level == level)
 			{
-				var page = one.GetPage(pages[index].ID, OneNote.PageDetail.Basic);
+				var page = await one.GetPage(pages[index].ID, OneNote.PageDetail.Basic);
 
 				var cdata = page.Root.Element(ns + "Title")
 					.Element(ns + "OE")
@@ -102,10 +105,7 @@ namespace River.OneMoreAddIn.Commands
 				progress.Increment();
 
 				var text = cdata.Value;
-				if (cleaner != null)
-				{
-					cleaner.RemoveNumbering(cdata.Value, out text);
-				}
+				cleaner?.RemoveNumbering(cdata.Value, out text);
 
 				cdata.Value = BuildPrefix(counter, numeric, level, prefix) + " " + text;
 				await one.Update(page);
@@ -135,10 +135,11 @@ namespace River.OneMoreAddIn.Commands
 						return $"({counter})";
 
 					case 1:
-						return $"({counter.ToAlphabetic().ToLower()})";
+						return $"({counter.ToAlphabetic().ToLowerInvariant()})";
 
 					case 2:
-						return $"({counter.ToRoman().ToLower()})";
+						// use Invariant so langs like tr-TR convert "I" to "i" instead of "ı"
+						return $"({counter.ToRoman().ToLowerInvariant()})";
 				}
 			}
 

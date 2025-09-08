@@ -19,6 +19,8 @@ namespace River.OneMoreAddIn.Styles
 	/// </summary>
 	public class Style : StyleBase
 	{
+		public const string HintMeta = "omStyleHint";
+
 
 		/// <summary>
 		/// Initialize a new instance; for creating new custom styles
@@ -59,7 +61,11 @@ namespace River.OneMoreAddIn.Styles
 		/// Initialize a new instance by parsing the given CSS
 		/// </summary>
 		/// <param name="css">The value of an element's style attribute.</param>
-		public Style(string css) : base()
+		/// <param name="setDefaults">
+		/// A Boolean indicating whether to set default values even for missing properties.
+		/// Set this to false to not include defaulted missing properties in ToCss()
+		/// </param>
+		public Style(string css, bool setDefaults = true) : base(setDefaults)
 		{
 			ReadCss(css);
 		}
@@ -83,38 +89,54 @@ namespace River.OneMoreAddIn.Styles
 				if (key.Equals("font-family") && !found.Contains(key))
 				{
 					FontFamily = FormatFontFamily(val);
+					found.Add(key);
 				}
 				else if (key.Equals("font-size") && !found.Contains(key))
 				{
 					fontSize = ParseFontSize(val);
+					found.Add(key);
 				}
-				else if (key.Equals("color") && !found.Contains(key))
+				else if (key.Equals("color"))
 				{
+					// color may be the one exception where a color that is prefaced with &#xA
+					// will override a previous color value, for example:
+					// style="color:#000000;font-family:Calibri;font-size:11.0pt;&#xA;color:#B8B8B8"
+
 					Color = FormatColor(val);
+					if (!found.Contains(key))
+					{
+						found.Add(key);
+					}
 				}
 				else if (key.Equals("background") && !found.Contains(key))
 				{
 					Highlight = FormatColor(val);
+					found.Add(key);
 				}
 				else if (key.Equals("spaceBefore") && !found.Contains(key))
 				{
 					spaceBefore = ParseSpace(val);
+					found.Add(key);
 				}
 				else if (key.Equals("spaceAfter") && !found.Contains(key))
 				{
 					spaceAfter = ParseSpace(val);
+					found.Add(key);
 				}
 				else if (key.Equals("spacing") && !found.Contains(key))
 				{
 					spacing = ParseSpace(val);
+					found.Add(key);
 				}
 				else if (key.Equals("font-style") && !found.Contains(key))
 				{
 					IsItalic = true; // presume style is 'italic'
+					found.Add(key);
 				}
 				else if (key.Equals("font-weight") && !found.Contains(key))
 				{
 					IsBold = true; // presume style is 'bold'
+					found.Add(key);
 				}
 				else if (key.Equals("text-decoration"))
 				{
@@ -285,6 +307,7 @@ namespace River.OneMoreAddIn.Styles
 			SpaceAfter = other.SpaceAfter;
 			SpaceBefore = other.SpaceBefore;
 			Spacing = other.Spacing;
+			Ignored = other.Ignored;
 
 			if (ApplyColors)
 			{
@@ -360,7 +383,7 @@ namespace River.OneMoreAddIn.Styles
 		/// otherwise include only attributes applicable to a CDATA span
 		/// </param>
 		/// <returns></returns>
-		public string ToCss(bool all = true)
+		public string ToCss(bool all = true, bool withColor = true)
 		{
 			var builder = new StringBuilder();
 
@@ -376,7 +399,7 @@ namespace River.OneMoreAddIn.Styles
 
 			if (ApplyColors)
 			{
-				if (!string.IsNullOrEmpty(Color) && !Color.Equals(Automatic) && all)
+				if (!string.IsNullOrEmpty(Color) && !Color.Equals(Automatic) && (all || withColor))
 					builder.Append("color:" + FormatColor(Color) + ";");
 
 				if (!string.IsNullOrEmpty(Highlight) && !Highlight.Equals(Automatic))
@@ -412,6 +435,16 @@ namespace River.OneMoreAddIn.Styles
 			}
 
 			return builder.ToString();
+		}
+
+
+		/// <summary>
+		/// Required for HashtagSheet combobox to display style name
+		/// </summary>
+		/// <returns></returns>
+		public override string ToString()
+		{
+			return Name; // $"{Name} ({FontFamily} {FontSize})";
 		}
 	}
 }

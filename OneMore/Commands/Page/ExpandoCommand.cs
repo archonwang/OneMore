@@ -9,7 +9,7 @@ namespace River.OneMoreAddIn.Commands
 	using System.Linq;
 	using System.Threading.Tasks;
 	using System.Xml.Linq;
-	using Resx = River.OneMoreAddIn.Properties.Resources;
+	using Resx = Properties.Resources;
 
 
 	internal enum Expando
@@ -29,7 +29,6 @@ namespace River.OneMoreAddIn.Commands
 	{
 		private const string MetaName = "omExpando";
 
-		private OneNote one;
 		private Page page;
 		private XNamespace ns;
 
@@ -41,33 +40,32 @@ namespace River.OneMoreAddIn.Commands
 
 		public override async Task Execute(params object[] args)
 		{
-			using (one = new OneNote(out page, out ns))
+			await using var one = new OneNote(out page, out ns);
+
+			bool updated = false;
+
+			switch ((Expando)(args[0]))
 			{
-				bool updated = false;
+				case Expando.Collapse:
+					updated = CollapseAll();
+					break;
 
-				switch ((Expando)(args[0]))
-				{
-					case Expando.Collapse:
-						updated = CollapseAll();
-						break;
+				case Expando.Expand:
+					updated = ExpandAll();
+					break;
 
-					case Expando.Expand:
-						updated = ExpandAll();
-						break;
+				case Expando.Restore:
+					updated = Restore();
+					break;
 
-					case Expando.Restore:
-						updated = Restore();
-						break;
+				case Expando.Save:
+					updated = Save();
+					break;
+			}
 
-					case Expando.Save:
-						updated = Save();
-						break;
-				}
-
-				if (updated)
-				{
-					await one.Update(page);
-				}
+			if (updated)
+			{
+				await one.Update(page);
 			}
 		}
 
@@ -79,7 +77,10 @@ namespace River.OneMoreAddIn.Commands
 			return page.Root.Descendants(ns + "OE")
 				.Where(e => e.Element(ns + "OEChildren") != null
 					&& e.Element(ns + "OEChildren").ElementsBeforeSelf()
-						.All(b => b.Name.LocalName == "T" || b.Name.LocalName == "Meta"));
+						.All(b =>
+							b.Name.LocalName == "T" ||
+							b.Name.LocalName == "List" ||
+							b.Name.LocalName == "Meta"));
 		}
 
 
@@ -115,10 +116,7 @@ namespace River.OneMoreAddIn.Commands
 			foreach (var container in containers)
 			{
 				var collapsed = container.Attribute("collapsed");
-				if (collapsed != null)
-				{
-					collapsed.Remove();
-				}
+				collapsed?.Remove();
 			}
 
 			return true;
@@ -186,15 +184,12 @@ namespace River.OneMoreAddIn.Commands
 					var meta = container.Elements(ns + "Meta")
 						.FirstOrDefault(e => e.Attribute("name").Value == MetaName);
 
-					if (meta != null)
-					{
-						// meta.Remove() doesn't work
-						meta.SetAttributeValue("content", "0");
-					}
+					// meta.Remove() doesn't work
+					meta?.SetAttributeValue("content", "0");
 				}
 			}
 
-			UIHelper.ShowMessage(Resx.ExpandoCommand_Saved);
+			ShowMessage(Resx.ExpandoCommand_Saved);
 
 			return true;
 		}

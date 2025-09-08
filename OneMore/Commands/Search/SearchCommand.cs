@@ -9,7 +9,7 @@ namespace River.OneMoreAddIn.Commands
 	using System.Collections.Generic;
 	using System.Threading.Tasks;
 	using System.Windows.Forms;
-	using Resx = River.OneMoreAddIn.Properties.Resources;
+	using Resx = Properties.Resources;
 
 
 	internal class SearchCommand : Command
@@ -28,7 +28,7 @@ namespace River.OneMoreAddIn.Commands
 			copying = false;
 
 			var dialog = new SearchDialog();
-			await dialog.RunModeless((sender, e) =>
+			dialog.RunModeless(async (sender, e) =>
 			{
 				var d = sender as SearchDialog;
 				if (d.DialogResult == DialogResult.OK)
@@ -40,10 +40,8 @@ namespace River.OneMoreAddIn.Commands
 						? Resx.SearchQF_DescriptionCopy
 						: Resx.SearchQF_DescriptionMove;
 
-					using (var one = new OneNote())
-					{
-						one.SelectLocation(Resx.SearchQF_Title, desc, OneNote.Scope.Sections, Callback);
-					}
+					await using var one = new OneNote();
+					one.SelectLocation(Resx.SearchQF_Title, desc, OneNote.Scope.Sections, Callback);
 				}
 			},
 			20);
@@ -65,18 +63,16 @@ namespace River.OneMoreAddIn.Commands
 
 			try
 			{
-				using (var one = new OneNote())
-				{
-					var service = new SearchServices(owner, one, sectionId);
+				await using var one = new OneNote();
+				var service = new SearchServices(one, sectionId);
 
-					if (copying)
-					{
-						await service.CopyPages(pageIds);
-					}
-					else
-					{
-						await service.MovePages(pageIds);
-					}
+				if (copying)
+				{
+					await service.CopyPages(pageIds);
+				}
+				else
+				{
+					await service.MovePages(pageIds);
 				}
 			}
 			catch (Exception exc)

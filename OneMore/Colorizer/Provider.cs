@@ -4,10 +4,12 @@
 
 namespace River.OneMoreAddIn.Colorizer
 {
+	using Newtonsoft.Json;
 	using System;
 	using System.Collections.Generic;
 	using System.IO;
-	using System.Web.Script.Serialization;
+	using System.Linq;
+	using System.Text.RegularExpressions;
 
 
 	internal static class Provider
@@ -20,13 +22,15 @@ namespace River.OneMoreAddIn.Colorizer
 		/// <returns>An ILanguage describing the langauge</returns>
 		public static ILanguage LoadLanguage(string path)
 		{
-			var json = File.ReadAllText(path);
-			var serializer = new JavaScriptSerializer();
 			Language language = null;
 
 			try
 			{
-				language = serializer.Deserialize<Language>(json);
+				var lines = File.ReadAllLines(path)
+					.Where(line => !Regex.IsMatch(line, @"^\\s*//"));
+
+				language = JsonConvert.DeserializeObject<Language>(
+					string.Join(Environment.NewLine, lines));
 			}
 			catch (Exception exc)
 			{
@@ -51,13 +55,20 @@ namespace River.OneMoreAddIn.Colorizer
 
 			var names = new SortedDictionary<string, string>();
 
-			foreach (var file in Directory.GetFiles(dirPath, "*.json"))
+			try
 			{
-				var language = LoadLanguage(file);
-				if (language != null)
+				foreach (var file in Directory.GetFiles(dirPath, "*.json"))
 				{
-					names.Add(language.Name, Path.GetFileNameWithoutExtension(file));
+					var language = LoadLanguage(file);
+					if (language != null)
+					{
+						names.Add(language.Name, Path.GetFileNameWithoutExtension(file));
+					}
 				}
+			}
+			catch (Exception exc)
+			{
+				Logger.Current.WriteLine($"error listing language {dirPath}", exc);
 			}
 
 			return names;
@@ -72,17 +83,21 @@ namespace River.OneMoreAddIn.Colorizer
 		/// <returns></returns>
 		public static ITheme LoadTheme(string path, bool autoOverride)
 		{
-			var json = File.ReadAllText(path);
-			var serializer = new JavaScriptSerializer();
 			Theme theme = null;
 
 			try
 			{
-				theme = serializer.Deserialize<Theme>(json);
+				var lines = File.ReadAllLines(path)
+					.Where(line => !Regex.IsMatch(line, @"^\\s*//"));
+
+				theme = JsonConvert.DeserializeObject<Theme>(
+					string.Join(Environment.NewLine, lines));
+
 				theme.TranslateColorNames(autoOverride);
 			}
 			catch (Exception exc)
 			{
+				Logger.Current.WriteLine(exc.Message);
 				Logger.Current.WriteLine($"error loading theme {path}", exc);
 			}
 

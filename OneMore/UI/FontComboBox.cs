@@ -40,10 +40,7 @@ namespace River.OneMoreAddIn.UI
 		protected override void Dispose(bool disposing)
 		{
 			ClearFontCache();
-
-			if (stringFormat != null)
-				stringFormat.Dispose();
-
+			stringFormat?.Dispose();
 			base.Dispose(disposing);
 		}
 
@@ -89,16 +86,15 @@ namespace River.OneMoreAddIn.UI
 				if ((e.State & DrawItemState.Focus) == DrawItemState.Focus)
 					e.DrawFocusRectangle();
 
-				using (SolidBrush textBrush = new SolidBrush(e.ForeColor))
-				{
-					string fontFamilyName;
+				using SolidBrush textBrush = new(e.ForeColor);
+				string fontFamilyName;
 
-					fontFamilyName = Items[e.Index].ToString();
-					e.Graphics.DrawString(fontFamilyName, GetFont(fontFamilyName),
-					textBrush, e.Bounds, stringFormat);
-				}
+				fontFamilyName = Items[e.Index].ToString();
+				e.Graphics.DrawString(fontFamilyName, GetFont(fontFamilyName),
+				textBrush, e.Bounds, stringFormat);
 			}
 		}
+
 
 		protected override void OnFontChanged(EventArgs e)
 		{
@@ -148,47 +144,59 @@ namespace River.OneMoreAddIn.UI
 		}
 
 
-		public virtual void LoadFontFamilies()
+		public virtual void LoadFontFamilies(bool fixedWidth = false)
 		{
-			if (Items.Count == 0)
+			if (Items.Count > 0)
 			{
-				Cursor.Current = Cursors.WaitCursor;
+				return;
+			}
 
-				var families = FontFamily.Families.ToList();
+			Cursor.Current = Cursors.WaitCursor;
 
-				// collecting OTF font directly is probably not necessary but just to be sure...
+			var families = fixedWidth
+				? FontFamily.Families.Where(f => f.IsFixedWidthFont()).ToList()
+				: FontFamily.Families.ToList();
 
-				var other = new PrivateFontCollection();
-				var path = Environment.GetFolderPath(Environment.SpecialFolder.Fonts);
-				var files = System.IO.Directory.GetFiles(path, "*.otf");
-				foreach (var file in files)
+			// collecting OTF font directly is probably not necessary but just to be sure...
+
+			var other = new PrivateFontCollection();
+			var path = Environment.GetFolderPath(Environment.SpecialFolder.Fonts);
+			var files = System.IO.Directory.GetFiles(path, "*.otf");
+			foreach (var file in files)
+			{
+				other.AddFontFile(file);
+			}
+
+			if (other.Families.Length > 0)
+			{
+				foreach (var family in other.Families)
 				{
-					other.AddFontFile(file);
-				}
-
-				if (other.Families.Length > 0)
-				{
-					foreach (var family in other.Families)
+					if (fixedWidth)
 					{
-						if (!families.Any(f => f.Name == family.Name))
+						if (!family.IsFixedWidthFont())
 						{
-							families.Add(family);
+							continue;
 						}
 					}
 
-					families = families.OrderBy(f => f.Name).ToList();
+					if (!families.Any(f => f.Name == family.Name))
+					{
+						families.Add(family);
+					}
 				}
 
-				foreach (var family in families)
-				{
-					Items.Add(family.Name);
-					family.Dispose();
-				}
-
-				families.Clear();
-
-				Cursor.Current = Cursors.Default;
+				families = families.OrderBy(f => f.Name).ToList();
 			}
+
+			foreach (var family in families)
+			{
+				Items.Add(family.Name);
+				family.Dispose();
+			}
+
+			families.Clear();
+
+			Cursor.Current = Cursors.Default;
 		}
 
 
@@ -196,13 +204,11 @@ namespace River.OneMoreAddIn.UI
 		{
 			ClearFontCache();
 
-			using (Font font = new Font(Font.FontFamily, PreviewFontSize))
-			{
-				Size textSize;
+			using var font = new Font(Font.FontFamily, PreviewFontSize);
+			Size textSize;
 
-				textSize = TextRenderer.MeasureText("yY", font);
-				itemHeight = textSize.Height + 2;
-			}
+			textSize = TextRenderer.MeasureText("yY", font);
+			itemHeight = textSize.Height + 2;
 		}
 
 		private bool IsUsingRTL(Control control)
@@ -231,8 +237,7 @@ namespace River.OneMoreAddIn.UI
 
 		private void CreateStringFormat()
 		{
-			if (stringFormat != null)
-				stringFormat.Dispose();
+			stringFormat?.Dispose();
 
 			stringFormat = new StringFormat(StringFormatFlags.NoWrap)
 			{
@@ -255,14 +260,10 @@ namespace River.OneMoreAddIn.UI
 					Font font;
 
 					font = GetFont(fontFamilyName, FontStyle.Regular);
-					if (font == null)
-						font = GetFont(fontFamilyName, FontStyle.Bold);
-					if (font == null)
-						font = GetFont(fontFamilyName, FontStyle.Italic);
-					if (font == null)
-						font = GetFont(fontFamilyName, FontStyle.Bold | FontStyle.Italic);
-					if (font == null)
-						font = (Font)Font.Clone();
+					font ??= GetFont(fontFamilyName, FontStyle.Bold);
+					font ??= GetFont(fontFamilyName, FontStyle.Italic);
+					font ??= GetFont(fontFamilyName, FontStyle.Bold | FontStyle.Italic);
+					font ??= (Font)Font.Clone();
 
 					cache.Add(fontFamilyName, font);
 				}

@@ -5,15 +5,29 @@
 namespace River.OneMoreAddIn.Commands
 {
 	using OneMoreAddIn.Models;
+	using System;
 	using System.Collections.Generic;
 	using System.Linq;
 	using System.Text.RegularExpressions;
 	using System.Threading;
 	using System.Threading.Tasks;
 	using System.Xml.Linq;
-	using Resx = River.OneMoreAddIn.Properties.Resources;
+	using Resx = Properties.Resources;
 
 
+	/// <summary>
+	/// Embeds the contents of a selected page into the current page at the cursor location.
+	/// </summary>
+	/// <remarks>
+	/// The embedded content is wrapped in a single-cell table with a visible border to indicate
+	/// that it is embedded content. Click the Refresh link in the upper right of the table cell
+	/// to refresh the embedded contents and synchronize with any changes from the source page.
+	/// Note that this will only embed the first outline on the page; outlines are the boxes that
+	/// appear and let you move content around the page. If you have a large and complex page with
+	/// multiple outlines, it would be better to simply link to that page rather than embed its
+	/// contents. The Update Embedded Pages command will refresh and resynchronize the content of
+	/// all embedded pages on the current page.
+	/// </remarks>
 	internal class EmbedSubpageCommand : Command
 	{
 		private sealed class SourceInfo
@@ -52,74 +66,107 @@ namespace River.OneMoreAddIn.Commands
 				var sourceId = args.Length > 1 ? args[1] as string : null;
 				var linkId = args.Length > 2 ? args[2] as string : null;
 				await UpdateContent(sourceId, linkId);
+				// prevent replay
+				IsCancelled = true;
 				return;
 			}
 
-			EmbedContent();
+			await EmbedContent();
 		}
 
 
-		//========================================================================================
-		// Update...
-
-		private async Task UpdateContent(string sourceId, string linkId)
+		private async Task EmbedContent()
 		{
-			using (one = new OneNote(out page, out ns))
+			await using var o = new OneNote();
+			o.SelectLocation(
+				Resx.EmbedSubpageCommand_Select,
+				Resx.EmbedSubpageCommand_SelectIntro,
+				OneNote.Scope.Pages, Callback);
+		}
+
+
+		private async Task Callback(string sourceId)
+		{
+			if (string.IsNullOrEmpty(sourceId))
 			{
-				// find all embedded sections...
+				// cancelled
+				return;
+			}
 
-				var metas = page.Root.Descendants(ns + "Meta")
-					.Where(e => e.Attribute("name").Value == EmbeddedMetaName);
-
-				if (!string.IsNullOrEmpty(sourceId))
+			await using (one = new OneNote(out page, out ns))
+			{
+				var source = await GetSource(sourceId, null);
+				if (source is null || !source.Snippets.Any())
 				{
-					// refine filter by source pageId
-					metas = metas.Where(e => e.Attribute("content").Value == sourceId);
-				}
-
-				if (!metas.Any())
-				{
-					UIHelper.ShowInfo(one.Window, Resx.EmbedSubpageCommand_NoEmbedded);
 					return;
 				}
 
-				// updated each section...
+				page.EnsureContentContainer();
 
-				var updated = false;
-				foreach (var meta in metas)
+				var container = page.Root.Elements(ns + "Outline")
+					.Descendants(ns + "T")
+					.Where(e => e.Attribute("selected")?.Value == "all")
+					.Ancestors(ns + "OEChildren")
+					.FirstOrDefault();
+
+				if (container is null)
 				{
-					var tableRoot = meta.ElementsAfterSelf(ns + "Table").FirstOrDefault();
-					if (tableRoot != null)
-					{
-						sourceId = meta.Attribute("content").Value;
-						var source = await GetSource(sourceId, linkId);
-						if (source == null || !source.Snippets.Any())
-						{
-							// error reading source
-							UIHelper.ShowInfo(one.Window, Resx.EmbedSubpageCommand_NoEmbedded);
-							return;
-						}
-
-						var table = new Table(tableRoot);
-						FillCell(table[0][0], source.Snippets, source.Page);
-						updated = true;
-					}
+					ShowError(Resx.Error_BodyContext);
+					return;
 				}
 
-				if (updated)
+				var table = new Table(ns, 1, 1)
 				{
-					await one.Update(page);
+					BordersVisible = true,
+				};
+
+				// is cursor positioned in an existing table cell?
+				XElement hostCell = container.Parent;
+				while (hostCell != null && hostCell.Name.LocalName != "Cell")
+				{
+					hostCell = hostCell.Parent;
 				}
+
+				if (hostCell is null)
+				{
+					// set width to width of source page outline
+					var width = source.Outline.GetWidth();
+					table.SetColumnWidth(0, width == 0 ? 500 : width);
+				}
+
+				try
+				{
+					FillCell(table[0][0], source.Snippets, source.Page);
+				}
+				catch (Exception exc)
+				{
+					logger.WriteLine("error in FillCell", exc);
+				}
+
+				try
+				{
+					var editor = new PageEditor(page);
+					editor.AddNextParagraph(new Paragraph(
+						new Meta(EmbeddedMetaName, source.Page.PageId),
+						table.Root
+						));
+				}
+				catch (Exception exc)
+				{
+					logger.WriteLine("error adding paragraph", exc);
+				}
+
+				await one.Update(page);
 			}
 		}
 
 
 		private async Task<SourceInfo> GetSource(string sourceId, string linkId)
 		{
-			var source = one.GetPage(sourceId, OneNote.PageDetail.BinaryData);
-			if (source == null)
+			var source = await one.GetPage(sourceId, OneNote.PageDetail.BinaryData);
+			if (source is null)
 			{
-				if (linkId == null)
+				if (linkId is null)
 				{
 					// linkId should only be null from EmbedContent because it's using the local
 					// reference to the page, but GetPage still couldn't find it so give up!
@@ -128,31 +175,51 @@ namespace River.OneMoreAddIn.Commands
 
 				logger.WriteLine("recoverying from GetPage by mapping to hyperlink");
 
-				var token = new CancellationTokenSource();
-				var map = await one.BuildHyperlinkMap(OneNote.Scope.Sections, token.Token,
-					async (count) => { await Task.Yield(); },
-					async () => { await Task.Yield(); });
+				using var token = new CancellationTokenSource();
+
+				var map = await new HyperlinkProvider(one)
+					.BuildHyperlinkMap(OneNote.Scope.Sections, token.Token,
+						async (count) => { await Task.Yield(); },
+						async () => { await Task.Yield(); });
 
 				if (map.ContainsKey(linkId))
 				{
 					sourceId = map[linkId].PageID;
-					source = one.GetPage(sourceId, OneNote.PageDetail.BinaryData);
+					source = await one.GetPage(sourceId, OneNote.PageDetail.BinaryData);
 				}
 
-				if (source == null)
+				if (source is null)
 				{
-					UIHelper.ShowInfo(one.Window, Resx.EmbedSubpageCommand_NoSource);
+					ShowError(Resx.EmbedSubpageCommand_NoSource);
 					return null;
 				}
 			}
 
-			var outRoot = source.Root.Elements(source.Namespace + "Outline")
-				.FirstOrDefault(e => !e.Elements(ns + "Meta")
-					.Any(m => m.Attribute("name").Value == MetaNames.TaggingBank));
-
-			if (outRoot == null)
+			var outRoot = source.BodyOutlines.FirstOrDefault();
+			if (outRoot is null)
 			{
-				UIHelper.ShowInfo(one.Window, Resx.EmbedSubpageCommand_NoContent);
+				var schema = new PageSchema();
+
+				// couldn't find an Outline but page may contain other valid content items
+				var child = source.Root.Elements()
+					.FirstOrDefault(e => e.Name.LocalName.In(schema.OeContent));
+
+				if (child is not null)
+				{
+					child.Attribute("omHash")?.Remove();
+
+					// fabricate a new Outline
+					outRoot = new XElement(ns + "Outline",
+						new XElement(ns + "OEChildren",
+							new XElement(ns + "OE", child)
+							)
+						);
+				}
+			}
+
+			if (outRoot is null)
+			{
+				ShowError(Resx.EmbedSubpageCommand_NoContent);
 				return null;
 			}
 
@@ -163,9 +230,9 @@ namespace River.OneMoreAddIn.Commands
 				.Where(e => !e.Elements(ns + "OE")
 					.Elements(ns + "Meta").Attributes(EmbeddingsMetaName).Any());
 
-			if (snippets == null || !snippets.Any())
+			if (!snippets.Any())
 			{
-				UIHelper.ShowInfo(one.Window, Resx.EmbedSubpageCommand_NoContent);
+				ShowError(Resx.EmbedSubpageCommand_NoContent);
 				return null;
 			}
 
@@ -185,7 +252,9 @@ namespace River.OneMoreAddIn.Commands
 			var match = Regex.Match(link, @"page-id=({[^}]+?})");
 			var linkId = match.Success ? match.Groups[1].Value : string.Empty;
 
-			var tagmap = page.MergeTagDefs(source);
+			var mapper = new TagMapper(page);
+			mapper.MergeTagDefsFrom(source);
+
 			var quickmap = page.MergeQuickStyles(source);
 			var citationIndex = page.GetQuickStyle(Styles.StandardStyles.Citation).Index;
 
@@ -204,7 +273,7 @@ namespace River.OneMoreAddIn.Commands
 			foreach (var snippet in snippets)
 			{
 				page.ApplyStyleMapping(quickmap, snippet);
-				page.ApplyTagDefMapping(tagmap, snippet);
+				mapper.RemapTags(snippet);
 
 				cell.Root.Add(snippet);
 			}
@@ -212,77 +281,56 @@ namespace River.OneMoreAddIn.Commands
 
 
 		//========================================================================================
-		// Embed...
+		// Update...
 
-		private void EmbedContent()
+		private async Task UpdateContent(string sourceId, string linkId)
 		{
-			using (var o = new OneNote())
+			await using (one = new OneNote(out page, out ns))
 			{
-				o.SelectLocation(
-					Resx.EmbedSubpageCommand_Select,
-					Resx.EmbedSubpageCommand_SelectIntro,
-					OneNote.Scope.Pages, Callback);
-			}
-		}
+				// find all embedded sections...
 
+				var metas = page.Root.Descendants(ns + "Meta")
+					.Where(e => e.Attribute("name").Value == EmbeddedMetaName);
 
-		private async Task Callback(string sourceId)
-		{
-			if (string.IsNullOrEmpty(sourceId))
-			{
-				// cancelled
-				return;
-			}
-
-			using (one = new OneNote(out page, out ns))
-			{
-				var source = await GetSource(sourceId, null);
-				if (source == null || !source.Snippets.Any())
+				if (!string.IsNullOrEmpty(sourceId))
 				{
+					// refine filter by source pageId
+					metas = metas.Where(e => e.Attribute("content").Value == sourceId);
+				}
+
+				if (!metas.Any())
+				{
+					ShowError(Resx.EmbedSubpageCommand_NoEmbedded);
 					return;
 				}
 
-				page.EnsureContentContainer();
+				// updated each section...
 
-				var container = page.Root.Elements(ns + "Outline")
-					.Descendants(ns + "T")
-					.Where(e => e.Attribute("selected")?.Value == "all")
-					.Ancestors(ns + "OEChildren")
-					.FirstOrDefault();
-
-				if (container == null)
+				var updated = false;
+				foreach (var meta in metas)
 				{
-					UIHelper.ShowInfo(one.Window, Resx.Error_BodyContext);
-					return;
+					var tableRoot = meta.ElementsAfterSelf(ns + "Table").FirstOrDefault();
+					if (tableRoot is not null)
+					{
+						sourceId = meta.Attribute("content").Value;
+						var source = await GetSource(sourceId, linkId);
+						if (source is null || !source.Snippets.Any())
+						{
+							// error reading source
+							ShowError(Resx.EmbedSubpageCommand_NoEmbedded);
+							return;
+						}
+
+						var table = new Table(tableRoot);
+						FillCell(table[0][0], source.Snippets, source.Page);
+						updated = true;
+					}
 				}
 
-				var table = new Table(ns, 1, 1)
+				if (updated)
 				{
-					BordersVisible = true,
-				};
-
-				// is cursor positioned in an existing table cell?
-				XElement hostCell = container.Parent;
-				while (hostCell != null && hostCell.Name.LocalName != "Cell")
-				{
-					hostCell = hostCell.Parent;
+					await one.Update(page);
 				}
-
-				if (hostCell == null)
-				{
-					// set width to width of source page outline
-					var width = source.Outline.GetWidth();
-					table.SetColumnWidth(0, width == 0 ? 500 : width);
-				}
-
-				FillCell(table[0][0], source.Snippets, source.Page);
-
-				page.AddNextParagraph(new Paragraph(
-					new Meta(EmbeddedMetaName, source.Page.PageId),
-					table.Root
-					));
-
-				await one.Update(page);
 			}
 		}
 	}

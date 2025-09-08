@@ -10,9 +10,13 @@ namespace River.OneMoreAddIn.Commands
 	using System.Linq;
 	using System.Threading.Tasks;
 	using System.Xml.Linq;
-	using Resx = River.OneMoreAddIn.Properties.Resources;
+	using Resx = Properties.Resources;
 
 
+	/// <summary>
+	/// Adds a caption below each selected attachment on the page showing the full name of
+	/// the attachment.
+	/// </summary>
 	internal class CaptionAttachmentsCommand : Command
 	{
 		private XNamespace ns;
@@ -30,72 +34,68 @@ namespace River.OneMoreAddIn.Commands
 
 		public override async Task Execute(params object[] args)
 		{
-			using (var one = new OneNote(out var page, out ns, OneNote.PageDetail.Selection))
+			await using var one = new OneNote(out var page, out ns, OneNote.PageDetail.Selection);
+
+			var files = page.Root.Descendants(ns + "InsertedFile")
+				.Where(e => e.Attribute("selected")?.Value == "all");
+
+			if (!files.Any())
 			{
-				var files = page.Root.Descendants(ns + "InsertedFile")?
-					.Where(e => e.Attribute("selected")?.Value == "all");
+				files = page.Root.Descendants(ns + "InsertedFile");
+			}
 
-				if (files?.Any() != true)
+			if (!files.Any())
+			{
+				ShowError(Resx.Error_NoAttachments);
+				return;
+			}
+
+			var updated = false;
+			foreach (var file in files.ToList())
+			{
+				if (AlreadyCaptioned(file))
 				{
-					files = page.Root.Descendants(ns + "InsertedFile");
+					continue;
 				}
 
-				if (files?.Any() != true)
-				{
-					UIHelper.ShowError(Resx.Error_NoAttachments);
-					return;
-				}
+				file.Attribute("selected")?.Remove();
 
-				var updated = false;
-				foreach (var file in files.ToList())
-				{
-					if (AlreadyCaptioned(file))
-					{
-						continue;
-					}
+				var table = new Table(ns);
+				table.AddColumn(0f); // OneNote will set width accordingly
 
-					file.Attribute("selected")?.Remove();
+				var caption = file.Attribute("preferredName")?.Value;
+				caption ??= Path.GetFileName(file.Attribute("pathSource").Value);
 
-					var table = new Table(ns);
-					table.AddColumn(0f); // OneNote will set width accordingly
+				var cdata = new XCData(System.Web.HttpUtility.HtmlEncode(caption));
 
-					var caption = file.Attribute("preferredName")?.Value;
-					if (caption == null)
-					{
-						caption = Path.GetFileName(file.Attribute("pathSource").Value);
-					}
+				var row = table.AddRow();
+				var cell = row.Cells.First();
 
-					var cdata = new XCData(System.Web.HttpUtility.HtmlEncode(caption));
+				cell.SetContent(
+					new XElement(ns + "OEChildren",
+						new XElement(ns + "OE",
+							new XAttribute("alignment", "center"),
+							file),
+						new XElement(ns + "OE",
+							new XAttribute("alignment", "center"),
+							new XElement(ns + "Meta",
+								new XAttribute("name", "om"),
+								new XAttribute("content", "caption")),
+							new XElement(ns + "T", cdata)
+						)
+					));
 
-					var row = table.AddRow();
-					var cell = row.Cells.First();
+				var style = GetStyle();
+				new Stylizer(style).ApplyStyle(cdata);
 
-					cell.SetContent(
-						new XElement(ns + "OEChildren",
-							new XElement(ns + "OE",
-								new XAttribute("alignment", "center"),
-								file),
-							new XElement(ns + "OE",
-								new XAttribute("alignment", "center"),
-								new XElement(ns + "Meta",
-									new XAttribute("name", "om"),
-									new XAttribute("content", "caption")),
-								new XElement(ns + "T", cdata)
-							)
-						));
+				file.ReplaceWith(table.Root);
 
-					var style = GetStyle();
-					new Stylizer(style).ApplyStyle(cdata);
+				updated = true;
+			}
 
-					file.ReplaceWith(table.Root);
-
-					updated = true;
-				}
-
-				if (updated)
-				{
-					await one.Update(page);
-				}
+			if (updated)
+			{
+				await one.Update(page);
 			}
 		}
 
@@ -109,20 +109,17 @@ namespace River.OneMoreAddIn.Commands
 			var styles = new ThemeProvider().Theme.GetStyles();
 			if (styles?.Count > 0)
 			{
-				style = styles.FirstOrDefault(s => s.Name.Equals("Caption"));
+				style = styles.Find(s => s.Name.Equals("Caption"));
 			}
 
 			// otherwise use default style
 
-			if (style == null)
+			style ??= new Style
 			{
-				style = new Style
-				{
-					Color = "#5B9BD5", // close to CornflowerBlue
-					FontSize = "10pt",
-					IsBold = true
-				};
-			}
+				Color = "#5B9BD5", // close to CornflowerBlue
+				FontSize = "10pt",
+				IsBold = true
+			};
 
 			return style;
 		}

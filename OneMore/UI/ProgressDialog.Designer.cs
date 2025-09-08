@@ -16,6 +16,7 @@
 			if (disposing && (components != null))
 			{
 				components.Dispose();
+				source?.Dispose();
 			}
 			base.Dispose(disposing);
 		}
@@ -32,7 +33,7 @@
 			System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(ProgressDialog));
 			this.progressBar = new System.Windows.Forms.ProgressBar();
 			this.messageLabel = new System.Windows.Forms.Label();
-			this.cancelButton = new System.Windows.Forms.Button();
+			this.cancelButton = new UI.MoreButton();
 			this.timer = new System.Windows.Forms.Timer(this.components);
 			this.SuspendLayout();
 			// 
@@ -97,7 +98,7 @@
 		#endregion
 		private System.Windows.Forms.Label messageLabel;
 		private System.Windows.Forms.ProgressBar progressBar;
-		private System.Windows.Forms.Button cancelButton;
+		private UI.MoreButton cancelButton;
 		private System.Windows.Forms.Timer timer;
 	}
 }

@@ -4,16 +4,19 @@
 
 namespace River.OneMoreAddIn
 {
-	using System;
 	using System.Text.RegularExpressions;
 	using System.Xml.Linq;
 
 
 	internal static class XCDataExtensions
 	{
+		// https://www.fileformat.info/info/unicode/char/fffd/index.htm
+		private const string UnicodeReplacementChar = "&#65533;";
+
 
 		/// <summary>
-		/// Determines if the node contains multiple words, separated by any HTML space character
+		/// OneMore Extension >> Determines if the node contains multiple words, separated by any
+		/// HTML space character
 		/// </summary>
 		/// <param name="cdata">The instance</param>
 		/// <returns>True if the value contains multiple words, false otherwise</returns>
@@ -25,8 +28,8 @@ namespace River.OneMoreAddIn
 
 
 		/// <summary>
-		/// Determines if the node is empty. This usually indicates the position of the
-		/// text cursor but could also be randomly in the XML as well.
+		/// OneMore Extension >> Determines if the node is empty. This usually indicates the
+		/// position of the text cursor but could also be randomly in the XML as well.
 		/// </summary>
 		/// <param name="cdata">The instance</param>
 		/// <returns>True if the value is empty, false otherwise.</returns>
@@ -37,7 +40,7 @@ namespace River.OneMoreAddIn
 
 
 		/// <summary>
-		/// Creates an XElement from the given cdata node.
+		/// OneMore Extension >> Creates an XElement from the given cdata node.
 		/// </summary>
 		/// <param name="cdata">The instance</param>
 		/// <returns>A new XElement with the name "cdata"</returns>
@@ -47,26 +50,7 @@ namespace River.OneMoreAddIn
 		/// </remarks>
 		public static XElement GetWrapper(this XCData cdata)
 		{
-			// ensure proper XML
-
-			// OneNote doesn't like &nbsp; but &#160; is ok and is the same as \u00A0 but 1-byte
-			var value = cdata.Value.Replace("&nbsp;", "&#160;");
-
-			// XElement doesn't like <br> so replace with <br/>
-			value = Regex.Replace(value, @"\<\s*br\s*\>", "<br/>");
-
-			// quote unquoted language attribute, e.g., lang=yo to lang="yo" (or two part en-US)
-			value = Regex.Replace(value, @"(\s)lang=([\w\-]+)([\s/>])", "$1lang=\"$2\"$3");
-
-			try
-			{
-				return XElement.Parse("<cdata>" + value + "</cdata>", LoadOptions.PreserveWhitespace);
-			}
-			catch
-			{
-				Logger.Current.WriteLine($"error wrapping /{value}/");
-				throw;
-			}
+			return cdata.Value.ToXmlWrapper("cdata");
 		}
 
 

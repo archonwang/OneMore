@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description"
+    content="OneMore is an add-in for OneNote with simple and powerful features that make OneNote a better OneNote">
+  <meta name="author" content="Steven M Cohn">
+  <meta name="generator" content="OneMore">
+  <title>OneMore - a OneNote add-in</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha2/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-aFq/bzH65dt+w6FI2ooMVUpc+21e0SRygnTpmBvdBgSdnuTN7QbdgL+OapgHtvPp" crossorigin="anonymous">
+  <link href="/nav.css" rel="stylesheet">
+  <link href="/toc.css" rel="stylesheet">
+</head>
+
+<body>
+  <svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+    <symbol id="book-half" viewBox="0 0 16 16">
+      <path fill="currentColor" fill-rule="evenodd"
+        d="M8.5 2.687c.654-.689 1.782-.886 3.112-.752 1.234.124 2.503.523 3.388.893v9.923c-.918-.35-2.107-.692-3.287-.81-1.094-.111-2.278-.039-3.213.492V2.687zM8 1.783C7.015.936 5.587.81 4.287.94c-1.514.153-3.042.672-3.994 1.105A.5.5 0 0 0 0 2.5v11a.5.5 0 0 0 .707.455c.882-.4 2.303-.881 3.68-1.02 1.409-.142 2.59.087 3.223.877a.5.5 0 0 0 .78 0c.633-.79 1.814-1.019 3.222-.877 1.378.139 2.8.62 3.681 1.02A.5.5 0 0 0 16 13.5v-11a.5.5 0 0 0-.293-.455c-.952-.433-2.48-.952-3.994-1.105C10.413.809 8.985.936 8 1.783z">
+      </path>
+    </symbol>
+    <symbol id="three-dots" viewBox="0 0 16 16">
+      <path fill="currentColor" fill-rule="evenodd"
+        d="M3 9.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z">
+      </path>
+    </symbol>
+    <symbol id="facebook">
+      <path fill="currentColor" fill-rule="evenodd"
+        d="M480,257.35c0-123.7-100.3-224-224-224s-224,100.3-224,224c0,111.8,81.9,204.47,189,221.29V322.12H164.11V257.35H221V208c0-56.13,33.45-87.16,84.61-87.16,24.51,0,50.15,4.38,50.15,4.38v55.13H327.5c-27.81,0-36.51,17.26-36.51,35v42h62.12l-9.92,64.77H291V478.66C398.1,461.85,480,369.18,480,257.35Z">
+      </path>
+    </symbol>
+    <symbol id="github">
+      <path fill="currentColor" fill-rule="evenodd"
+        d="M256 0C114.64 0 0 114.61 0 256c0 113.09 73.34 209 175.08 242.9 12.8 2.35 17.47-5.56 17.47-12.34 0-6.08-.22-22.18-.35-43.54-71.2 15.49-86.2-34.34-86.2-34.34-11.64-29.57-28.42-37.45-28.42-37.45-23.27-15.84 1.73-15.55 1.73-15.55 25.69 1.81 39.21 26.38 39.21 26.38 22.84 39.12 59.92 27.82 74.5 21.27 2.33-16.54 8.94-27.82 16.25-34.22-56.84-6.43-116.6-28.43-116.6-126.49 0-27.95 10-50.8 26.35-68.69-2.63-6.48-11.42-32.5 2.51-67.75 0 0 21.49-6.88 70.4 26.24a242.65 242.65 0 0 1 128.18 0c48.87-33.13 70.33-26.24 70.33-26.24 14 35.25 5.18 61.27 2.55 67.75 16.41 17.9 26.31 40.75 26.31 68.69 0 98.35-59.85 120-116.88 126.32 9.19 7.9 17.38 23.53 17.38 47.41 0 34.22-.31 61.83-.31 70.23 0 6.85 4.61 14.81 17.6 12.31C438.72 464.97 512 369.08 512 256.02 512 114.62 397.37 0 256 0z">
+      </path>
+    </symbol>
+    <symbol id="heart">
+      <path stroke="#FF0000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+        d="M12 7.69431C10 2.99988 3 3.49988 3 9.49991C3 15.4999 12 20.5001 12 20.5001C12 20.5001 21 15.4999 21 9.49991C21 3.49988 14 2.99988 12 7.69431Z">
+      </path>
+    </symbol>
+  </svg>
+
+  <script src="https://code.jquery.com/jquery-3.5.1.min.js"
+    integrity="sha384-ZvpUoO/+PpLXR1lu4jmpXWu80pZlYUAfxl5NsBMWOEPSjUn/6Z/hRTt8+pR6L4N2"
+    crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha2/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-qKXV1j0HvMUeCBQ+QVp7JcfGl760yU08IQ+GpUo5hlbpg51QRiuqHAJz8+BrxE/N"
+    crossorigin="anonymous"></script>
+
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg bg-body-tertiary fixed-top" aria-label="OneMore-navbar">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="/">
+        <img src="/Logo.png" alt="OneMore" height="45" class="logo d-inline-block align-text-middle">
+        <div class="logo-text">OneMore</div>
+      </a>
+
+      <div class="navbar-toggler d-flex d-lg-none order-3 p-2" style="display:block">
+        <button class="navbar-toggler navbar-dark" type="button" data-bs-toggle="offcanvas"
+          data-bs-target="#offcanvasResponsive" aria-controls="offcanvasResponsive" aria-label="TOC">
+          <svg class="bi" aria-hidden="true">
+            <use xlink:href="#book-half"></use>
+          </svg>
+        </button>
+
+        <button class="navbar-toggler navbar-dark" type="button" data-bs-toggle="collapse"
+          data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false"
+          aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+      </div>
+
+      <div class="collapse navbar-collapse" id="navbarSupportedContent">
+        <div class="navbar-nav me-auto mb-2 mb-lg-0">
+          <!-- TODO class+active aria-currrent=page -->
+          <a class="nav-link" href="/get-started/index.html" id="get-started-section">Get started</a>
+          <a class="nav-link" href="/the-basics/index.html" id="the-basics-section">The Basics</a>
+          <a class="nav-link" href="/commands/index.html" id="commands-section">Commands</a>
+          <a class="nav-link" href="/context-menus/index.html" id="context-menus-section">Context Menus</a>
+          <a class="nav-link" href="/developers/index.html" id="developers-section">Developers</a>
+        </div>
+        <div class="d-flex">
+          <a class="nav-link nav-glyph py-2 px-lg-2" href="https://facebook.com/OneMoreAddIn" target="_blank" rel="noopener">
+            <svg width="22px" height="22px" viewBox="0 0 512 512" id="fbglyph" xmlns="http://www.w3.org/2000/svg"
+              stroke="#FFFFFF" role="img" class="navbar-nav-svg">
+              <title>OneMore on Facebook</title>
+              <use xlink:href="#facebook"></use>
+            </svg>
+            <small class="d-lg-none ms-2">Facebook</small>
+          </a>
+          <a class="nav-link nav-glyph py-2 px-lg-2" href="https://github.com/stevencohn/OneMore" target="_blank" rel="noopener">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" class="navbar-nav-svg"
+              viewBox="0 0 512 499.36" role="img">
+              <title>See the project on GitHub</title>
+              <use xlink:href="#github"></use>
+            </svg>
+            <small class="d-lg-none ms-2">GitHub</small>
+          </a>
+          <a class="nav-link nav-glyph py-2 px-lg-2" href="https://github.com/sponsors/stevencohn" target="_blank" rel="noopener">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" class="navbar-nav-svg" viewBox="0 0 24 24"
+              role="img" fill="none">
+              <title>Please consider a donation</title>
+              <use xlink:href="#heart"></use>
+            </svg>
+            <small class="d-lg-none ms-2">Donate</small>
+          </a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="wrapper">
+
+    <!-- Sidebar -->
+    <nav id="sidebar" style="background-color:#EBE5E1; " aria-label="Sidebar">
+      <div class="offcanvas-lg offcanvas-end" tabindex="-1" id="offcanvasResponsive"
+        aria-labelledby="offcanvasResponsiveLabel">
+        <div class="offcanvas-header">
+          <h5 class="offcanvas-title" id="offcanvasResponsiveLabel">Get Started</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#offcanvasResponsive"
+            aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body">
+          <ul class="navbar-nav">
+            <li><a id="clean-commands" href="Clean Commands.htm">Clean Commands</a></li>
+<li><a id="colorize-command" href="Colorize Command.htm">Colorize Command</a></li>
+<li><a id="edit-commands" href="Edit Commands.htm">Edit Commands</a></li>
+<li><a id="favorites-commands" href="Favorites Commands.htm">Favorites Commands</a></li>
+<li><a id="file-commands" href="File Commands.htm">File Commands</a></li>
+<li><a id="---plugins" href="-- Plugins.htm">-- Plugins</a></li>
+<li><a id="hashtag-commands" href="Hashtag Commands.htm">Hashtag Commands</a></li>
+<li><a id="image-commands" href="Image Commands.htm">Image Commands</a></li>
+<li><a id="my-styles-commands" href="My Styles Commands.htm">My Styles Commands</a></li>
+<li><a id="numbering-commands" href="Numbering Commands.htm">Numbering Commands</a></li>
+<li><a id="page-commands" href="Page Commands.htm">Page Commands</a></li>
+<li><a id="reference-commands" href="Reference Commands.htm">Reference Commands</a></li>
+<li><a id="reminder-commands" href="Reminder Commands.htm">Reminder Commands</a></li>
+<li><a id="search-commands" href="Search Commands.htm">Search Commands</a></li>
+<li><a id="snippets-commands" href="Snippets Commands.htm">Snippets Commands</a></li>
+<li><a id="table-commands" href="Table Commands.htm">Table Commands</a></li>
+<li><a id="---tables-and-calculations" href="-- Tables and Calculations.htm">-- Tables and Calculations</a></li>
+<li><a id="table-style-commands" href="Table Style Commands.htm">Table Style Commands</a></li>
+<li><a id="extra-commands" href="Extra Commands.htm">Extra Commands</a></li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Page Content -->
+    <div id="content" style="margin-left: 30px; margin-top:100px;">
+      <DIV style="DIRECTION: ltr">
+<DIV style="WIDTH: 8.715in; MARGIN-TOP: 0in; DIRECTION: ltr; MARGIN-LEFT: 0in">
+<DIV style="WIDTH: 2.245in; MARGIN-TOP: 0in; DIRECTION: ltr; MARGIN-LEFT: 0in">
+<P lang=yo style='FONT-SIZE: 20pt; FONT-FAMILY: "Calibri Light"; MARGIN: 0in'>File Commands</P></DIV>
+<DIV style="WIDTH: 2.413in; MARGIN-TOP: 0.042in; DIRECTION: ltr; MARGIN-LEFT: 0in">
+<P style="FONT-SIZE: 10pt; FONT-FAMILY: Calibri; COLOR: #767676; MARGIN: 0in">Sunday, February 19, 2023</P>
+<P style="FONT-SIZE: 10pt; FONT-FAMILY: Calibri; COLOR: #767676; MARGIN: 0in">5:58 PM</P></DIV>
+<DIV style="WIDTH: 8.715in; MARGIN-TOP: 0.427in; DIRECTION: ltr; MARGIN-LEFT: 0in">
+<H1 lang=yo style="FONT-SIZE: 16pt; FONT-FAMILY: Calibri; COLOR: #1e4e79; MARGIN: 0in">Archive</H1>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; COLOR: gray; MARGIN: 0in"><SPAN style="FONT-STYLE: italic">Available only by right-clicking a section or notebook</SPAN></P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">Creates a zip file of all pages in the section or notebook, including all images and file attachments on each page. Also fixes the hyperlinks between pages within the context of the archive so the archive can stand on its own as a working directory of HTML files with live hyperlinks.</P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<H1 lang=yo style="FONT-SIZE: 16pt; FONT-FAMILY: Calibri; COLOR: #1e4e79; MARGIN: 0in">Export</H1>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">Exports the current page or selected content as HTML, Word, PDF, Markdown, OneNote .one format, or internal OneNote XML.</P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">If you choose HTML, you will be given the option to export each page as a single .htm file in the specified folder, or to archive each page into its own sub-folder, optionally with copies of the file attachments on each page.</P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">There are some differences in the way OneMore exports pages from the way OneNote exports pages. If multiple pages are selected, OneMore will create a new file for each page. In comparison, if you choose to export as Word .docx, OneNote will append the content from all pages into a single file.</P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">Note also that there is a difference between an .mht file and an .htm files, where the former has mime-type headers and footers that are not normally present in an HTML file.</P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<H1 lang=yo style="FONT-SIZE: 16pt; FONT-FAMILY: Calibri; COLOR: #1e4e79; MARGIN: 0in">Import</H1>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">Import Word (.docx), PowerPoint (.pptx), Markdown (.md), OneNote (.one), or XML (.xml) by either appending content to the current page or creating a new page. Additionally, for PowerPoint, each slide can be imported into its own page so you could use OneNote as a PowerPoint presenter by entering full screen mode and using Ctrl-PgDn to move to the next slide.</P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<P style="MARGIN: 0in 0in 0in 0.375in"><IMG alt="Import Dialog" src="File%20Commands_files/image001.png" width=407 height=253></P>
+<P lang=yo style="FONT-SIZE: 12pt; MARGIN-BOTTOM: 12pt; FONT-FAMILY: Calibri; MARGIN-TOP: 0pt">&nbsp;</P>
+<P lang=yo style="MARGIN: 0in"><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri">You can import multiple Word, PowerPoint, or Markdown files by using a wildcard in the name, for example&nbsp;</SPAN><SPAN style='FONT-SIZE: 9.5pt; FONT-FAMILY: "Lucida Console"; BACKGROUND: #e8e8e8; COLOR: #172b4d'>C:\docs\January*.md</SPAN><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri">. Each file will be imported as a separate page; the&nbsp;Append&nbsp;option is not available when importing using wildcards.</SPAN></P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<H1 lang=yo style="FONT-SIZE: 16pt; FONT-FAMILY: Calibri; COLOR: #1e4e79; MARGIN: 0in">Import Hyperlinks</H1>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">Discovers all external hyperlinks on the current page, presents a dialog from which you can select one or more link to import. Each hyperlink is imported as a separate page.</P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<H1 lang=yo style="FONT-SIZE: 16pt; FONT-FAMILY: Calibri; COLOR: #1e4e79; MARGIN: 0in">Import Web Page</H1>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">Imports the content of a Web page given its URL. The content can be added as a new page in the current section, as a new child page of the current page, or appended to the content of the current page. This can be run in one of two modes. By default, the page is imported as HTML and "optimized" by OneNote, meaning that styles are generally not preserved due to the inherent limitations of OneNote.</P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">The second mode is to import the Web page as a series of static images. This will preserve most styling and layout of the page. It does this by internally printing the page to a PDF and then importing each page of the PDF as an image. This can be a time consuming process, taking up to 30 seconds, so give it time.</P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<H1 lang=yo style="FONT-SIZE: 16pt; FONT-FAMILY: Calibri; COLOR: #1e4e79; MARGIN: 0in">Open Folder as Notebook</H1>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">Opens a local folder hierarchy as a notebook. Subfolders appear as section groups within the notebook.</P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<H1 lang=yo style="FONT-SIZE: 16pt; FONT-FAMILY: Calibri; COLOR: #1e4e79; MARGIN: 0in">Open in File Explorer</H1>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">For sections and section groups in a notebook that is stored locally on the current machine (not on OneDrive), this will open the location of that object in File Explorer.</P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<P lang=yo style='FONT-SIZE: 10pt; FONT-FAMILY: "Courier New"; COLOR: #43577c; MARGIN: 0in'>────────────────────────────────────────────────────────────────────────────────────────────────────</P>
+<P lang=yo style='FONT-SIZE: 10pt; FONT-FAMILY: "Courier New"; COLOR: #43577c; MARGIN: 0in'>&nbsp;</P>
+<H1 lang=yo style="FONT-SIZE: 16pt; FONT-FAMILY: Calibri; COLOR: #1e4e79; MARGIN: 0in">Analyze Data Storage</H1>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">Generates a report, as a new page in the current section, showing how much disk space is consumed by OneNote notebooks and their recycle bins, sections, and pages. It indicates orphaned notebook backups for notebooks that are no longer opened in OneNote. It shows the size of the OneNote internal cache. And it shows a detailed breakdown of image sizes and file attachments embedded on pages along with an indication if the source of a file attachment no longer exists.</P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">Each OneNote notebook maintains its own recycle bin. This can be cleared from the OneNote History menu.</P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">Notebooks can be stored locally in the default OneNote data folder. Or they can be stored remotely in the cloud on OneDrive. Local notebooks are reported directly from the default data folder. Remote notebooks can only be analyzed by looking at their local backup copies as configured in the OneNote Options.&nbsp;The backup feature must be enabled in OneNote options and run at least once in order for the report to show useful information for remote notebooks.</P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; COLOR: gray; MARGIN: 0in"><SPAN style="FONT-STYLE: italic">Note that the detailed page analysis, especially when done over all sections in a notebook, can take some time to generate and result in a very large report page.</SPAN></P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">For large notebooks or sections with pages containing many images, it is possible that the Analyze command will run out of memory and crash OneMore. To avoid this, set the Thumbnails option to <SPAN style="FONT-STYLE: italic">None</SPAN>. A summary of all images - count and total size - on each page will be reported rather than the size of each individual image.</P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<H1 lang=yo style="FONT-SIZE: 16pt; FONT-FAMILY: Calibri; COLOR: #1e4e79; MARGIN: 0in">File Quick Notes</H1>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">OneNote Quick Notes are intended to capture small thoughts and ideas quickly and easily from <SPAN style="BACKGROUND: #ffff99">Win + Alt + N</SPAN> or the OneNote system tray icon. All Quick Notes are filed into the same special section at the bottom of the OneNote window called, surprisingly, "Quick Notes". If you compile a large collection of Quick Notes, it's very easy for ideas to get lost, especially considering that these do not have Title fields.</P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">The File Quick Notes command organizes your Quick Notes into a selected section or notebook and collates them using one of several options, set from the Quick Notes page in the Settings Dialog</P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<P style="MARGIN: 0in 0in 0in 0.375in"><IMG src="File%20Commands_files/image002.png" width=540 height=361></P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">Choose the Notebook option to file your Quick Notes into a chosen notebook. Notes will be collated into new sections, automatically named accordingly to the creation date of the note, or a #keyword in the first line of the note. The #keyword must be a single word (or phrase without spaces) and only the first hashtag #keyword is used.</P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">Choose the Section option to file your Quick Notes into a chosen section. Each notes is moved as its own page into this section. The Title field is set to the first few words of the note. It's recommended that you also enable the <SPAN style="FONT-STYLE: italic">Prepend the tile with the date that the note was created </SPAN>option.</P>
+<P><CITE lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; COLOR: black; MARGIN: 0in">&nbsp;</CITE></P>
+<P><CITE lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; COLOR: black; MARGIN: 0in">&nbsp;</CITE></P>
+<P><CITE lang=yo style="FONT-SIZE: 9pt; FONT-FAMILY: Calibri; COLOR: #595959; MARGIN: 0in">#omwiki #omcommands</CITE></P>
+<P><CITE lang=yo style="FONT-SIZE: 9pt; FONT-FAMILY: Calibri; COLOR: #595959; MARGIN: 0in">&nbsp;</CITE></P>
+<P><CITE lang=yo style="FONT-SIZE: 10pt; FONT-FAMILY: Calibri; COLOR: #595959; MARGIN: 0in">© 2020 Steven M Cohn. All rights reserved.</CITE></P>
+<P><CITE lang=yo style="FONT-SIZE: 10pt; FONT-FAMILY: Calibri; COLOR: #595959; MARGIN: 0in">Please consider a <A href="https://github.com/sponsors/stevencohn">sponsorship or one-time donation</A> to support ongoing development</CITE></P></DIV></DIV></DIV>
+<DIV>
+<P style="MARGIN: 0in">&nbsp;</P>
+<P style="FONT-SIZE: 9pt; FONT-FAMILY: Arial; COLOR: #969696; DIRECTION: ltr; TEXT-ALIGN: left; MARGIN: 0in">Created with OneNote.</P></DIV>
+    </div>
+
+  </div>
+  <script>
+    $('#commands-section').addClass('active');
+    let pageID = '#' + window.location.pathname.match(/.*\/(.*).htm$/)[1];
+    pageID = pageID.toLowerCase().replace(/%20| |\./g,'-')
+    if ( $(pageID).length > 0) { $(pageID).addClass('active'); }
+  </script>
+</body>
+
+</html>

@@ -1,5 +1,5 @@
 ﻿//************************************************************************************************
-// Copyright © 2019 Steven M Cohn.  All rights reserved.
+// Copyright © 2019 Steven M Cohn. All rights reserved.
 //************************************************************************************************
 
 namespace River.OneMoreAddIn.Commands
@@ -11,6 +11,9 @@ namespace River.OneMoreAddIn.Commands
 	using System.Xml.Linq;
 
 
+	/// <summary>
+	/// Trims trailing whitespace from selected text or all text on the page
+	/// </summary>
 	internal class TrimCommand : Command
 	{
 		public TrimCommand()
@@ -21,81 +24,76 @@ namespace River.OneMoreAddIn.Commands
 		public override async Task Execute(params object[] args)
 		{
 			var leading = (bool)args[0];
+			int count = 0;
 
-			using (var one = new OneNote(out var page, out var ns))
+			var regex = leading
+				? new Regex(@"^([\s]|&#160;|&nbsp;)+", RegexOptions.Multiline)
+				: new Regex(@"([\s]|&#160;|&nbsp;)+$", RegexOptions.Multiline);
+
+			await using var one = new OneNote(out var page, out _);
+
+			var range = new Models.SelectionRange(page);
+			var runs = range.GetSelections(defaulToAnytIfNoRange: true);
+
+			if (runs.Any())
 			{
-				var selections =
-					from e in page.Root.Elements(ns + "Outline").Descendants(ns + "T")
-					where e.Attributes("selected").Any(a => a.Value.Equals("all"))
-					select e;
-
-				if (selections != null)
+				foreach (var selection in runs)
 				{
-					if (selections.Count() == 1 && 
-						selections.First().GetCData().Value.Length == 0)
+					// only include last T in an OE
+					// only include Ts that have a CDATA
+					if ((selection != selection.Parent.LastNode) ||
+						(selection.LastNode?.NodeType != XmlNodeType.CDATA))
 					{
-						// if zero-length selection then select all content
-						selections = page.Root.Elements(ns + "Outline").Descendants(ns + "T");
+						continue;
 					}
 
-					int count = 0;
-
-					foreach (var selection in selections)
+					var cdata = selection.GetCData();
+					if (cdata.Value.Length == 0)
 					{
-						if ((selection == selection.Parent.LastNode) &&
-							(selection.LastNode?.NodeType == XmlNodeType.CDATA))
+						continue;
+					}
+
+					var wrapper = cdata.GetWrapper();
+
+					if (leading)
+					{
+						// T may start with an XText or have multiple spans, only need the first
+						var text = wrapper.DescendantNodes().OfType<XText>().FirstOrDefault();
+						if (text?.Value.Length > 0)
 						{
-							var cdata = selection.GetCData();
-							if (cdata.Value.Length > 0)
+							var edited = regex.Replace(text.Value, string.Empty);
+							if (edited.Length < text.Value.Length)
 							{
-								var wrapper = cdata.GetWrapper();
-
-								if (leading)
-								{
-									var text = wrapper.DescendantNodes().OfType<XText>().FirstOrDefault();
-									if (text?.Value.Length > 0)
-									{
-										var match = Regex.Match(text.Value, @"^([\s]|&#160;|&nbsp;)+");
-										if (match.Success)
-										{
-											text.ReplaceWith(text.Value.Substring(match.Length));
-
-											selection.FirstNode.ReplaceWith(
-												new XCData(wrapper.GetInnerXml()));
-
-											count++;
-										}
-									}
-								}
-								else
-								{
-									var text = wrapper.DescendantNodes().OfType<XText>().LastOrDefault();
-									if (text?.Value.Length > 0)
-									{
-										var match = Regex.Match(text.Value, @"([\s]|&#160;|&nbsp;)+$");
-										if (match.Success)
-										{
-											text.ReplaceWith(text.Value.Substring(0, match.Index));
-
-											selection.FirstNode.ReplaceWith(
-												new XCData(wrapper.GetInnerXml()));
-
-											count++;
-										}
-									}
-								}
+								text.ReplaceWith(edited);
+								selection.FirstNode.ReplaceWith(new XCData(wrapper.GetInnerXml()));
+								count++;
 							}
 						}
 					}
-
-					if (count > 0)
+					else
 					{
-						await one.Update(page);
+						// T may end with an XText or have multiple spans, only need the last
+						var text = wrapper.DescendantNodes().OfType<XText>().LastOrDefault();
+						if (text?.Value.Length > 0)
+						{
+							var edited = regex.Replace(text.Value, string.Empty);
+							if (edited.Length < text.Value.Length)
+							{
+								text.ReplaceWith(edited);
+								selection.FirstNode.ReplaceWith(new XCData(wrapper.GetInnerXml()));
+								count++;
+							}
+						}
 					}
+				}
 
-					logger.WriteLine($"trimmed {count} lines");
+				if (count > 0)
+				{
+					await one.Update(page);
 				}
 			}
+
+			logger.WriteLine($"trimmed {count} lines");
 		}
 	}
 }

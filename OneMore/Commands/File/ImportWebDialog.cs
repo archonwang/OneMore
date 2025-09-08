@@ -7,8 +7,8 @@
 namespace River.OneMoreAddIn.Commands
 {
 	using System;
+	using System.Threading.Tasks;
 	using Resx = River.OneMoreAddIn.Properties.Resources;
-	using Win = System.Windows;
 
 
 	internal enum ImportWebTarget
@@ -19,7 +19,7 @@ namespace River.OneMoreAddIn.Commands
 	}
 
 
-	internal partial class ImportWebDialog : UI.LocalizableForm
+	internal partial class ImportWebDialog : UI.MoreForm
 	{
 		public ImportWebDialog()
 		{
@@ -40,14 +40,15 @@ namespace River.OneMoreAddIn.Commands
 				});
 			}
 
-			using (var one = new OneNote(out var page, out _))
+			Task.Run(async () =>
 			{
+				await using var one = new OneNote(out var page, out _);
 				if (page == null)
 				{
 					newChildButton.Enabled = false;
 					appendButton.Enabled = false;
 				}
-			}
+			}).Wait();
 		}
 
 
@@ -68,23 +69,17 @@ namespace River.OneMoreAddIn.Commands
 		}
 
 
-		private async void ImportWebDialog_Load(object sender, System.EventArgs e)
+		private async void ImportWebDialog_Load(object sender, EventArgs e)
 		{
-			var clipboard = await SingleThreaded.Invoke(() =>
+			var text = await ClipboardProvider.GetText();
+			if (Uri.IsWellFormedUriString(text, UriKind.Absolute))
 			{
-				return Win.Clipboard.ContainsText(Win.TextDataFormat.Text)
-					? Win.Clipboard.GetText(Win.TextDataFormat.Text)
-					: null;
-			});
-
-			if (Uri.IsWellFormedUriString(clipboard, UriKind.Absolute))
-			{
-				addressBox.Text = clipboard;
+				addressBox.Text = text;
 			}
 		}
 
 
-		private void addressBox_TextChanged(object sender, EventArgs e)
+		private void ConfirmAddress(object sender, EventArgs e)
 		{
 			okButton.Enabled = Uri.IsWellFormedUriString(addressBox.Text.Trim(), UriKind.Absolute);
 		}

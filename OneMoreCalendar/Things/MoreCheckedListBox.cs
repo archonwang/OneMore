@@ -10,14 +10,15 @@ namespace OneMoreCalendar
 
 	internal class MoreCheckedListBox : CheckedListBox
 	{
-        private const string BoxColor = "#FF73356E";
 
-
-        public MoreCheckedListBox()
-            : base()
+		public MoreCheckedListBox()
+			: base()
 		{
 			CheckOnClick = true;
 		}
+
+
+		private ThemeProvider Theme => ThemeProvider.Instance;
 
 
 		protected override void OnDrawItem(DrawItemEventArgs e)
@@ -29,39 +30,32 @@ namespace OneMoreCalendar
 
 			var g = e.Graphics;
 
-			using (var brush = new SolidBrush(BackColor))
-			{
-				g.FillRectangle(brush, 0, e.Bounds.Y, e.Bounds.Width, 16);
-			}
+			using var fill = new SolidBrush(BackColor);
+			g.FillRectangle(fill, 0, e.Bounds.Y, e.Bounds.Width, 16);
 
-			var boxColor = ColorTranslator.FromHtml(BoxColor);
-			using (var pen = new Pen(boxColor))
-			{
-				g.DrawRectangle(pen, 0, e.Bounds.Y + 1, 12, 12);
-			}
+			using var pen = new Pen(Theme.Control);
+			g.DrawRectangle(pen, 0, e.Bounds.Y + 1, 12, 12);
 
 			if (CheckedIndices.Contains(e.Index))
 			{
-				using (var brush = new SolidBrush(boxColor))
-				{
-					g.FillRectangle(brush, 2, e.Bounds.Y + 3, 9, 9);
-				}
+				using var brush = new SolidBrush(Theme.Control);
+				g.FillRectangle(brush, 2, e.Bounds.Y + 3, 9, 9);
 			}
 
 			var size = g.MeasureString(Text, Font);
-			using (var brush = new SolidBrush(ForeColor))
-			{
-				g.DrawString(Items[e.Index].ToString(), Font, brush,
-					new Rectangle(16, // standard icon size
-						e.Bounds.Y,
-						e.Bounds.Width - 16,
-						(int)size.Height),
-					new StringFormat
-					{
-						Trimming = StringTrimming.EllipsisCharacter,
-						FormatFlags = StringFormatFlags.LineLimit | StringFormatFlags.NoWrap
-					});
-			}
+
+			using var forebrush = new SolidBrush(ForeColor);
+
+			g.DrawString(Items[e.Index].ToString(), Font, forebrush,
+				new Rectangle(16, // standard icon size
+					e.Bounds.Y,
+					e.Bounds.Width - 16,
+					(int)size.Height),
+				new StringFormat
+				{
+					Trimming = StringTrimming.EllipsisCharacter,
+					FormatFlags = StringFormatFlags.LineLimit | StringFormatFlags.NoWrap
+				});
 		}
 
 
@@ -70,7 +64,7 @@ namespace OneMoreCalendar
 		/// </summary>
 		/// <param name="e">The Key event arguments</param>
 		protected override void OnKeyDown(KeyEventArgs e)
-        {
+		{
 			if (e.KeyCode == Keys.Enter)
 			{
 				// Enact selection.
@@ -95,5 +89,5 @@ namespace OneMoreCalendar
 			// If no Enter or Esc keys presses, let the base class handle it.
 			base.OnKeyDown(e);
 		}
-    }
+	}
 }

@@ -5,6 +5,9 @@
 namespace River.OneMoreAddIn.Commands
 {
 	using River.OneMoreAddIn.Models;
+	using River.OneMoreAddIn.UI;
+	using System;
+	using System.Collections.Generic;
 	using System.IO;
 	using System.IO.Compression;
 	using System.Linq;
@@ -12,11 +15,20 @@ namespace River.OneMoreAddIn.Commands
 	using System.Threading.Tasks;
 	using System.Windows.Forms;
 	using System.Xml.Linq;
-	using Resx = River.OneMoreAddIn.Properties.Resources;
+	using Resx = Properties.Resources;
 
 
+	/// <summary>
+	/// Accessible from the context menu for both sections and notebooks, creates a zip file of
+	/// all pages in the section or notebook, exported to HTML, including all images and file
+	/// attachments on each page. Also fixes the hyperlinks between pages within the context of
+	/// the archive so the archive can stand on its own as a working directory of HTML files with
+	/// live hyperlinks.
+	/// </summary>
 	internal class ArchiveCommand : Command
 	{
+		private const string OrderFile = "__File_Order.txt";
+
 		private OneNote one;
 		private Archivist archivist;
 		private ZipArchive archive;
@@ -25,7 +37,10 @@ namespace River.OneMoreAddIn.Commands
 		private string tempdir;
 		private int totalCount;
 		private int pageCount = 0;
+		private int quickCount = 0;
 		private bool bookScope;
+
+		private Exception exception = null;
 
 
 		public ArchiveCommand()
@@ -37,24 +52,33 @@ namespace River.OneMoreAddIn.Commands
 		{
 			var scope = args[0] as string;
 
-			using (one = new OneNote())
+			await using (one = new OneNote())
 			{
-				bookScope = scope == "notebook";
+				bookScope = scope.In("notebook", "sectiongroup");
 
-				hierarchy = bookScope
-					? await one.GetNotebook(one.CurrentNotebookId, OneNote.Scope.Pages)
-					: one.GetSection(one.CurrentSectionId);
+				if (bookScope)
+				{
+					string id = scope == "notebook"
+						? one.CurrentNotebookId
+						: one.GetParent(one.CurrentSectionId);
+
+					hierarchy = await one.GetNotebook(id, OneNote.Scope.Pages);
+				}
+				else
+				{
+					hierarchy = await one.GetSection(one.CurrentSectionId);
+				}
 
 				var ns = one.GetNamespace(hierarchy);
 
 				totalCount = hierarchy.Descendants(ns + "Page").Count();
 				if (totalCount == 0)
 				{
-					UIHelper.ShowMessage(Resx.ArchiveCommand_noPages);
+					ShowError(Resx.ArchiveCommand_noPages);
 					return;
 				}
 
-				var topName = hierarchy.Attribute("name").Value;
+				var topName = hierarchy.Attribute("name").Value.Trim();
 				zipPath = await SingleThreaded.Invoke(() =>
 				{
 					// OpenFileDialog must run in STA thread
@@ -66,16 +90,20 @@ namespace River.OneMoreAddIn.Commands
 					return;
 				}
 
-				var progressDialog = new UI.ProgressDialog(Execute);
-				await progressDialog.RunModeless();
+				var progressDialog = new ProgressDialog(Execute);
+
+				// report result is needed to show UI after Execute is completed on another thread
+				progressDialog.RunModeless(ReportResult);
 			}
+
+			logger.WriteLine("done");
 		}
 
 
 		// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 		// Invoked by the ProgressDialog OnShown callback
-		private async Task Execute(UI.ProgressDialog progress, CancellationToken token)
+		private async Task Execute(ProgressDialog progress, CancellationToken token)
 		{
 			logger.Start();
 			logger.StartClock();
@@ -89,27 +117,61 @@ namespace River.OneMoreAddIn.Commands
 			// use this temp folder as a sandbox for each page
 			var t = Path.GetRandomFileName();
 			tempdir = Path.Combine(Path.GetTempPath(), Path.GetFileNameWithoutExtension(t));
-			PathFactory.EnsurePathExists(tempdir);
+			PathHelper.EnsurePathExists(tempdir);
 			logger.WriteLine($"building archive {zipPath}");
 
 			progress.SetMaximum(totalCount);
 			progress.SetMessage($"Archiving {totalCount} pages");
 
-			using (var stream = new FileStream(zipPath, FileMode.Create))
+			try
 			{
+				using var stream = new FileStream(zipPath, FileMode.Create);
 				using (archive = new ZipArchive(stream, ZipArchiveMode.Create))
 				{
-					await Archive(progress, hierarchy, hierarchy.Attribute("name").Value);
+					await Archive(progress, hierarchy, hierarchy.Attribute("name").Value.Trim());
 				}
 			}
+			catch (Exception exc)
+			{
+				logger.WriteLine($"cannot create archive", exc);
+				exception = exc;
+			}
 
-			Directory.Delete(tempdir, true);
+			try
+			{
+				Directory.Delete(tempdir, true);
+			}
+			catch (Exception exc)
+			{
+				logger.WriteLine($"cannot delete {tempdir}", exc);
+			}
 
 			progress.Close();
-			UIHelper.ShowMessage(string.Format(Resx.ArchiveCommand_archived, pageCount, zipPath));
 
 			logger.WriteTime("archive complete");
 			logger.End();
+		}
+
+
+		private void ReportResult(object sender, EventArgs e)
+		{
+			// report results back on the main UI thread...
+
+			if (sender is ProgressDialog progress)
+			{
+				// otherwise ShowMessage window will appear behind progress dialog
+				progress.Visible = false;
+			}
+
+			if (exception == null)
+			{
+				ShowMessage(string.Format(
+					Resx.ArchiveCommand_archived, pageCount, totalCount, zipPath));
+			}
+			else
+			{
+				MoreMessageBox.ShowErrorWithLogLink(owner, exception.Message);
+			}
 		}
 
 
@@ -140,7 +202,7 @@ namespace River.OneMoreAddIn.Commands
 			var dir = Path.GetDirectoryName(path);
 			if (!Directory.Exists(dir))
 			{
-				UIHelper.ShowMessage(Resx.ArchiveCommand_noDirectory);
+				ShowError(Resx.ArchiveCommand_noDirectory);
 				return null;
 			}
 
@@ -148,19 +210,28 @@ namespace River.OneMoreAddIn.Commands
 		}
 
 
-		private async Task Archive(UI.ProgressDialog progress, XElement root, string path)
+		private async Task Archive(ProgressDialog progress, XElement root, string path)
 		{
+			// keep track of the order of pages and sections
+			var order = new List<string>();
+
 			foreach (var element in root.Elements())
 			{
 				if (element.Name.LocalName == "Page")
 				{
-					var page = one.GetPage(
+					var page = await one.GetPage(
 						element.Attribute("ID").Value, OneNote.PageDetail.BinaryData);
 
-					progress.SetMessage($"Archiving {page.Title}");
+					progress.SetMessage($"Archiving {page.Title ?? Resx.phrase_QuickNote}");
 					progress.Increment();
 
-					await ArchivePage(element, page, path);
+					var name = await ArchivePage(element, page, path);
+					if (name is not null)
+					{
+						order.Add(name);
+					}
+
+					CleanupTemp();
 				}
 				else
 				{
@@ -173,19 +244,31 @@ namespace River.OneMoreAddIn.Commands
 					if (recycle) continue;
 
 					// append name of Section/Group to path to build zip folder path
-					var name = element.Attribute("name").Value;
+					var name = element.Attribute("name").Value.Trim();
 
 					await Archive(progress, element, Path.Combine(path, name));
 				}
 			}
+
+			if (order.Any())
+			{
+				await ArchiveOrder(order, path);
+			}
 		}
 
 
-		private async Task ArchivePage(XElement element, Page page, string path)
+		private async Task<string> ArchivePage(XElement element, Page page, string path)
 		{
-			CleanupTemp();
+			if (page.Title == null)
+			{
+				page.SetTitle(quickCount == 0
+					? Resx.phrase_QuickNote
+					: $"{Resx.phrase_QuickNote} ({quickCount})");
 
-			var name = PathFactory.CleanFileName(page.Title).Trim();
+				quickCount++;
+			}
+
+			var name = PathHelper.CleanFileName(page.Title).Trim();
 			if (string.IsNullOrEmpty(name))
 			{
 				name = $"Unnamed__{pageCount}";
@@ -195,7 +278,7 @@ namespace River.OneMoreAddIn.Commands
 				// ensure the page name is unique within the section
 				var n = element.Parent.Elements()
 					.Count(e => e.Attribute("name")?.Value ==
-						PathFactory.CleanFileName(page.Title).Trim());
+						PathHelper.CleanFileName(page.Title).Trim());
 
 				if (n > 1)
 				{
@@ -203,15 +286,19 @@ namespace River.OneMoreAddIn.Commands
 				}
 			}
 
-			var filename = string.IsNullOrEmpty(path)
-				? Path.Combine(tempdir, $"{name}.htm")
-				: Path.Combine(tempdir, Path.Combine(path, $"{name}.htm"));
+			var tpath = string.IsNullOrEmpty(path) ? tempdir : Path.Combine(tempdir, path);
+			var filename = PathHelper.GetUniqueQualifiedFileName(tpath, ref name, ".htm");
 
-			archivist.ExportHTML(page, ref filename, path, bookScope);
+			if (filename is not null)
+			{
+				filename = await archivist.ExportHTML(page, filename, path, bookScope);
+				await ArchiveAssets(Path.GetDirectoryName(filename), path);
+				pageCount++;
+				return name;
+			}
 
-			await ArchiveAssets(Path.GetDirectoryName(filename), path);
-
-			pageCount++;
+			logger.WriteLine($"archive path too long [{tpath}\\{name}.htm]");
+			return null;
 		}
 
 
@@ -227,18 +314,16 @@ namespace River.OneMoreAddIn.Commands
 
 			foreach (FileInfo file in info.GetFiles())
 			{
-				using (var reader = new FileStream(file.FullName, FileMode.Open))
-				{
-					var name = path == null
-						? file.Name
-						: Path.Combine(path, file.Name);
+				using var reader = new FileStream(
+					file.FullName, FileMode.Open, FileAccess.Read, FileShare.Read);
 
-					var entry = archive.CreateEntry(name, CompressionLevel.Optimal);
-					using (var writer = new StreamWriter(entry.Open()))
-					{
-						await reader.CopyToAsync(writer.BaseStream);
-					}
-				}
+				var name = path == null
+					? file.Name
+					: Path.Combine(path, file.Name);
+
+				var entry = archive.CreateEntry(name, CompressionLevel.Optimal);
+				using var writer = new StreamWriter(entry.Open());
+				await reader.CopyToAsync(writer.BaseStream);
 			}
 
 			foreach (DirectoryInfo dir in info.GetDirectories())
@@ -252,17 +337,55 @@ namespace River.OneMoreAddIn.Commands
 		}
 
 
+		private async Task ArchiveOrder(List<string> order, string path)
+		{
+			var filename = Path.Combine(tempdir, OrderFile);
+			File.WriteAllLines(filename, order);
+
+			var name = Path.Combine(path, OrderFile);
+			var entry = archive.CreateEntry(name, CompressionLevel.Optimal);
+			using var writer = new StreamWriter(entry.Open());
+
+			using var reader = new FileStream(
+				filename, FileMode.Open, FileAccess.Read, FileShare.Read);
+
+			await reader.CopyToAsync(writer.BaseStream);
+		}
+
+
 		private void CleanupTemp()
 		{
 			var temp = new DirectoryInfo(tempdir);
 			foreach (FileInfo file in temp.GetFiles())
 			{
-				file.Delete();
+				try
+				{
+					file.Delete();
+				}
+				catch (Exception exc)
+				{
+					logger.WriteLine($"cannot delete {file.FullName}", exc);
+				}
 			}
 
 			foreach (DirectoryInfo dir in temp.GetDirectories())
 			{
-				dir.Delete(true);
+				try
+				{
+					// this will unset the ReadOnly flag for all files/dirs in and below dir
+					dir.Attributes = FileAttributes.Normal;
+					foreach (var info in dir.GetFileSystemInfos("*", SearchOption.AllDirectories))
+					{
+						info.Attributes = FileAttributes.Normal;
+					}
+
+					// recursively delete del
+					dir.Delete(true);
+				}
+				catch (Exception exc)
+				{
+					logger.WriteLine($"cannot delete {dir.FullName}", exc);
+				}
 			}
 		}
 	}

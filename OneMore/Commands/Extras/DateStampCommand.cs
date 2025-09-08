@@ -5,9 +5,14 @@
 namespace River.OneMoreAddIn.Commands
 {
 	using System.Linq;
+	using System.Text.RegularExpressions;
 	using System.Threading.Tasks;
 
 
+	/// <summary>
+	/// Prepends the title of each page in the current section with the created date of the page
+	/// using the form YYYY-MM-DD.If a page title already contains that value, no changes are made
+	/// </summary>
 	internal class DateStampCommand : Command
 	{
 		private sealed class PageInfo
@@ -20,6 +25,7 @@ namespace River.OneMoreAddIn.Commands
 
 		private OneNote one;
 		private UI.ProgressDialog progress;
+		private Regex regex;
 
 
 		public DateStampCommand()
@@ -29,9 +35,16 @@ namespace River.OneMoreAddIn.Commands
 
 		public override async Task Execute(params object[] args)
 		{
-			using (one = new OneNote())
+			var stamping = (args.Length == 0) || ((args[0] is bool b) && b);
+
+			if (!stamping)
 			{
-				var section = one.GetSection();
+				regex = new Regex(@"^\d{4}-\d{2}-\d{2}\s.+", RegexOptions.Compiled);
+			}
+
+			await using (one = new OneNote())
+			{
+				var section = await one.GetSection();
 				var ns = one.GetNamespace(section);
 
 				var infos = section.Elements(ns + "Page")
@@ -43,19 +56,27 @@ namespace River.OneMoreAddIn.Commands
 					})
 					.ToList();
 
-				if (infos?.Count > 0)
+				if (infos.Any())
 				{
 					logger.StartClock();
 
 					using (progress = new UI.ProgressDialog())
 					{
 						progress.SetMaximum(infos.Count);
-						progress.Show(owner);
+						progress.Show();
 
 						foreach (var info in infos)
 						{
 							progress.SetMessage(info.Name);
-							await StampPage(info);
+
+							if (stamping)
+							{
+								await StampPage(info);
+							}
+							else
+							{
+								await UnstampPage(info);
+							}
 						}
 
 						progress.Close();
@@ -76,10 +97,21 @@ namespace River.OneMoreAddIn.Commands
 				return;
 			}
 
-			var page = one.GetPage(info.ID, OneNote.PageDetail.Basic);
+			var page = await one.GetPage(info.ID, OneNote.PageDetail.Basic);
 			page.Title = $"{stamp} {page.Title}";
 
 			await one.Update(page);
+		}
+
+
+		private async Task UnstampPage(PageInfo info)
+		{
+			if (regex.Match(info.Name).Success)
+			{
+				var page = await one.GetPage(info.ID, OneNote.PageDetail.Basic);
+				page.Title = page.Title.Substring(11);
+				await one.Update(page);
+			}
 		}
 	}
 }

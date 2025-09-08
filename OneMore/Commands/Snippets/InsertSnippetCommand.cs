@@ -1,16 +1,19 @@
 ﻿//************************************************************************************************
-// Copyright © 2021 Steven M Cohn.  All rights reserved.
+// Copyright © 2021 Steven M Cohn. All rights reserved.
 //************************************************************************************************
 
 namespace River.OneMoreAddIn.Commands
 {
 	using System.Threading.Tasks;
-	using WindowsInput;
-	using WindowsInput.Native;
-	using Resx = River.OneMoreAddIn.Properties.Resources;
-	using Win = System.Windows;
+	using System.Xml.Linq;
+	using Resx = Properties.Resources;
 
 
+	/// <summary>
+	/// Insert a custom snippet onto the page at the current insert point. 
+	/// This can run as a direct command from the My Custom Snippets menu or can be invoked
+	/// as to expand the name of a custom snippet to its contents using the Alt+F3 shortcut
+	/// </summary>
 	internal class InsertSnippetCommand : Command
 	{
 
@@ -21,36 +24,82 @@ namespace River.OneMoreAddIn.Commands
 
 		public override async Task Execute(params object[] args)
 		{
-			using (var one = new OneNote(out var page, out _))
-			{
-				if (!page.ConfirmBodyContext())
-				{
-					UIHelper.ShowError(Resx.Error_BodyContext);
-					return;
-				}
-			}
-
 			var path = args[0] as string;
+			string snippet = null;
 
-			var snippet = await new SnippetsProvider().Load(path);
+			var provider = new SnippetsProvider();
 
-			if (snippet == null)
+			await using var one = new OneNote(out var page, out _);
+
+			if (!page.ConfirmBodyContext())
 			{
-				UIHelper.ShowMessage(string.Format(Resx.InsertSnippets_CouldNotLoad, path));
+				ShowError(Resx.Error_BodyContext);
 				return;
 			}
 
-			await SingleThreaded.Invoke(() =>
+			// Either invoked via Alt+F3 to expand the selected name to a snippet
+			// or invoked from the My Custom snippets menu...
+
+			if (string.IsNullOrWhiteSpace(path))
 			{
-				Win.Clipboard.SetText(snippet, Win.TextDataFormat.Html);
-			});
+				// assume Expand command and infer name from current word...
 
-			// both SetText and SendWait are very unpredictable so wait a little
-			await Task.Delay(200);
+				path = new Models.PageEditor(page).GetSelectedText();
+				if (!string.IsNullOrWhiteSpace(path))
+				{
+					snippet = await provider.LoadByName(path);
+					if (!string.IsNullOrEmpty(snippet))
+					{
+						// remove placeholder
+						var updated = new Models.PageEditor(page).EditSelected((s) =>
+						{
+							if (s is XText text)
+							{
+								text.Value = string.Empty;
+								return text;
+							}
 
-			//SendKeys.SendWait("^(v)");
-			new InputSimulator().Keyboard
-				.ModifiedKeyStroke(VirtualKeyCode.CONTROL, VirtualKeyCode.VK_V);
+							var element = (XElement)s;
+							element.Value = string.Empty;
+							return element;
+						});
+
+						if (updated)
+						{
+							await one.Update(page);
+						}
+					}
+				}
+			}
+			else
+			{
+				snippet = await provider.Load(path);
+			}
+
+			if (string.IsNullOrWhiteSpace(snippet))
+			{
+				ShowError(string.Format(Resx.InsertSnippets_CouldNotLoad, path));
+				return;
+			}
+
+			var clippy = new ClipboardProvider();
+			await clippy.StashState();
+
+			var success = await clippy.SetHtml(snippet);
+			if (success)
+			{
+				await ClipboardProvider.Paste(true);
+			}
+			else
+			{
+				ShowInfo(Resx.Clipboard_locked);
+			}
+
+			success = await clippy.RestoreState();
+			if (!success)
+			{
+				ShowInfo(Resx.Clipboard_norestore);
+			}
 		}
 	}
 }

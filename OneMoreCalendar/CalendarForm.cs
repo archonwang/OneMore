@@ -1,9 +1,10 @@
 ﻿//************************************************************************************************
-// Copyright © 2021 Steven M. Cohn. All Rights Reserved.
+// Copyright © 2021 Steven M Cohn. All Rights Reserved.
 //************************************************************************************************
 
 namespace OneMoreCalendar
 {
+	using OneMoreCalendar.Properties;
 	using River.OneMoreAddIn;
 	using System;
 	using System.IO;
@@ -14,10 +15,13 @@ namespace OneMoreCalendar
 	/// <summary>
 	/// Main OneMoreCalendar form
 	/// </summary>
-	public partial class CalendarForm : Form
+	internal partial class CalendarForm : ThemedForm
 	{
+		private const int ManualDelta = 1000;
+
 		private DateTime date;
 		private CalendarPages pages;
+		private int monthDelta;
 
 		private MonthView monthView;
 		private DetailView detailView;
@@ -25,9 +29,12 @@ namespace OneMoreCalendar
 		private SettingsForm settingsForm;
 
 
-		public CalendarForm()
+		public CalendarForm(int userMonthDelta)
 		{
 			InitializeComponent();
+
+			monthDelta = userMonthDelta;
+			date = DateTime.Now.StartOfMonth();
 
 			statusLabel.Text = string.Empty;
 			statusCreatedLabel.Text = string.Empty;
@@ -35,9 +42,6 @@ namespace OneMoreCalendar
 
 			Width = 1500; // TODO: save as settings?
 			Height = 1000;
-
-			// TODO: beta
-			Text = $"{Text} (BETA)";
 		}
 
 
@@ -64,7 +68,7 @@ namespace OneMoreCalendar
 
 			contentPanel.Controls.Add(monthView);
 
-			await SetMonth(0);
+			await SetMonth(monthDelta);
 
 			// when started from OneNote, need to force window to top
 			TopMost = true;
@@ -72,13 +76,49 @@ namespace OneMoreCalendar
 		}
 
 
+		public override void OnThemeChange()
+		{
+			if (Theme.DarkMode)
+			{
+				todayButton.Image = Resources.today_32.MapColor(Theme.IconColor);
+				monthButton.Image = Resources.month_32.MapColor(Theme.IconColor);
+				dayButton.Image = Resources.day_32.MapColor(Theme.IconColor);
+				settingsButton.Image = Resources.settings_32.MapColor(Theme.IconColor);
+			}
+			else
+			{
+				todayButton.Image = Resources.today_32;
+				monthButton.Image = Resources.month_32;
+				dayButton.Image = Resources.day_32;
+				settingsButton.Image = Resources.settings_32;
+			}
+
+			nextButton.PreferredFore = Theme.LinkColor;
+			nextButton.PreferredBack = Theme.BackColor;
+			prevButton.PreferredFore = Theme.LinkColor;
+			prevButton.PreferredBack = Theme.BackColor;
+			todayButton.PreferredBack = Theme.BackColor;
+
+			if (contentPanel.Controls.Contains(monthView))
+			{
+				detailView?.OnThemeChange();
+			}
+		}
+
+
 		private async Task SetMonth(int delta)
 		{
-			if (delta < 1000)
+			if (delta < ManualDelta)
 			{
 				date = delta == 0
 					? DateTime.Now.StartOfMonth()
 					: date.AddMonths(delta);
+			}
+
+			if (date.StartOfMonth() > DateTime.Now.StartOfMonth())
+			{
+				date = DateTime.Now.StartOfMonth();
+				return;
 			}
 
 			var endDate = date.EndOfMonth();
@@ -126,8 +166,16 @@ namespace OneMoreCalendar
 		}
 
 
-		private void ClickDayView(object sender, CalendarDayEventArgs e)
+		private async void ClickDayView(object sender, CalendarDayEventArgs e)
 		{
+			if (e.DayDate.Month != date.Month)
+			{
+				SuspendLayout();
+				date = e.DayDate.StartOfMonth();
+				await SetMonth(ManualDelta);
+				ResumeLayout();
+			}
+
 			dayButton.Checked = true;
 		}
 
@@ -166,6 +214,7 @@ namespace OneMoreCalendar
 				settings.Created, settings.Modified, settings.Deleted);
 
 			detailView.SetRange(date, endDate, pages);
+
 			contentPanel.Controls.Add(detailView);
 		}
 
@@ -206,14 +255,22 @@ namespace OneMoreCalendar
 		private SnapshotForm snapForm;
 		private void SnappedPage(object sender, CalendarSnapshotEventArgs e)
 		{
-			var path = new OneNoteProvider().Export(e.Page.PageID);
+			var path = Task.Run(async () =>
+			{
+				return await new OneNoteProvider().Export(e.Page.PageID);
+			}
+			).Result;
+
 			Logger.Current.WriteLine($"exported page '{e.Page.Title}' to {path}");
 
 			var location = PointToScreen(e.Bounds.Location);
 			location.Offset(50, 70);
 
-			snapForm = new SnapshotForm(e.Page, path);
-			snapForm.Location = location;
+			snapForm = new SnapshotForm(e.Page, path)
+			{
+				Location = location
+			};
+
 			snapForm.Deactivate += DeactivateSnap;
 			snapForm.Show(this);
 		}
@@ -375,6 +432,7 @@ namespace OneMoreCalendar
 
 			if (settingsForm.DialogResult == DialogResult.OK)
 			{
+				Theme.InitializeTheme(this);
 				await SetMonth(date.Year);
 			}
 		}

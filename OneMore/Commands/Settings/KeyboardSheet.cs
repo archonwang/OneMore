@@ -14,7 +14,7 @@ namespace River.OneMoreAddIn.Settings
 	using System.Reflection;
 	using System.Windows.Forms;
 	using System.Xml.Linq;
-	using Resx = River.OneMoreAddIn.Properties.Resources;
+	using Resx = Properties.Resources;
 
 
 	internal partial class KeyboardSheet : SheetBase
@@ -43,7 +43,8 @@ namespace River.OneMoreAddIn.Settings
 		}
 		#endregion KeyMap
 
-		private const string SettingsName = "commands";
+		public const string CollectionName = "KeyboardSheet";
+		public const string SettingsName = "commands";
 
 		private readonly IRibbonUI ribbon;
 		private readonly BindingList<KeyMap> map;
@@ -55,16 +56,16 @@ namespace River.OneMoreAddIn.Settings
 		{
 			InitializeComponent();
 
-			Name = "KeyboardSheet";
-			Title = Resx.KeyboardSheet_Text;
+			Name = CollectionName;
+			Title = Resx.SettingsDialog_keyboardNode_Text;
 
 			if (NeedsLocalizing())
 			{
 				Localize(new string[]
 				{
-					"introLabel",
-					"clearButton",
-					"resetButton",
+					"introBox",
+					"clearButton=word_Clear",
+					"resetButton=word_Reset",
 					"resetAllButton"
 				});
 
@@ -75,6 +76,9 @@ namespace River.OneMoreAddIn.Settings
 			gridView.AutoGenerateColumns = false;
 			gridView.Columns[0].DataPropertyName = "Description";
 			gridView.Columns[1].DataPropertyName = "Hotkey";
+
+			(_, float scaleY) = UI.Scaling.GetScalingFactors();
+			gridView.RowTemplate.Height = (int)(16 * scaleY);
 
 			this.ribbon = ribbon;
 
@@ -94,9 +98,10 @@ namespace River.OneMoreAddIn.Settings
 				.Where(a => a.Attr != null)
 				.Select(a => new KeyMap(
 					a.MethodName,
-					Resx.ResourceManager.GetString(a.Attr.ResID),
+					Resx.ResourceManager.GetString(a.Attr.ResID, AddIn.Culture),
 					new Hotkey(a.Attr.DefaultKeys)
 					))
+				.Where(k => !string.IsNullOrWhiteSpace(k.Description))
 				.OrderBy(k => k.Description)
 				.ToList();
 

@@ -29,7 +29,7 @@ namespace OneMoreCalendar
 		public SettingsProvider()
 		{
 			path = Path.Combine(
-				PathFactory.GetAppDataPath(), "OneMoreCalendar.xml");
+				PathHelper.GetAppDataPath(), "OneMoreCalendar.xml");
 
 			if (File.Exists(path))
 			{
@@ -43,10 +43,7 @@ namespace OneMoreCalendar
 				}
 			}
 
-			if (root == null)
-			{
-				root = new XElement("settings");
-			}
+			root ??= new XElement("settings");
 
 			var filters = root.Element("filters");
 			if (filters == null)
@@ -64,6 +61,12 @@ namespace OneMoreCalendar
 					notebooks = new XElement("notebooks");
 					root.Add(notebooks);
 				}
+			}
+
+			var theme = root.Elements("theme");
+			if (theme == null)
+			{
+				root.Add(new XElement("theme", ThemeMode.System.ToString()));
 			}
 		}
 
@@ -87,8 +90,23 @@ namespace OneMoreCalendar
 		}
 
 
-		public bool Modified => 
+		public bool Modified =>
 			root.Elements("filters").Elements("modified").Any(e => e.Value.Equals("true"));
+
+
+		public ThemeMode Theme
+		{
+			get
+			{
+				var element = root.Elements("theme").FirstOrDefault();
+				if (element != null)
+				{
+					return (ThemeMode)Enum.Parse(typeof(ThemeMode), element.Value);
+				}
+
+				return ThemeMode.System;
+			}
+		}
 
 
 		public async Task<IEnumerable<string>> GetNotebookIDs()
@@ -172,9 +190,23 @@ namespace OneMoreCalendar
 		}
 
 
+		public void SetTheme(ThemeMode mode)
+		{
+			var theme = root.Element("theme");
+			if (theme == null)
+			{
+				root.Add(new XElement("theme", mode.ToString()));
+			}
+			else
+			{
+				theme.Value = mode.ToString();
+			}
+		}
+
+
 		public void Save()
 		{
-			PathFactory.EnsurePathExists(Path.GetDirectoryName(path));
+			PathHelper.EnsurePathExists(Path.GetDirectoryName(path));
 			root.Save(path, SaveOptions.None);
 		}
 	}

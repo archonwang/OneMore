@@ -14,8 +14,9 @@ namespace River.OneMoreAddIn.Commands
 
 	internal class SnippetsProvider : Loggable
 	{
-		private const string SaveSnippetButtonId = "ribSaveSnippetButton";
+		public const string SaveSnippetButtonId = "ribSaveSnippetButton";
 		private const string ManageSnippetsButtonId = "ribManageSnippetsButton";
+		private const string ExpandSnippetButtonId = "ribExpandSnippetButton";
 
 		private const string DirectoryName = "Snippets";
 		private const string Extension = ".snp";
@@ -25,7 +26,7 @@ namespace River.OneMoreAddIn.Commands
 
 		public SnippetsProvider() : base()
 		{
-			store = Path.Combine(PathFactory.GetAppDataPath(), DirectoryName);
+			store = Path.Combine(PathHelper.GetAppDataPath(), DirectoryName);
 		}
 
 
@@ -99,17 +100,52 @@ namespace River.OneMoreAddIn.Commands
 
 			try
 			{
-				using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read))
-				using (var reader = new StreamReader(stream, System.Text.Encoding.UTF8))
-				{
-					return await reader.ReadToEndAsync();
-				}
+				using var stream = new FileStream(path, FileMode.Open, FileAccess.Read);
+				using var reader = new StreamReader(stream, System.Text.Encoding.UTF8);
+				return await reader.ReadToEndAsync();
 			}
 			catch (Exception exc)
 			{
 				logger.WriteLine($"error load snippet from {path}", exc);
 				return null;
 			}
+		}
+
+
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="name"></param>
+		/// <returns></returns>
+		public async Task<string> LoadByName(string name)
+		{
+			return await Load(Path.Combine(store, $"{name}{Extension}"));
+		}
+
+
+		/// <summary>
+		/// Rename the snippet with the specified path to the given name
+		/// </summary>
+		/// <param name="path">The existing full path of the snippet file</param>
+		/// <param name="name">The new name of the snippet</param>
+		public string Rename(string path, string name)
+		{
+			if (File.Exists(path))
+			{
+				try
+				{
+					var newpath = Path.Combine(Path.GetDirectoryName(path), $"{name}{Extension}");
+					File.Move(path, newpath);
+
+					return newpath;
+				}
+				catch (Exception exc)
+				{
+					logger.WriteLine($"error deleting {path}", exc);
+				}
+			}
+
+			return null;
 		}
 
 
@@ -125,12 +161,10 @@ namespace River.OneMoreAddIn.Commands
 
 			try
 			{
-				PathFactory.EnsurePathExists(store);
+				PathHelper.EnsurePathExists(store);
 
-				using (var writer = new StreamWriter(path))
-				{
-					await writer.WriteAsync(snippet);
-				}
+				using var writer = new StreamWriter(path);
+				await writer.WriteAsync(snippet);
 			}
 			catch (Exception exc)
 			{
@@ -144,20 +178,20 @@ namespace River.OneMoreAddIn.Commands
 		public XElement MakeSnippetsMenu(XNamespace ns)
 		{
 			var menu = new XElement(ns + "menu",
-				new XAttribute("id", "ribCustomSnippetsMenu"),
-				new XAttribute("getLabel", "GetRibbonLabel"),
-				new XAttribute("imageMso", "GroupInsertShapes"),
-				new XElement(ns + "button",
-					new XAttribute("id", SaveSnippetButtonId),
-					new XAttribute("getLabel", "GetRibbonLabel"),
-					new XAttribute("imageMso", "SaveSelectionToQuickPartGallery"),
-					new XAttribute("onAction", "SaveSnippetCmd")
-					),
+				MakeSaveSnippetButton(ns),
 				new XElement(ns + "button",
 					new XAttribute("id", ManageSnippetsButtonId),
 					new XAttribute("getLabel", "GetRibbonLabel"),
+					new XAttribute("getScreentip", "GetRibbonScreentip"),
 					new XAttribute("imageMso", "BibliographyManageSources"),
 					new XAttribute("onAction", "ManageSnippetsCmd")
+					),
+				new XElement(ns + "button",
+					new XAttribute("id", ExpandSnippetButtonId),
+					new XAttribute("getLabel", "GetRibbonLabel"),
+					new XAttribute("getScreentip", "GetRibbonScreentip"),
+					new XAttribute("imageMso", "ReplaceWithAutoText"),
+					new XAttribute("onAction", "ExpandSnippetCmd")
 					),
 				new XElement(ns + "menuSeparator",
 					new XAttribute("id", "ribSnippetsMenuSep")
@@ -181,6 +215,23 @@ namespace River.OneMoreAddIn.Commands
 			}
 
 			return menu;
+		}
+
+
+		/// <summary>
+		/// Generate the Save Snippets button
+		/// </summary>
+		/// <param name="ns"></param>
+		/// <returns></returns>
+		public static XElement MakeSaveSnippetButton(XNamespace ns)
+		{
+			return new XElement(ns + "button",
+				new XAttribute("id", SaveSnippetButtonId),
+				new XAttribute("getLabel", "GetRibbonLabel"),
+				new XAttribute("getScreentip", "GetRibbonScreentip"),
+				new XAttribute("imageMso", "SaveSelectionToQuickPartGallery"),
+				new XAttribute("onAction", "SaveSnippetCmd")
+				);
 		}
 	}
 }

@@ -21,7 +21,7 @@ namespace River.OneMoreAddIn.Commands
 	/// and crops the image to that region
 	/// </summary>
 	/// <seealso cref="https://www.codeproject.com/articles/27748/marching-ants"/>
-	internal partial class CropImageDialog : UI.LocalizableForm
+	internal partial class CropImageDialog : UI.MoreForm
 	{
 
 		#region Supporting classes
@@ -68,7 +68,7 @@ namespace River.OneMoreAddIn.Commands
 		private readonly Image original;
 		private readonly Region selectionRegion;
 		private readonly GraphicsPath selectionPath;
-		private readonly MagicScaling scaling;
+		private readonly UI.Scaling scaling;
 
 		// the original image
 		private Rectangle imageBounds;
@@ -89,8 +89,6 @@ namespace River.OneMoreAddIn.Commands
 		{
 			InitializeComponent();
 
-			VerticalOffset = 3;
-
 			selectionRegion = new Region();
 			selectionRegion.MakeEmpty();
 			selectionPath = new GraphicsPath();
@@ -106,7 +104,7 @@ namespace River.OneMoreAddIn.Commands
 				Localize(new string[]
 				{
 					"introText",
-					"selectButton",
+					"selectButton=phrase_SelectAll",
 					"cropButton=word_OK",
 					"cancelButton=word_Cancel"
 				});
@@ -123,7 +121,7 @@ namespace River.OneMoreAddIn.Commands
 		{
 			Image = original = image;
 
-			scaling = new MagicScaling(image.HorizontalResolution, image.VerticalResolution);
+			scaling = new UI.Scaling(image.HorizontalResolution, image.VerticalResolution);
 
 			SizeWindow();
 
@@ -138,7 +136,7 @@ namespace River.OneMoreAddIn.Commands
 			var hasRealDpi = (image.Flags & (int)ImageFlags.HasRealDpi) > 0;
 			var hasRealPixelSize = (image.Flags & (int)ImageFlags.HasRealPixelSize) > 0;
 
-			Logger.Current.WriteLine(
+			logger.WriteLine(
 				$"IMAG hasRealDpi:{hasRealDpi} hasRealPixelSize:{hasRealPixelSize} | " +
 				$"hRes:{image.HorizontalResolution} vRes:{image.VerticalResolution} | " +
 				$"size:{image.Width}x{image.Height} " +
@@ -301,49 +299,47 @@ namespace River.OneMoreAddIn.Commands
 			}
 
 			// draw marching ants outline
-			using (var pen = new Pen(Color.White, 1f))
+			using var pen = new Pen(Color.White, 1f);
+			pen.DashStyle = DashStyle.Dash;
+			pen.DashPattern = new float[2] { 3, 3 };
+			pen.DashOffset = antOffset;
+
+			// set up pen for the ants
+			using (var ant = new Bitmap(pictureBox.Width, pictureBox.Height))
 			{
-				pen.DashStyle = DashStyle.Dash;
-				pen.DashPattern = new float[2] { 3, 3 };
-				pen.DashOffset = antOffset;
-
-				// set up pen for the ants
-				using (var ant = new Bitmap(pictureBox.Width, pictureBox.Height))
+				using (var gi = Graphics.FromImage(ant))
 				{
-					using (var gi = Graphics.FromImage(ant))
+					// region is magenta but we'll use that as our transparent color
+					gi.Clear(Color.Magenta);
+
+					using (var outline = MakeOutlinePath())
 					{
-						// region is magenta but we'll use that as our transparent color
-						gi.Clear(Color.Magenta);
-
-						using (var outline = MakeOutlinePath())
-						{
-							gi.DrawPath(Pens.Black, outline);
-							gi.DrawPath(pen, outline);
-						}
-
-						gi.FillRegion(Brushes.Magenta, selectionRegion);
+						gi.DrawPath(Pens.Black, outline);
+						gi.DrawPath(pen, outline);
 					}
 
-					// make center of ant region transparent
-					ant.MakeTransparent(Color.Magenta);
-
-					// draw the ants on the image
-					g.DrawImageUnscaled(ant, 0, 0);
+					gi.FillRegion(Brushes.Magenta, selectionRegion);
 				}
 
-				// draw resize handles
-				var bounds = selectionRegion.GetBounds(g);
+				// make center of ant region transparent
+				ant.MakeTransparent(Color.Magenta);
 
-				AddHandle(SizingHandle.TopLeft, bounds.Left, bounds.Top, g);
-				AddHandle(SizingHandle.TopRight, bounds.Right, bounds.Top, g);
-				AddHandle(SizingHandle.BottomRight, bounds.Right, bounds.Bottom, g);
-				AddHandle(SizingHandle.BottomLeft, bounds.Left, bounds.Bottom, g);
-
-				AddHandle(SizingHandle.Top, bounds.Left + ((bounds.Right - bounds.Left) / 2), bounds.Top, g);
-				AddHandle(SizingHandle.Right, bounds.Right, bounds.Top + ((bounds.Bottom - bounds.Top) / 2), g);
-				AddHandle(SizingHandle.Bottom, bounds.Left + ((bounds.Right - bounds.Left) / 2), bounds.Bottom, g);
-				AddHandle(SizingHandle.Left, bounds.Left, bounds.Top + ((bounds.Bottom - bounds.Top) / 2), g);
+				// draw the ants on the image
+				g.DrawImageUnscaled(ant, 0, 0);
 			}
+
+			// draw resize handles
+			var bounds = selectionRegion.GetBounds(g);
+
+			AddHandle(SizingHandle.TopLeft, bounds.Left, bounds.Top, g);
+			AddHandle(SizingHandle.TopRight, bounds.Right, bounds.Top, g);
+			AddHandle(SizingHandle.BottomRight, bounds.Right, bounds.Bottom, g);
+			AddHandle(SizingHandle.BottomLeft, bounds.Left, bounds.Bottom, g);
+
+			AddHandle(SizingHandle.Top, bounds.Left + ((bounds.Right - bounds.Left) / 2), bounds.Top, g);
+			AddHandle(SizingHandle.Right, bounds.Right, bounds.Top + ((bounds.Bottom - bounds.Top) / 2), g);
+			AddHandle(SizingHandle.Bottom, bounds.Left + ((bounds.Right - bounds.Left) / 2), bounds.Bottom, g);
+			AddHandle(SizingHandle.Left, bounds.Left, bounds.Top + ((bounds.Bottom - bounds.Top) / 2), g);
 		}
 
 
@@ -783,16 +779,14 @@ namespace River.OneMoreAddIn.Commands
 				g.Clear(Color.Transparent);
 
 				// rotate image around its center
-				using (var matrix = new Matrix())
-				{
-					matrix.RotateAt(angle, new PointF(width / 2f, height / 2f));
-					g.Transform = matrix;
+				using var matrix = new Matrix();
+				matrix.RotateAt(angle, new PointF(width / 2f, height / 2f));
+				g.Transform = matrix;
 
-					// draw the image centered on the bitmap
-					g.DrawImage(bitmap,
-						(width - (bitmap.Width)) / 2,
-						(height - (bitmap.Height)) / 2);
-				}
+				// draw the image centered on the bitmap
+				g.DrawImage(bitmap,
+					(width - (bitmap.Width)) / 2,
+					(height - (bitmap.Height)) / 2);
 			}
 
 			return rotated;
@@ -804,10 +798,10 @@ namespace River.OneMoreAddIn.Commands
 			// return the larger ratio, horizontal or vertical of the image
 			var points = new PointF[]
 			{
-				new PointF(0, 0),
-				new PointF(bitmap.Width, 0),
-				new PointF(bitmap.Width, bitmap.Height),
-				new PointF(0, bitmap.Height),
+				new(0, 0),
+				new(bitmap.Width, 0),
+				new(bitmap.Width, bitmap.Height),
+				new(0, bitmap.Height),
 			};
 
 			using (var matrix = new Matrix())
@@ -878,7 +872,7 @@ namespace River.OneMoreAddIn.Commands
 				(int)Math.Round(selectionBounds.Width * ratio),
 				(int)Math.Round(selectionBounds.Height * ratio));
 #if Logging
-			Logger.Current.WriteLine(
+			logger.WriteLine(
 				$"CROP selectionBounds xy:{selectionBounds.X}x{selectionBounds.Y} " +
 				$"siz:{selectionBounds.Width}x{selectionBounds.Height} | " +
 				$"bounds xy:{bounds.X}x{bounds.Y} siz:{bounds.Width}x{bounds.Height}");

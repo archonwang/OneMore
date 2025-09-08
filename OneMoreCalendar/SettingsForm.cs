@@ -15,6 +15,9 @@ namespace OneMoreCalendar
 	internal partial class SettingsForm : RoundedForm
 	{
 
+		private bool validate = true;
+
+
 		public SettingsForm()
 			: base()
 		{
@@ -39,6 +42,23 @@ namespace OneMoreCalendar
 				modifiedBox.Checked = provider.Modified;
 				deletedBox.Checked = provider.Deleted;
 				emptyBox.Checked = !provider.Empty;
+
+				var hasCustom = ThemeProvider.HasCustomTheme();
+
+				if (provider.Theme == ThemeMode.User && hasCustom)
+				{
+					userModeButton.Checked = true;
+				}
+				else
+				{
+					userModeButton.Enabled = hasCustom;
+					switch (provider.Theme)
+					{
+						case ThemeMode.Light: lightModeButton.Checked = true; break;
+						case ThemeMode.Dark: darkModeButton.Checked = true; break;
+						default: systemModeButton.Checked = true; break;
+					}
+				}
 
 				var notebooks = await provider.GetNotebooks();
 				notebooksBox.Items.Clear();
@@ -93,10 +113,25 @@ namespace OneMoreCalendar
 		private void ValidateCheckedItems(object sender, ItemCheckEventArgs e)
 		{
 			// ensure that at least one notebook is checked
-			if (e.NewValue == CheckState.Unchecked && notebooksBox.CheckedItems.Count == 1)
+			if (validate &&
+				e.NewValue == CheckState.Unchecked && notebooksBox.CheckedItems.Count == 1)
 			{
 				e.NewValue = CheckState.Checked;
 			}
+		}
+
+
+		private void ToggleAllNotebooks(object sender, LinkLabelLinkClickedEventArgs e)
+		{
+			var selected = sender == selectAllLink;
+
+			validate = false;
+			for (var i = 0; i < notebooksBox.Items.Count; i++)
+			{
+				notebooksBox.SetItemChecked(i, selected);
+			}
+
+			validate = true;
 		}
 
 
@@ -109,10 +144,10 @@ namespace OneMoreCalendar
 		private void ShowAbout(object sender, LinkLabelLinkClickedEventArgs e)
 		{
 			Busy = true;
-			using (var dialog = new AboutDialog())
-			{
-				dialog.ShowDialog(Program.MainForm);
-			}
+
+			using var dialog = new AboutDialog();
+			dialog.ShowDialog(Program.MainForm);
+
 			Busy = false;
 		}
 
@@ -139,6 +174,14 @@ namespace OneMoreCalendar
 			provider.SetFilter(
 				createdBox.Checked, modifiedBox.Checked,
 				deletedBox.Checked, !emptyBox.Checked);
+
+			ThemeMode mode;
+			if (lightModeButton.Checked) mode = ThemeMode.Light;
+			else if (darkModeButton.Checked) mode = ThemeMode.Dark;
+			else if (userModeButton.Checked) mode = ThemeMode.User;
+			else mode = ThemeMode.System;
+
+			provider.SetTheme(mode);
 
 			var ids = new List<string>();
 			foreach (Notebook notebook in notebooksBox.CheckedItems)

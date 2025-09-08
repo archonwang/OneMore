@@ -4,13 +4,19 @@
 
 namespace River.OneMoreAddIn.Commands
 {
+	using System;
 	using System.Diagnostics;
 	using System.Windows.Forms;
-	using Resx = River.OneMoreAddIn.Properties.Resources;
+	using Resx = Properties.Resources;
 
 
-	internal partial class DiagnosticsDialog : UI.LocalizableForm
+	internal partial class DiagnosticsDialog : UI.MoreForm
 	{
+		private const int Timeout = 5000;
+		private int time;
+		private readonly string okText;
+
+
 		public DiagnosticsDialog()
 		{
 			InitializeComponent();
@@ -25,6 +31,10 @@ namespace River.OneMoreAddIn.Commands
 					"okButton=word_OK"
 				});
 			}
+
+			time = Timeout;
+			okText = okButton.Text;
+			okButton.Text = $"{okText} ({(time / 1000)})";
 		}
 
 
@@ -33,21 +43,47 @@ namespace River.OneMoreAddIn.Commands
 		{
 			linkLabel.Text = path;
 
-			using (var g = CreateGraphics())
+			using var g = CreateGraphics();
+			var size = g.MeasureString(path, linkLabel.Font);
+			var reqwidth = size.Width + 40;
+			if (reqwidth > Width)
 			{
-				var size = g.MeasureString(path, linkLabel.Font);
-				var reqwidth = size.Width + 40;
-				if (reqwidth > Width)
-				{
-					Width = (int)reqwidth;
-				}
+				Width = (int)reqwidth;
 			}
 		}
 
 
-		private void ClickPath(object sender, LinkLabelLinkClickedEventArgs e)
+		protected override void OnLoad(EventArgs e)
+		{
+			base.OnLoad(e);
+			timer.Start();
+		}
+
+
+		private void Tick(object sender, EventArgs e)
+		{
+			time -= timer.Interval;
+			if (time > 0)
+			{
+				okButton.Text = $"{okText} ({(time / 1000)})";
+				return;
+			}
+
+			CloseWindow(sender, e);
+		}
+
+
+		private void ShowLogOnLinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
 		{
 			Process.Start(linkLabel.Text);
+			Close();
+		}
+
+
+		private void CloseWindow(object sender, EventArgs e)
+		{
+			timer.Stop();
+			timer.Dispose();
 			Close();
 		}
 	}

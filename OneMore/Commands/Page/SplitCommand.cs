@@ -16,6 +16,16 @@ namespace River.OneMoreAddIn.Commands
 	using System.Xml.Linq;
 
 
+	/// <summary>
+	/// Splits the current page at each Heading1 or page links. Also, these can be filtered by
+	/// an optional tag.
+	/// </summary>
+	/// <remarks>
+	/// This will create new pages in the current section. If splitting on page links, if the
+	/// linked pages exists, it must exist in the current section or it will not be found and a
+	/// new page will be created in the current section; if it is found then the content will be
+	/// appended to that page.
+	/// </remarks>
 	internal class SplitCommand : Command
 	{
 		// OneNote internal hyperlinks are represented in CDATA similar to:
@@ -40,14 +50,12 @@ namespace River.OneMoreAddIn.Commands
 
 		public override async Task Execute(params object[] args)
 		{
-			using (var dialog = new SplitDialog())
+			using var dialog = new SplitDialog();
+			if (dialog.ShowDialog(owner) == DialogResult.OK)
 			{
-				if (dialog.ShowDialog(owner) == DialogResult.OK)
+				await using (one = new OneNote(out page, out ns, OneNote.PageDetail.All))
 				{
-					using (one = new OneNote(out page, out ns, OneNote.PageDetail.All))
-					{
-						await SplitPage(dialog.SplitByHeading, dialog.Tagged ? dialog.TagSymbol : -1);
-					}
+					await SplitPage(dialog.SplitByHeading, dialog.Tagged ? dialog.TagSymbol : -1);
 				}
 			}
 		}
@@ -55,65 +63,52 @@ namespace River.OneMoreAddIn.Commands
 
 		private async Task SplitPage(bool byHeading, int tagSymbol)
 		{
-			var headers = GetHeaders(byHeading, tagSymbol);
+			var headings = GetHeadings(byHeading, tagSymbol);
 
-			if (headers.Count == 0)
+			if (headings.Count == 0)
 			{
 				return;
 			}
 
-			if (headers.Any(h => Regex.IsMatch(h.Root.GetCData().Value, LinkPattern)))
+			if (headings.Exists(h => Regex.IsMatch(h.Root.GetCData().Value, LinkPattern)))
 			{
-				BuildHyperlinkCache();
+				await BuildHyperlinkCache();
 			}
 
-			for (int i = 0; i < headers.Count; i++)
+			for (int i = 0; i < headings.Count; i++)
 			{
-				var header = headers[i];
+				var heading = headings[i];
 
 				// find the target page
-				var target = GetTargetPage(header);
+				var target = await GetTargetPage(heading);
 
-				// copy content to the target page
-				var content = header.Root.ElementsAfterSelf();
+				// copy content to the target page...
 
-				if (i < headers.Count - 1)
-				{
-					// trim content up to the next header
-					var next = headers[i + 1];
-					var mark = next.Root;
+				// collect content related to this heading
+				var next = i < headings.Count - 1 ? headings[i + 1] : null;
+				var content = GetContent(heading, next);
 
-					if (next.Outline == header.Outline && next.Level > header.Level)
-					{
-						var level = next.Level;
-						while (level > header.Level)
-						{
-							mark = mark.Parent;
-							level--;
-						}
-					}
+				// target is a new blank page so we can blindly append
+				var container = target.EnsureContentContainer();
+				container.Add(content);
 
-					content = content.TakeWhile(e => e != mark);
-				}
-
-				// copy content along with related quick styles
-				var container = target.AddContent(content);
+				// copy related quick styles
 				var map = target.MergeQuickStyles(page);
 				target.ApplyStyleMapping(map, container);
 
 				await one.Update(target);
 
-				if (!header.IsHyper)
+				if (!heading.IsHyper)
 				{
 					// remove existing runs
-					header.Root.Elements(ns + "T").Remove();
+					heading.Root.Elements(ns + "T").Remove();
 
 					// add new hyperlinked run
 					var link = one.GetHyperlink(target.PageId, string.Empty);
 					var run = new XElement(ns + "T",
-							new XCData($"<a href=\"{link}\">{header.Text}</a>"));
+							new XCData($"<a href=\"{link}\">{heading.Text}</a>"));
 
-					var tags = header.Root.Elements(ns + "Tag");
+					var tags = heading.Root.Elements(ns + "Tag");
 					if (tags.Any())
 					{
 						// schema sequence, must follow Tag elements
@@ -121,7 +116,7 @@ namespace River.OneMoreAddIn.Commands
 					}
 					else
 					{
-						header.Root.AddFirst(run);
+						heading.Root.AddFirst(run);
 					}
 				}
 
@@ -129,18 +124,23 @@ namespace River.OneMoreAddIn.Commands
 				content.Remove();
 			}
 
+			// remove any empty OEChildren that may be left over
+			page.Root.Descendants(ns + "OEChildren")
+				.Where(e => !e.Elements().Any())
+				.Remove();
+
 			await one.Update(page);
 		}
 
 
-		private List<Heading> GetHeaders(bool byHeading, int tagSymbol)
+		private List<Heading> GetHeadings(bool byHeading, int tagSymbol)
 		{
-			List<Heading> headers;
+			List<Heading> headings;
 
 			if (byHeading)
 			{
 				// find all H1 headings
-				headers = page.GetHeadings(one)
+				headings = page.GetHeadings(one)
 					.Where(h => h.Level == 1)
 					.Select(h => new Heading
 					{
@@ -154,7 +154,7 @@ namespace River.OneMoreAddIn.Commands
 			else
 			{
 				// find all internal OneNote hyperlinks, regardless of syyle
-				headers = page.Root.Descendants(ns + "T")
+				headings = page.Root.Descendants(ns + "T")
 					.Where(e =>
 						e.FirstNode.NodeType == XmlNodeType.CDATA &&
 						Regex.IsMatch(((XCData)e.FirstNode).Value, LinkPattern))
@@ -170,42 +170,42 @@ namespace River.OneMoreAddIn.Commands
 					.Select(e => e.Attribute("index").Value).FirstOrDefault();
 
 				// filter tagged breaks
-				headers = headers.Where(e =>
+				headings = headings.Where(e =>
 					e.Root.Elements(ns + "Tag").Any(t => t.Attribute("index").Value == tagIndex))
 					.ToList();
 			}
 
-			foreach (var header in headers)
+			foreach (var heading in headings)
 			{
-				// get header text, possibly bisected by insertion cursor
-				header.Text = header.Root.Elements(ns + "T")
+				// get heading text, possibly bisected by insertion cursor
+				heading.Text = heading.Root.Elements(ns + "T")
 					.Select(e => e.Value).Aggregate((x, y) => $"{x}{y}");
 
 				// determine heading's document level, to be compare in relation to other headings
 				var level = 0;
-				var outline = header.Root.Parent;
+				var outline = heading.Root.Parent;
 				while (outline != null && outline.Name.LocalName != "Outline")
 				{
 					outline = outline.Parent;
 					level++;
 				}
 
-				header.Outline = outline;
-				header.Level = level;
+				heading.Outline = outline;
+				heading.Level = level;
 			}
 
-			return headers;
+			return headings;
 		}
 
 
-		private void BuildHyperlinkCache()
+		private async Task BuildHyperlinkCache()
 		{
 			// there's no direct way to map onenote:http URIs to page IDs so create a cache
 			// of all pages in the current section and lookup the URI for each of them...
 
 			hyperlinks = new Dictionary<string, string>();
 
-			var section = one.GetSection();
+			var section = await one.GetSection();
 			var pageIDs = section.Descendants(ns + "Page")
 				.Select(e => e.Attribute("ID").Value);
 
@@ -223,7 +223,7 @@ namespace River.OneMoreAddIn.Commands
 		}
 
 
-		private Page GetTargetPage(Heading header)
+		private async Task<Page> GetTargetPage(Heading header)
 		{
 			// first test if heading is a link to a page in this section
 			var cdata = header.Root.GetCData();
@@ -239,18 +239,51 @@ namespace River.OneMoreAddIn.Commands
 
 					if (hyperlinks.ContainsKey(key))
 					{
-						return one.GetPage(hyperlinks[key], OneNote.PageDetail.Basic);
+						return await one.GetPage(hyperlinks[key], OneNote.PageDetail.Basic);
 					}
 				}
 			}
 
 			// create a page in this section to capture heading content
 			one.CreatePage(one.CurrentSectionId, out var pageId);
-			var target = one.GetPage(pageId);
+			var target = await one.GetPage(pageId);
 
 			target.Title = header.Text;
 
 			return target;
+		}
+
+
+		private IEnumerable<XElement> GetContent(Heading heading, Heading next)
+		{
+			var content = new List<XElement>();
+
+			var children = heading.Root.Elements(ns + "OEChildren");
+			if (children.Any())
+			{
+				content.AddRange(children.Elements());
+			}
+
+			var after = heading.Root.ElementsAfterSelf();
+			if (next != null)
+			{
+				after = after.TakeWhile(e => e != next.Root);
+			}
+
+			if (after.Any())
+			{
+				content.AddRange(after);
+			}
+
+			if (!content.Any())
+			{
+				// provide default content - empty line - if header is not followed by anything
+				content.Add(new XElement(ns + "OE",
+					new XElement(ns + "T", new XCData(string.Empty))
+					));
+			}
+
+			return content;
 		}
 	}
 }

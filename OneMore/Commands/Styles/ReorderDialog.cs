@@ -1,5 +1,5 @@
 ﻿//************************************************************************************************
-// Copyright © 2018 Steven M Cohn.  Yada yada...
+// Copyright © 2018 Steven M Cohn. All rights reserved.
 //************************************************************************************************
 
 namespace River.OneMoreAddIn.Commands
@@ -8,19 +8,21 @@ namespace River.OneMoreAddIn.Commands
 	using System.Drawing;
 	using System.Linq;
 	using System.Windows.Forms;
-	using Resx = River.OneMoreAddIn.Properties.Resources;
+	using Resx = Properties.Resources;
 
 
-	internal partial class ReorderDialog : UI.LocalizableForm
+	internal partial class ReorderDialog : UI.MoreForm
 	{
 
 		public ReorderDialog(ComboBox.ObjectCollection items)
 		{
 			InitializeComponent();
 
+			(_, float scaleY) = UI.Scaling.GetScalingFactors();
+			listBox.ItemHeight = (int)(16 * scaleY);
+
 			var list = items.Cast<GraphicStyle>().ToArray();
 			listBox.Items.AddRange(list);
-
 			listBox.SelectedIndex = 0;
 
 			if (NeedsLocalizing())
@@ -109,10 +111,8 @@ namespace River.OneMoreAddIn.Commands
 			{
 				if (item.StyleType == StyleType.Heading)
 				{
-					using (var hfont = new Font(DefaultFont.FontFamily, DefaultFont.Size - 2.0f, FontStyle.Bold | FontStyle.Italic))
-					{
-						e.Graphics.DrawString("H", hfont, brush, e.Bounds.Location.X + 2, e.Bounds.Location.Y + 1);
-					}
+					using var hfont = new Font(DefaultFont.FontFamily, DefaultFont.Size - 2.0f, FontStyle.Bold | FontStyle.Italic);
+					e.Graphics.DrawString("H", hfont, brush, e.Bounds.Location.X + 2, e.Bounds.Location.Y + 1);
 				}
 
 				e.Graphics.DrawString(item.Name, DefaultFont, brush, e.Bounds.Location.X + 18, e.Bounds.Location.Y);

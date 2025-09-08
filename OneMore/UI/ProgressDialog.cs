@@ -1,5 +1,5 @@
 ﻿//************************************************************************************************
-// Copyright © 2020 Steven M Cohn.  Yada yada...
+// Copyright © 2020 Steven M Cohn. All rights reserved.
 //************************************************************************************************
 
 #pragma warning disable IDE1006 // Naming Styles
@@ -10,7 +10,7 @@ namespace River.OneMoreAddIn.UI
 	using System.Threading;
 	using System.Threading.Tasks;
 	using System.Windows.Forms;
-	using Resx = River.OneMoreAddIn.Properties.Resources;
+	using Resx = Properties.Resources;
 
 
 	/// <summary>
@@ -33,12 +33,13 @@ namespace River.OneMoreAddIn.UI
 	/// A cancel button is displayed that, when pressed, sets the cancelltion token and returns
 	/// DialogResult.Cancel. If the execute action completes without cancellation OK is returned.
 	/// </remarks>
-	internal partial class ProgressDialog : LocalizableForm
+	internal partial class ProgressDialog : MoreForm
 	{
 		private const int SimpleHeight = 112;
 		private const int CancelHeight = 144;
 
-		private readonly CancellationTokenSource source;
+		private CancellationTokenSource source;
+
 		// Func<p1, p2, Task> is the async equivalent of Action<p1, p2>
 		private readonly Func<ProgressDialog, CancellationToken, Task> execute;
 
@@ -57,7 +58,7 @@ namespace River.OneMoreAddIn.UI
 
 
 		/// <summary>
-		/// Initializes a new dialog with message area, progress bar, and cacel button
+		/// Initializes a new dialog with message area, progress bar, and cancel button
 		/// that is used as a time-boxed controller and intended to be combined with the
 		/// ShowTimedDialog method. The given action is responsible for changing the message.
 		/// No need to invoke SetMaximum as this will be done by ShowTimedDialog.
@@ -71,23 +72,6 @@ namespace River.OneMoreAddIn.UI
 			Initialize(CancelHeight);
 			source = new CancellationTokenSource();
 			SetMaximum(maxSeconds);
-		}
-
-
-		/// <summary>
-		/// Initializes a new dialog with message area, progress bar, and a cancel button.
-		/// </summary>
-		/// <param name="source">
-		/// A cancellation source that indicates the active work should abort. Cancellation
-		/// could be requested by clicking the Cancel button or be activated by a timer.
-		/// </param>
-		[Obsolete("Use the (int) override instead")]
-		public ProgressDialog(CancellationTokenSource source)
-		{
-			Initialize(CancelHeight);
-
-			this.source = source;
-			timer.Tick += Tick;
 		}
 
 
@@ -113,7 +97,7 @@ namespace River.OneMoreAddIn.UI
 		{
 			InitializeComponent();
 
-			(_, float factorY) = UIHelper.GetScalingFactors();
+			(_, float factorY) = UI.Scaling.GetScalingFactors();
 			Height = (int)Math.Round(height * factorY);
 
 			if (NeedsLocalizing())
@@ -129,17 +113,18 @@ namespace River.OneMoreAddIn.UI
 
 
 		/// <summary>
-		/// Shows the progress dialog with a timed progression and a callback action to
-		/// invoke on a secondary thread.
+		/// 
 		/// </summary>
-		/// <param name="owner">The owner window used to center this dialog</param>
-		/// <param name="action">The callback method to invoke</param>
+		/// <param name="action"></param>
 		/// <returns></returns>
-		public DialogResult ShowTimedDialog(
-			IWin32Window owner, Func<ProgressDialog, CancellationToken, Task<bool>> action)
+		public DialogResult ShowDialogWithCancel(
+			Func<ProgressDialog, CancellationToken, Task<bool>> action)
 		{
-			timer.Tick += Tick;
-			StartTimer();
+			cancelButton.Visible = true;
+			(_, float factorY) = UI.Scaling.GetScalingFactors();
+			Height = (int)Math.Round(CancelHeight * factorY);
+
+			source ??= new CancellationTokenSource();
 
 			try
 			{
@@ -147,35 +132,65 @@ namespace River.OneMoreAddIn.UI
 				// the OneNote MTA thread environment
 				var thread = new Thread(async () =>
 				{
+					logger.WriteLine("starting action...");
+					logger.StartClock();
+
 					var ok = await action(this, source.Token);
 
-					DialogResult = source.IsCancellationRequested 
+					logger.WriteTime($"completed action ({(ok ? "OK" : "NOK")})");
+
+					DialogResult = source.IsCancellationRequested
 						? DialogResult.Abort
 						: ok ? DialogResult.OK : DialogResult.Cancel;
 
-					timer.Stop();
+					if (timer.Enabled)
+					{
+						timer.Stop();
+					}
+
 					Close();
-				});
+				})
+				{
+					Name = $"{nameof(ProgressDialog)}Thread"
+				};
 
 				thread.SetApartmentState(ApartmentState.STA);
 				thread.IsBackground = true;
 				thread.Start();
 
-				var result = ShowDialog(owner);
+				var result = ShowDialog();
 
 				if (result == DialogResult.Cancel)
 				{
 					logger.WriteLine("clicked cancel");
+					source.Cancel();
 					thread.Abort();
-					return result;
 				}
+
+				return result;
 			}
 			catch (Exception exc)
 			{
 				logger.WriteLine("error importing", exc);
 			}
 
-			return DialogResult.OK;
+			return DialogResult.Cancel;
+		}
+
+
+		/// <summary>
+		/// Shows the progress dialog with a timed progression and a callback action to
+		/// invoke on a secondary thread.
+		/// </summary>
+		/// <param name="action">The callback method to invoke</param>
+		/// <returns></returns>
+		public DialogResult ShowTimedDialog(
+			Func<ProgressDialog, CancellationToken, Task<bool>> action)
+		{
+			timer.Tick += Tick;
+			StartTimer();
+
+			return ShowDialogWithCancel(action);
 		}
 
 
@@ -185,7 +200,7 @@ namespace River.OneMoreAddIn.UI
 		/// Called after Show()
 		/// </summary>
 		/// <param name="e"></param>
-		protected override void OnLoad(EventArgs e)
+		protected override async void OnLoad(EventArgs e)
 		{
 			base.OnLoad(e);
 
@@ -195,10 +210,9 @@ namespace River.OneMoreAddIn.UI
 				TopMost = true;
 
 				var rect = new Native.Rectangle();
-				using (var one = new OneNote())
-				{
-					Native.GetWindowRect(one.WindowHandle, ref rect);
-				}
+
+				await using var one = new OneNote();
+				Native.GetWindowRect(one.WindowHandle, ref rect);
 
 				var yoffset = (int)(Height * 20 / 100.0);
 
@@ -237,6 +251,21 @@ namespace River.OneMoreAddIn.UI
 
 					Close();
 				});
+			}
+		}
+
+
+		/// <summary>
+		/// Needed after calling base.Show()
+		/// </summary>
+		/// <param name="e"></param>
+		protected override void OnVisibleChanged(EventArgs e)
+		{
+			base.OnVisibleChanged(e);
+			if (Visible)
+			{
+				TopMost = false;
+				TopMost = true;
 			}
 		}
 

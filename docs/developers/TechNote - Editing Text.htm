@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description"
+    content="OneMore is an add-in for OneNote with simple and powerful features that make OneNote a better OneNote">
+  <meta name="author" content="Steven M Cohn">
+  <meta name="generator" content="OneMore">
+  <title>OneMore - a OneNote add-in</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha2/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-aFq/bzH65dt+w6FI2ooMVUpc+21e0SRygnTpmBvdBgSdnuTN7QbdgL+OapgHtvPp" crossorigin="anonymous">
+  <link href="/nav.css" rel="stylesheet">
+  <link href="/toc.css" rel="stylesheet">
+</head>
+
+<body>
+  <svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+    <symbol id="book-half" viewBox="0 0 16 16">
+      <path fill="currentColor" fill-rule="evenodd"
+        d="M8.5 2.687c.654-.689 1.782-.886 3.112-.752 1.234.124 2.503.523 3.388.893v9.923c-.918-.35-2.107-.692-3.287-.81-1.094-.111-2.278-.039-3.213.492V2.687zM8 1.783C7.015.936 5.587.81 4.287.94c-1.514.153-3.042.672-3.994 1.105A.5.5 0 0 0 0 2.5v11a.5.5 0 0 0 .707.455c.882-.4 2.303-.881 3.68-1.02 1.409-.142 2.59.087 3.223.877a.5.5 0 0 0 .78 0c.633-.79 1.814-1.019 3.222-.877 1.378.139 2.8.62 3.681 1.02A.5.5 0 0 0 16 13.5v-11a.5.5 0 0 0-.293-.455c-.952-.433-2.48-.952-3.994-1.105C10.413.809 8.985.936 8 1.783z">
+      </path>
+    </symbol>
+    <symbol id="three-dots" viewBox="0 0 16 16">
+      <path fill="currentColor" fill-rule="evenodd"
+        d="M3 9.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z">
+      </path>
+    </symbol>
+    <symbol id="facebook">
+      <path fill="currentColor" fill-rule="evenodd"
+        d="M480,257.35c0-123.7-100.3-224-224-224s-224,100.3-224,224c0,111.8,81.9,204.47,189,221.29V322.12H164.11V257.35H221V208c0-56.13,33.45-87.16,84.61-87.16,24.51,0,50.15,4.38,50.15,4.38v55.13H327.5c-27.81,0-36.51,17.26-36.51,35v42h62.12l-9.92,64.77H291V478.66C398.1,461.85,480,369.18,480,257.35Z">
+      </path>
+    </symbol>
+    <symbol id="github">
+      <path fill="currentColor" fill-rule="evenodd"
+        d="M256 0C114.64 0 0 114.61 0 256c0 113.09 73.34 209 175.08 242.9 12.8 2.35 17.47-5.56 17.47-12.34 0-6.08-.22-22.18-.35-43.54-71.2 15.49-86.2-34.34-86.2-34.34-11.64-29.57-28.42-37.45-28.42-37.45-23.27-15.84 1.73-15.55 1.73-15.55 25.69 1.81 39.21 26.38 39.21 26.38 22.84 39.12 59.92 27.82 74.5 21.27 2.33-16.54 8.94-27.82 16.25-34.22-56.84-6.43-116.6-28.43-116.6-126.49 0-27.95 10-50.8 26.35-68.69-2.63-6.48-11.42-32.5 2.51-67.75 0 0 21.49-6.88 70.4 26.24a242.65 242.65 0 0 1 128.18 0c48.87-33.13 70.33-26.24 70.33-26.24 14 35.25 5.18 61.27 2.55 67.75 16.41 17.9 26.31 40.75 26.31 68.69 0 98.35-59.85 120-116.88 126.32 9.19 7.9 17.38 23.53 17.38 47.41 0 34.22-.31 61.83-.31 70.23 0 6.85 4.61 14.81 17.6 12.31C438.72 464.97 512 369.08 512 256.02 512 114.62 397.37 0 256 0z">
+      </path>
+    </symbol>
+    <symbol id="heart">
+      <path stroke="#FF0000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+        d="M12 7.69431C10 2.99988 3 3.49988 3 9.49991C3 15.4999 12 20.5001 12 20.5001C12 20.5001 21 15.4999 21 9.49991C21 3.49988 14 2.99988 12 7.69431Z">
+      </path>
+    </symbol>
+  </svg>
+
+  <script src="https://code.jquery.com/jquery-3.5.1.min.js"
+    integrity="sha384-ZvpUoO/+PpLXR1lu4jmpXWu80pZlYUAfxl5NsBMWOEPSjUn/6Z/hRTt8+pR6L4N2"
+    crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha2/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-qKXV1j0HvMUeCBQ+QVp7JcfGl760yU08IQ+GpUo5hlbpg51QRiuqHAJz8+BrxE/N"
+    crossorigin="anonymous"></script>
+
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg bg-body-tertiary fixed-top" aria-label="OneMore-navbar">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="/">
+        <img src="/Logo.png" alt="OneMore" height="45" class="logo d-inline-block align-text-middle">
+        <div class="logo-text">OneMore</div>
+      </a>
+
+      <div class="navbar-toggler d-flex d-lg-none order-3 p-2" style="display:block">
+        <button class="navbar-toggler navbar-dark" type="button" data-bs-toggle="offcanvas"
+          data-bs-target="#offcanvasResponsive" aria-controls="offcanvasResponsive" aria-label="TOC">
+          <svg class="bi" aria-hidden="true">
+            <use xlink:href="#book-half"></use>
+          </svg>
+        </button>
+
+        <button class="navbar-toggler navbar-dark" type="button" data-bs-toggle="collapse"
+          data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false"
+          aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+      </div>
+
+      <div class="collapse navbar-collapse" id="navbarSupportedContent">
+        <div class="navbar-nav me-auto mb-2 mb-lg-0">
+          <!-- TODO class+active aria-currrent=page -->
+          <a class="nav-link" href="/get-started/index.html" id="get-started-section">Get started</a>
+          <a class="nav-link" href="/the-basics/index.html" id="the-basics-section">The Basics</a>
+          <a class="nav-link" href="/commands/index.html" id="commands-section">Commands</a>
+          <a class="nav-link" href="/context-menus/index.html" id="context-menus-section">Context Menus</a>
+          <a class="nav-link" href="/developers/index.html" id="developers-section">Developers</a>
+        </div>
+        <div class="d-flex">
+          <a class="nav-link nav-glyph py-2 px-lg-2" href="https://facebook.com/OneMoreAddIn" target="_blank" rel="noopener">
+            <svg width="22px" height="22px" viewBox="0 0 512 512" id="fbglyph" xmlns="http://www.w3.org/2000/svg"
+              stroke="#FFFFFF" role="img" class="navbar-nav-svg">
+              <title>OneMore on Facebook</title>
+              <use xlink:href="#facebook"></use>
+            </svg>
+            <small class="d-lg-none ms-2">Facebook</small>
+          </a>
+          <a class="nav-link nav-glyph py-2 px-lg-2" href="https://github.com/stevencohn/OneMore" target="_blank" rel="noopener">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" class="navbar-nav-svg"
+              viewBox="0 0 512 499.36" role="img">
+              <title>See the project on GitHub</title>
+              <use xlink:href="#github"></use>
+            </svg>
+            <small class="d-lg-none ms-2">GitHub</small>
+          </a>
+          <a class="nav-link nav-glyph py-2 px-lg-2" href="https://github.com/sponsors/stevencohn" target="_blank" rel="noopener">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" class="navbar-nav-svg" viewBox="0 0 24 24"
+              role="img" fill="none">
+              <title>Please consider a donation</title>
+              <use xlink:href="#heart"></use>
+            </svg>
+            <small class="d-lg-none ms-2">Donate</small>
+          </a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="wrapper">
+
+    <!-- Sidebar -->
+    <nav id="sidebar" style="background-color:#EBE5E1; " aria-label="Sidebar">
+      <div class="offcanvas-lg offcanvas-end" tabindex="-1" id="offcanvasResponsive"
+        aria-labelledby="offcanvasResponsiveLabel">
+        <div class="offcanvas-header">
+          <h5 class="offcanvas-title" id="offcanvasResponsiveLabel">Get Started</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#offcanvasResponsive"
+            aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body">
+          <ul class="navbar-nav">
+            <li><a id="setup" href="Setup.htm">Setup</a></li>
+<li><a id="building-the-installer" href="Building The Installer.htm">Building The Installer</a></li>
+<li><a id="debugging-onemore" href="Debugging OneMore.htm">Debugging OneMore</a></li>
+<li><a id="experimental-features" href="Experimental Features.htm">Experimental Features</a></li>
+<li><a id="how-to-add-a-new-command" href="How to Add A New Command.htm">How to Add A New Command</a></li>
+<li><a id="how-to-add-a-settings-sheet" href="How to Add A Settings Sheet.htm">How to Add A Settings Sheet</a></li>
+<li><a id="language-translations" href="Language Translations.htm">Language Translations</a></li>
+<li><a id="logging-options" href="Logging Options.htm">Logging Options</a></li>
+<li><a id="scripts" href="Scripts.htm">Scripts</a></li>
+<li><a id="smoke-tests" href="Smoke Tests.htm">Smoke Tests</a></li>
+<li><a id="references" href="References.htm">References</a></li>
+<li><a id="design---command-framework" href="Design - Command Framework.htm">Design - Command Framework</a></li>
+<li><a id="design---command-service" href="Design - Command Service.htm">Design - Command Service</a></li>
+<li><a id="design---hashtags" href="Design - Hashtags.htm">Design - Hashtags</a></li>
+<li><a id="technote---colors" href="TechNote - Colors.htm">TechNote - Colors</a></li>
+<li><a id="technote---com-registration" href="TechNote - COM Registration.htm">TechNote - COM Registration</a></li>
+<li><a id="technote---com-surrogate" href="TechNote - COM Surrogate.htm">TechNote - COM Surrogate</a></li>
+<li><a id="technote---editing-text" href="TechNote - Editing Text.htm">TechNote - Editing Text</a></li>
+<li><a id="technote---interop" href="TechNote - Interop.htm">TechNote - Interop</a></li>
+<li><a id="technote---styles" href="TechNote - Styles.htm">TechNote - Styles</a></li>
+<li><a id="onenote-defects" href="OneNote Defects.htm">OneNote Defects</a></li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Page Content -->
+    <div id="content" style="margin-left: 30px; margin-top:100px;">
+      <DIV style="DIRECTION: ltr">
+<DIV style="WIDTH: 8.972in; MARGIN-TOP: 0in; DIRECTION: ltr; MARGIN-LEFT: 0in">
+<DIV style="WIDTH: 3.14in; MARGIN-TOP: 0in; DIRECTION: ltr; MARGIN-LEFT: 0.075in">
+<P lang=yo style='FONT-SIZE: 20pt; FONT-FAMILY: "Calibri Light"; MARGIN: 0in'>TechNote - Editing Text</P></DIV>
+<DIV style="WIDTH: 2.287in; MARGIN-TOP: 0.042in; DIRECTION: ltr; MARGIN-LEFT: 0.075in">
+<P style="FONT-SIZE: 10pt; FONT-FAMILY: Calibri; COLOR: #767676; MARGIN: 0in">Friday, March 10, 2023</P>
+<P style="FONT-SIZE: 10pt; FONT-FAMILY: Calibri; COLOR: #767676; MARGIN: 0in">10:29 AM</P></DIV>
+<DIV style="WIDTH: 8.972in; MARGIN-TOP: 0.427in; DIRECTION: ltr; MARGIN-LEFT: 0in">
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">As described by the <A href="https://github.com/stevencohn/OneMore/blob/main/Reference/0336.OneNoteApplication_2013.xsd">OneNote XML Schema definition</A>, the simplest representation of a line of text in OneNote can be expressed as:</P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<P lang=yo style='FONT-SIZE: 10pt; FONT-FAMILY: "Lucida Console"; MARGIN: 0in 0in 0in 0.375in'><SPAN style="COLOR: #2e75b5">&lt;</SPAN><SPAN style="COLOR: firebrick">one</SPAN><SPAN style="COLOR: #2e75b5">:</SPAN><SPAN style="COLOR: firebrick">OE </SPAN><SPAN style="COLOR: #f1937a">alignment</SPAN><SPAN style="COLOR: #2e75b5">=</SPAN><SPAN style="COLOR: black">"</SPAN><SPAN style="COLOR: #2e75b5">left</SPAN><SPAN style="COLOR: black">" </SPAN><SPAN style="COLOR: #f1937a">quickStyleIndex</SPAN><SPAN style="COLOR: #2e75b5">=</SPAN><SPAN style="COLOR: black">"</SPAN><SPAN style="COLOR: #2e75b5">1</SPAN><SPAN style="COLOR: black">"</SPAN><SPAN style="COLOR: #2e75b5">&gt;</SPAN></P>
+<P lang=yo style='FONT-SIZE: 10pt; FONT-FAMILY: "Lucida Console"; MARGIN: 0in 0in 0in 0.375in'><SPAN style="COLOR: black"><SPAN style="mso-spacerun: yes">&nbsp; </SPAN></SPAN><SPAN style="COLOR: #2e75b5">&lt;</SPAN><SPAN style="COLOR: firebrick">one</SPAN><SPAN style="COLOR: #2e75b5">:</SPAN><SPAN style="COLOR: firebrick">T</SPAN><SPAN style="COLOR: #2e75b5">&gt;</SPAN>&lt;![CDATA[<SPAN style="COLOR: gray">Hello World</SPAN><SPAN style="COLOR: #2e75b5">]]&gt;</SPAN>&lt;/<SPAN style="COLOR: firebrick">one</SPAN>:<SPAN style="COLOR: firebrick">T</SPAN>&gt;</P>
+<P lang=yo style='FONT-SIZE: 10pt; FONT-FAMILY: "Lucida Console"; MARGIN: 0in 0in 0in 0.375in'>&lt;/<SPAN style="COLOR: firebrick">one</SPAN>:<SPAN style="COLOR: firebrick">OE</SPAN>&gt;</P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<P lang=yo style="MARGIN: 0in"><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri">Every paragraph of text is expressed as a OneNote Element, or </SPAN><SPAN style='FONT-SIZE: 10pt; FONT-FAMILY: "Lucida Console"; COLOR: blue'>&lt;</SPAN><SPAN style='FONT-SIZE: 10pt; FONT-FAMILY: "Lucida Console"; COLOR: #a31515'>one</SPAN><SPAN style='FONT-SIZE: 10pt; FONT-FAMILY: "Lucida Console"; COLOR: blue'>:</SPAN><SPAN style='FONT-SIZE: 10pt; FONT-FAMILY: "Lucida Console"; COLOR: #a31515'>OE</SPAN><SPAN style='FONT-SIZE: 10pt; FONT-FAMILY: "Lucida Console"; COLOR: blue'>&gt;</SPAN><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri">. An element is comprised of one or more text runs, </SPAN><SPAN style='FONT-SIZE: 10pt; FONT-FAMILY: "Lucida Console"; COLOR: blue'>&lt;</SPAN><SPAN style='FONT-SIZE: 10pt; FONT-FAMILY: "Lucida Console"; COLOR: #a31515'>one</SPAN><SPAN style='FONT-SIZE: 10pt; FONT-FAMILY: "Lucida Console"; COLOR: blue'>:</SPAN><SPAN style='FONT-SIZE: 10pt; FONT-FAMILY: "Lucida Console"; COLOR: #a31515'>T</SPAN><SPAN style='FONT-SIZE: 10pt; FONT-FAMILY: "Lucida Console"; COLOR: blue'>&gt;</SPAN><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri">. And a text run includes a CDATA.</SPAN></P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<H1 lang=yo style="FONT-SIZE: 16pt; FONT-FAMILY: Calibri; COLOR: #1e4e79; MARGIN: 0in">Selected Text</H1>
+<P lang=yo style="MARGIN: 0in"><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri">Selected text is identified by looking for the </SPAN><SPAN style='FONT-SIZE: 9.5pt; FONT-FAMILY: "Lucida Console"; BACKGROUND: #e8e8e8; COLOR: #172b4d'>selected</SPAN><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri"> attribute. In this example, the entire paragraph is selected, so there is a </SPAN><SPAN style='FONT-SIZE: 9.5pt; FONT-FAMILY: "Lucida Console"; BACKGROUND: #e8e8e8; COLOR: #172b4d'>selected="all"</SPAN><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri"> attribute on the text run.</SPAN></P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<P lang=yo style='FONT-SIZE: 10pt; FONT-FAMILY: "Lucida Console"; MARGIN: 0in 0in 0in 0.375in'><SPAN style="COLOR: blue">&lt;</SPAN><SPAN style="COLOR: #a31515">one</SPAN><SPAN style="COLOR: blue">:</SPAN><SPAN style="COLOR: #a31515">OE </SPAN><SPAN style="COLOR: red">alignment</SPAN><SPAN style="COLOR: blue">=</SPAN><SPAN style="COLOR: black">"</SPAN><SPAN style="COLOR: blue">left</SPAN><SPAN style="COLOR: black">" </SPAN><SPAN style="COLOR: red">quickStyleIndex</SPAN><SPAN style="COLOR: blue">=</SPAN><SPAN style="COLOR: black">"</SPAN><SPAN style="COLOR: blue">1</SPAN><SPAN style="COLOR: black">" </SPAN><SPAN style="BACKGROUND: #ffff99; COLOR: red">selected</SPAN><SPAN style="BACKGROUND: #ffff99; COLOR: blue">=</SPAN><SPAN style="BACKGROUND: #ffff99; COLOR: black">"</SPAN><SPAN style="BACKGROUND: #ffff99; COLOR: blue">partial</SPAN><SPAN style="BACKGROUND: #ffff99; COLOR: black">"</SPAN><SPAN style="COLOR: blue">&gt;</SPAN></P>
+<P lang=yo style='FONT-SIZE: 10pt; FONT-FAMILY: "Lucida Console"; MARGIN: 0in 0in 0in 0.375in'><SPAN style="COLOR: black"><SPAN style="mso-spacerun: yes">&nbsp; </SPAN></SPAN><SPAN style="COLOR: blue">&lt;</SPAN><SPAN style="COLOR: #a31515">one</SPAN><SPAN style="COLOR: blue">:</SPAN><SPAN style="COLOR: #a31515">T </SPAN><SPAN style="BACKGROUND: #ffff99; COLOR: red">selected</SPAN><SPAN style="BACKGROUND: #ffff99; COLOR: blue">=</SPAN><SPAN style="BACKGROUND: #ffff99; COLOR: black">"</SPAN><SPAN style="BACKGROUND: #ffff99; COLOR: blue">all</SPAN><SPAN style="BACKGROUND: #ffff99; COLOR: black">"</SPAN><SPAN style="COLOR: blue">&gt;</SPAN><SPAN style="COLOR: #172b4d">&lt;![CDATA[</SPAN><SPAN style="COLOR: gray">Hello World</SPAN><SPAN style="COLOR: blue">]]&gt;</SPAN><SPAN style="COLOR: #172b4d">&lt;/</SPAN><SPAN style="COLOR: #a31515">one</SPAN><SPAN style="COLOR: #172b4d">:</SPAN><SPAN style="COLOR: #a31515">T</SPAN><SPAN style="COLOR: #172b4d">&gt;</SPAN></P>
+<P lang=yo style='FONT-SIZE: 10pt; FONT-FAMILY: "Lucida Console"; MARGIN: 0in 0in 0in 0.375in'><SPAN style="COLOR: #172b4d">&lt;/</SPAN><SPAN style="COLOR: #a31515">one</SPAN><SPAN style="COLOR: #172b4d">:</SPAN><SPAN style="COLOR: #a31515">OE</SPAN><SPAN style="COLOR: #172b4d">&gt;</SPAN></P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<P lang=yo style="MARGIN: 0in"><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri">Note that all ancestors of the selection will include the attribute </SPAN><SPAN style='FONT-SIZE: 9.5pt; FONT-FAMILY: "Lucida Console"; BACKGROUND: #e8e8e8; COLOR: #172b4d'>selected="partial"</SPAN><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri">. This includes the immediate </SPAN><SPAN style='FONT-SIZE: 9.5pt; FONT-FAMILY: "Lucida Console"; BACKGROUND: #e8e8e8; COLOR: #172b4d'>one:OE</SPAN><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri"> and the entire hierarchy back up to and including the containing </SPAN><SPAN style='FONT-SIZE: 9.5pt; FONT-FAMILY: "Lucida Console"; BACKGROUND: #e8e8e8; COLOR: #172b4d'>one:Outline</SPAN><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri">.</SPAN></P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<H1 lang=yo style="FONT-SIZE: 16pt; FONT-FAMILY: Calibri; COLOR: #1e4e79; MARGIN: 0in">Complex Selections</H1>
+<P lang=yo style="MARGIN: 0in"><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri">When only part of a paragraph is selected, OneNote divides the paragraph into multiple text runs so it can apply the </SPAN><SPAN style='FONT-SIZE: 9.5pt; FONT-FAMILY: "Lucida Console"; BACKGROUND: #e8e8e8; COLOR: #172b4d'>selected</SPAN><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri"> attribute to only the selected run, as shown here</SPAN></P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<P lang=yo style='FONT-SIZE: 10pt; FONT-FAMILY: "Lucida Console"; MARGIN: 0in 0in 0in 0.375in'><SPAN style="COLOR: blue">&lt;</SPAN><SPAN style="COLOR: #a31515">one</SPAN><SPAN style="COLOR: blue">:</SPAN><SPAN style="COLOR: #a31515">OE </SPAN><SPAN style="COLOR: red">alignment</SPAN><SPAN style="COLOR: blue">=</SPAN><SPAN style="COLOR: black">"</SPAN><SPAN style="COLOR: blue">left</SPAN><SPAN style="COLOR: black">" </SPAN><SPAN style="COLOR: red">quickStyleIndex</SPAN><SPAN style="COLOR: blue">=</SPAN><SPAN style="COLOR: black">"</SPAN><SPAN style="COLOR: blue">4</SPAN><SPAN style="COLOR: black">" </SPAN><SPAN style="BACKGROUND: #ffff99; COLOR: red">selected</SPAN><SPAN style="BACKGROUND: #ffff99; COLOR: blue">=</SPAN><SPAN style="BACKGROUND: #ffff99; COLOR: black">"</SPAN><SPAN style="BACKGROUND: #ffff99; COLOR: blue">partial</SPAN><SPAN style="BACKGROUND: #ffff99; COLOR: black">"</SPAN><SPAN style="COLOR: blue">&gt;</SPAN></P>
+<P lang=yo style='FONT-SIZE: 10pt; FONT-FAMILY: "Lucida Console"; MARGIN: 0in 0in 0in 0.375in'><SPAN style="COLOR: black"><SPAN style="mso-spacerun: yes">&nbsp; </SPAN></SPAN><SPAN style="COLOR: blue">&lt;</SPAN><SPAN style="COLOR: #a31515">one</SPAN><SPAN style="COLOR: blue">:</SPAN><SPAN style="COLOR: #a31515">T </SPAN><SPAN style="BACKGROUND: #ffff99; COLOR: red">selected</SPAN><SPAN style="BACKGROUND: #ffff99; COLOR: blue">=</SPAN><SPAN style="BACKGROUND: #ffff99; COLOR: black">"</SPAN><SPAN style="BACKGROUND: #ffff99; COLOR: blue">all</SPAN><SPAN style="BACKGROUND: #ffff99; COLOR: black">"</SPAN><SPAN style="COLOR: blue">&gt;</SPAN><SPAN style="COLOR: #172b4d">&lt;![CDATA[</SPAN><SPAN style="COLOR: gray">Hello </SPAN><SPAN style="COLOR: blue">]]&gt;</SPAN><SPAN style="COLOR: #172b4d">&lt;/</SPAN><SPAN style="COLOR: #a31515">one</SPAN><SPAN style="COLOR: #172b4d">:</SPAN><SPAN style="COLOR: #a31515">T</SPAN><SPAN style="COLOR: #172b4d">&gt;</SPAN></P>
+<P lang=yo style='FONT-SIZE: 10pt; FONT-FAMILY: "Lucida Console"; MARGIN: 0in 0in 0in 0.375in'><SPAN style="COLOR: black"><SPAN style="mso-spacerun: yes">&nbsp; </SPAN></SPAN><SPAN style="COLOR: blue">&lt;</SPAN><SPAN style="COLOR: #a31515">one</SPAN><SPAN style="COLOR: blue">:</SPAN><SPAN style="COLOR: #a31515">T</SPAN><SPAN style="COLOR: blue">&gt;</SPAN><SPAN style="COLOR: #172b4d">&lt;![CDATA[</SPAN><SPAN style="COLOR: gray">World</SPAN><SPAN style="COLOR: blue">]]&gt;</SPAN><SPAN style="COLOR: #172b4d">&lt;/</SPAN><SPAN style="COLOR: #a31515">one</SPAN><SPAN style="COLOR: #172b4d">:</SPAN><SPAN style="COLOR: #a31515">T</SPAN><SPAN style="COLOR: #172b4d">&gt;</SPAN></P>
+<P lang=yo style='FONT-SIZE: 10pt; FONT-FAMILY: "Lucida Console"; MARGIN: 0in 0in 0in 0.375in'><SPAN style="COLOR: #172b4d">&lt;/</SPAN><SPAN style="COLOR: #a31515">one</SPAN><SPAN style="COLOR: #172b4d">:</SPAN><SPAN style="COLOR: #a31515">OE</SPAN><SPAN style="COLOR: #172b4d">&gt;</SPAN></P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<DIV style="DIRECTION: ltr">
+<TABLE title="" style="BORDER-TOP: #a3a3a3 1pt solid; BORDER-RIGHT: #a3a3a3 1pt solid; BORDER-COLLAPSE: collapse; BORDER-BOTTOM: #a3a3a3 1pt solid; DIRECTION: ltr; BORDER-LEFT: #a3a3a3 1pt solid" cellSpacing=0 cellPadding=0 summary="" border=1 valign="top">
+<TBODY>
+<TR>
+<TD style="BORDER-TOP: #a3a3a3 1pt solid; BORDER-RIGHT: #a3a3a3 1pt solid; WIDTH: 8.534in; VERTICAL-ALIGN: top; BORDER-BOTTOM: #a3a3a3 1pt solid; PADDING-BOTTOM: 2pt; PADDING-TOP: 2pt; PADDING-LEFT: 3pt; BORDER-LEFT: #a3a3a3 1pt solid; PADDING-RIGHT: 3pt; BACKGROUND-COLOR: #e5e0ec">
+<DIV style="DIRECTION: ltr">
+<TABLE title="" style="BORDER-TOP: #a3a3a3 0pt solid; BORDER-RIGHT: #a3a3a3 0pt solid; BORDER-COLLAPSE: collapse; BORDER-BOTTOM: #a3a3a3 0pt solid; DIRECTION: ltr; BORDER-LEFT: #a3a3a3 0pt solid" cellSpacing=0 cellPadding=0 summary="" border=0 valign="top">
+<TBODY>
+<TR>
+<TD style="BORDER-LEFT-WIDTH: 0pt; BORDER-RIGHT-WIDTH: 0pt; WIDTH: 0.681in; VERTICAL-ALIGN: top; BORDER-BOTTOM-WIDTH: 0pt; PADDING-BOTTOM: 2pt; PADDING-TOP: 2pt; PADDING-LEFT: 3pt; PADDING-RIGHT: 3pt; BORDER-TOP-WIDTH: 0pt">
+<P style='FONT-SIZE: 22pt; FONT-FAMILY: "Segoe UI Emoji"; TEXT-ALIGN: center; MARGIN: 0in'>📓</P></TD>
+<TD style="BORDER-LEFT-WIDTH: 0pt; BORDER-RIGHT-WIDTH: 0pt; WIDTH: 7.643in; VERTICAL-ALIGN: top; BORDER-BOTTOM-WIDTH: 0pt; PADDING-BOTTOM: 2pt; PADDING-TOP: 2pt; PADDING-LEFT: 3pt; PADDING-RIGHT: 3pt; BORDER-TOP-WIDTH: 0pt">
+<P lang=yo style='FONT-SIZE: 11pt; FONT-FAMILY: "Segoe UI"; COLOR: #333333; MARGIN: 0in'><SPAN style="FONT-WEIGHT: bold">There can only be one!</SPAN></P>
+<P lang=yo style='FONT-SIZE: 11pt; FONT-FAMILY: "Segoe UI"; COLOR: #333333; MARGIN: 0in'>Within a single paragraph, there can be only one contiguous selection. It can span multiple text runs but it can't skip text runs. This means that you can select text from the middle of a paragraph like</P>
+<P lang=yo style='FONT-SIZE: 11pt; FONT-FAMILY: "Segoe UI"; COLOR: #333333; MARGIN: 0in'>&nbsp;</P>
+<P lang=yo style='FONT-SIZE: 11pt; FONT-FAMILY: "Segoe UI"; COLOR: #44546a; MARGIN: 0in 0in 0in 0.375in'>This is an example paragraph with a <SPAN style="BACKGROUND: silver; mso-highlight: silver">text selection</SPAN> in the midle of it.</P>
+<P lang=yo style='FONT-SIZE: 11pt; FONT-FAMILY: "Segoe UI"; COLOR: #333333; MARGIN: 0in'>&nbsp;</P>
+<P lang=yo style='FONT-SIZE: 11pt; FONT-FAMILY: "Segoe UI"; COLOR: #333333; MARGIN: 0in'>But even using the OneMore <SPAN style="FONT-STYLE: italic">Invert Selection</SPAN> command, you cannot create a selection like this:</P>
+<P lang=yo style='FONT-SIZE: 11pt; FONT-FAMILY: "Segoe UI"; COLOR: #333333; MARGIN: 0in'>&nbsp;</P>
+<P lang=yo style="MARGIN: 0in 0in 0in 0.375in"><SPAN style='FONT-SIZE: 11pt; FONT-FAMILY: "Segoe UI"; BACKGROUND: silver; COLOR: #44546a; mso-highlight: silver'>This is an example paragraph with</SPAN><SPAN style='FONT-SIZE: 11pt; FONT-FAMILY: "Segoe UI"; COLOR: #44546a'> a text selection </SPAN><SPAN style='FONT-SIZE: 11pt; FONT-FAMILY: "Segoe UI"; BACKGROUND: silver; COLOR: #44546a; mso-highlight: silver'>in the midle of it</SPAN><SPAN style='FONT-SIZE: 11pt; FONT-FAMILY: "Segoe UI"; COLOR: #333333'>. </SPAN><SPAN style='FONT-SIZE: 11pt; FONT-FAMILY: "Segoe UI"; COLOR: #e84c22'><SPAN style="mso-spacerun: yes">&nbsp;&nbsp;</SPAN></SPAN><SPAN style='FONT-SIZE: 12pt; FONT-FAMILY: "Segoe UI Emoji"; COLOR: #fa0000'>← </SPAN><SPAN style='FONT-SIZE: 11pt; FONT-FAMILY: "Segoe UI"; COLOR: #fa0000; FONT-STYLE: italic'>Not possible!</SPAN></P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P></TD></TR></TBODY></TABLE></DIV></TD></TR></TBODY></TABLE></DIV>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<H1 lang=yo style="FONT-SIZE: 16pt; FONT-FAMILY: Calibri; COLOR: #1e4e79; MARGIN: 0in">Empty Selection</H1>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">There are a couple of exceptions to note. The first is the <SPAN style="FONT-STYLE: italic">empty selection</SPAN> which indicates the current position of the text cursor, if the cursor is focused on the page.</P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<P lang=yo style='FONT-SIZE: 10pt; FONT-FAMILY: "Lucida Console"; MARGIN: 0in'><SPAN style="COLOR: blue">&lt;</SPAN><SPAN style="COLOR: #a31515">one</SPAN><SPAN style="COLOR: blue">:</SPAN><SPAN style="COLOR: #a31515">OE </SPAN><SPAN style="COLOR: red">alignment</SPAN><SPAN style="COLOR: blue">=</SPAN><SPAN style="COLOR: black">"</SPAN><SPAN style="COLOR: blue">left</SPAN><SPAN style="COLOR: black">" </SPAN><SPAN style="COLOR: red">quickStyleIndex</SPAN><SPAN style="COLOR: blue">=</SPAN><SPAN style="COLOR: black">"</SPAN><SPAN style="COLOR: blue">4</SPAN><SPAN style="COLOR: black">" </SPAN><SPAN style="COLOR: red">selected</SPAN><SPAN style="COLOR: blue">=</SPAN><SPAN style="COLOR: black">"</SPAN><SPAN style="COLOR: blue">partial</SPAN><SPAN style="COLOR: black">"</SPAN><SPAN style="COLOR: blue">&gt;</SPAN></P>
+<P lang=yo style='FONT-SIZE: 10pt; FONT-FAMILY: "Lucida Console"; MARGIN: 0in'><SPAN style="COLOR: blue"><SPAN style="mso-spacerun: yes">&nbsp; </SPAN>&lt;</SPAN><SPAN style="COLOR: #a31515">one</SPAN><SPAN style="COLOR: blue">:</SPAN><SPAN style="COLOR: #a31515">T</SPAN><SPAN style="COLOR: blue">&gt;</SPAN><SPAN style="COLOR: #172b4d">&lt;![CDATA[</SPAN><SPAN style="COLOR: gray">Hel</SPAN><SPAN style="COLOR: blue">]]&gt;</SPAN><SPAN style="COLOR: #172b4d">&lt;/</SPAN><SPAN style="COLOR: #a31515">one</SPAN><SPAN style="COLOR: #172b4d">:</SPAN><SPAN style="COLOR: #a31515">T</SPAN><SPAN style="COLOR: #172b4d">&gt;</SPAN></P>
+<P lang=yo style='FONT-SIZE: 10pt; FONT-FAMILY: "Lucida Console"; MARGIN: 0in'><SPAN style="COLOR: blue"><SPAN style="mso-spacerun: yes">&nbsp; </SPAN></SPAN><SPAN style="BACKGROUND: #ffff99; COLOR: blue">&lt;</SPAN><SPAN style="BACKGROUND: #ffff99; COLOR: #a31515">one</SPAN><SPAN style="BACKGROUND: #ffff99; COLOR: blue">:</SPAN><SPAN style="BACKGROUND: #ffff99; COLOR: #a31515">T </SPAN><SPAN style="BACKGROUND: #ffff99; COLOR: red">selected</SPAN><SPAN style="BACKGROUND: #ffff99; COLOR: blue">=</SPAN><SPAN style="BACKGROUND: #ffff99; COLOR: black">"</SPAN><SPAN style="BACKGROUND: #ffff99; COLOR: blue">all</SPAN><SPAN style="BACKGROUND: #ffff99; COLOR: black">"</SPAN><SPAN style="BACKGROUND: #ffff99; COLOR: blue">&gt;</SPAN><SPAN style="BACKGROUND: #ffff99; COLOR: #172b4d">&lt;![CDATA[</SPAN><SPAN style="BACKGROUND: #ffff99; COLOR: blue">]]&gt;</SPAN><SPAN style="BACKGROUND: #ffff99; COLOR: #172b4d">&lt;/</SPAN><SPAN style="BACKGROUND: #ffff99; COLOR: #a31515">one</SPAN><SPAN style="BACKGROUND: #ffff99; COLOR: #172b4d">:</SPAN><SPAN style="BACKGROUND: #ffff99; COLOR: #a31515">T</SPAN><SPAN style="BACKGROUND: #ffff99; COLOR: #172b4d">&gt;</SPAN></P>
+<P lang=yo style='FONT-SIZE: 10pt; FONT-FAMILY: "Lucida Console"; MARGIN: 0in'><SPAN style="COLOR: blue"><SPAN style="mso-spacerun: yes">&nbsp; </SPAN>&lt;</SPAN><SPAN style="COLOR: #a31515">one</SPAN><SPAN style="COLOR: blue">:</SPAN><SPAN style="COLOR: #a31515">T</SPAN><SPAN style="COLOR: blue">&gt;</SPAN><SPAN style="COLOR: #172b4d">&lt;![CDATA[</SPAN><SPAN style="COLOR: gray">lo World</SPAN><SPAN style="COLOR: blue">]]&gt;</SPAN><SPAN style="COLOR: #172b4d">&lt;/</SPAN><SPAN style="COLOR: #a31515">one</SPAN><SPAN style="COLOR: #172b4d">:</SPAN><SPAN style="COLOR: #a31515">T</SPAN><SPAN style="COLOR: #172b4d">&gt;</SPAN></P>
+<P lang=yo style='FONT-SIZE: 10pt; FONT-FAMILY: "Lucida Console"; MARGIN: 0in'><SPAN style="COLOR: #172b4d">&lt;/</SPAN><SPAN style="COLOR: #a31515">one</SPAN><SPAN style="COLOR: #172b4d">:</SPAN><SPAN style="COLOR: #a31515">OE</SPAN><SPAN style="COLOR: #172b4d">&gt;</SPAN></P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">The paragraph is divided into multiple text runs, where the middle text run includes an empty CDATA[] indicating the cursor position. So when detecting selected runs, routines need to consider whether there is exactly one select run and whether its content is an empty string.</P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<H1 lang=yo style="FONT-SIZE: 16pt; FONT-FAMILY: Calibri; COLOR: #1e4e79; MARGIN: 0in">URLs and MathML</H1>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">Another exception is when the text cursor is position within hyperlinked text or over a MathML equation. For example, given the following paragraph where we presume the text cursor is placed immediately after the word "Page":</P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in 0in 0in 0.375in">The <A href="https://github.com/stevencohn/OneMore/blob/main/OneMore/Models/Page.cs">Page| class</A> contains…</P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">The XML looks like this (the URL is truncated for simplicity)</P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<P lang=yo style='FONT-SIZE: 10pt; FONT-FAMILY: "Lucida Console"; MARGIN: 0in 0in 0in 0.375in'><SPAN style="COLOR: blue">&lt;</SPAN><SPAN style="COLOR: #a31515">one</SPAN><SPAN style="COLOR: blue">:</SPAN><SPAN style="COLOR: #a31515">OE </SPAN><SPAN style="COLOR: red">alignment</SPAN><SPAN style="COLOR: blue">=</SPAN><SPAN style="COLOR: black">"</SPAN><SPAN style="COLOR: blue">left</SPAN><SPAN style="COLOR: black">" </SPAN><SPAN style="COLOR: red">quickStyleIndex</SPAN><SPAN style="COLOR: blue">=</SPAN><SPAN style="COLOR: black">"</SPAN><SPAN style="COLOR: blue">3</SPAN><SPAN style="COLOR: black">" </SPAN><SPAN style="COLOR: red">selected</SPAN><SPAN style="COLOR: blue">=</SPAN><SPAN style="COLOR: black">"</SPAN><SPAN style="COLOR: blue">partial</SPAN><SPAN style="COLOR: black">"</SPAN><SPAN style="COLOR: blue">&gt;</SPAN></P>
+<P lang=yo style='FONT-SIZE: 10pt; FONT-FAMILY: "Lucida Console"; MARGIN: 0in 0in 0in 0.375in'><SPAN style="COLOR: blue"><SPAN style="mso-spacerun: yes">&nbsp; </SPAN>&lt;</SPAN><SPAN style="COLOR: #a31515">one</SPAN><SPAN style="COLOR: blue">:</SPAN><SPAN style="COLOR: #a31515">T</SPAN><SPAN style="COLOR: blue">&gt;</SPAN><SPAN style="COLOR: #172b4d">&lt;![CDATA[</SPAN><SPAN style="COLOR: gray">The </SPAN><SPAN style="COLOR: blue">]]&gt;</SPAN><SPAN style="COLOR: #172b4d">&lt;/</SPAN><SPAN style="COLOR: #a31515">one</SPAN><SPAN style="COLOR: #172b4d">:</SPAN><SPAN style="COLOR: #a31515">T</SPAN><SPAN style="COLOR: #172b4d">&gt;</SPAN></P>
+<P lang=yo style='FONT-SIZE: 10pt; FONT-FAMILY: "Lucida Console"; MARGIN: 0in 0in 0in 0.375in'><SPAN style="COLOR: blue"><SPAN style="mso-spacerun: yes">&nbsp; </SPAN></SPAN><SPAN style="BACKGROUND: #ffff99; COLOR: blue">&lt;</SPAN><SPAN style="BACKGROUND: #ffff99; COLOR: #a31515">one</SPAN><SPAN style="BACKGROUND: #ffff99; COLOR: blue">:</SPAN><SPAN style="BACKGROUND: #ffff99; COLOR: #a31515">T </SPAN><SPAN style="BACKGROUND: #ffff99; COLOR: red">selected</SPAN><SPAN style="BACKGROUND: #ffff99; COLOR: blue">=</SPAN><SPAN style="BACKGROUND: #ffff99; COLOR: black">"</SPAN><SPAN style="BACKGROUND: #ffff99; COLOR: blue">all</SPAN><SPAN style="BACKGROUND: #ffff99; COLOR: black">"</SPAN><SPAN style="BACKGROUND: #ffff99; COLOR: blue">&gt;</SPAN><SPAN style="BACKGROUND: #ffff99; COLOR: #172b4d">&lt;![CDATA[</SPAN><SPAN style="BACKGROUND: #ffff99; COLOR: gray">&lt;a href="https://..."&gt;Page class&lt;/a&gt;</SPAN><SPAN style="BACKGROUND: #ffff99; COLOR: blue">]]&gt;</SPAN><SPAN style="BACKGROUND: #ffff99; COLOR: #172b4d">&lt;/</SPAN><SPAN style="BACKGROUND: #ffff99; COLOR: #a31515">one</SPAN><SPAN style="BACKGROUND: #ffff99; COLOR: #172b4d">:</SPAN><SPAN style="BACKGROUND: #ffff99; COLOR: #a31515">T</SPAN><SPAN style="BACKGROUND: #ffff99; COLOR: #172b4d">&gt;</SPAN></P>
+<P lang=yo style='FONT-SIZE: 10pt; FONT-FAMILY: "Lucida Console"; MARGIN: 0in 0in 0in 0.375in'><SPAN style="COLOR: blue"><SPAN style="mso-spacerun: yes">&nbsp; </SPAN>&lt;</SPAN><SPAN style="COLOR: #a31515">one</SPAN><SPAN style="COLOR: blue">:</SPAN><SPAN style="COLOR: #a31515">T</SPAN><SPAN style="COLOR: blue">&gt;</SPAN><SPAN style="COLOR: #172b4d">&lt;![CDATA[</SPAN><SPAN style="COLOR: gray"> contains...</SPAN><SPAN style="COLOR: blue">]]&gt;</SPAN><SPAN style="COLOR: #172b4d">&lt;/</SPAN><SPAN style="COLOR: #a31515">one</SPAN><SPAN style="COLOR: #172b4d">:</SPAN><SPAN style="COLOR: #a31515">T</SPAN><SPAN style="COLOR: #172b4d">&gt;</SPAN></P>
+<P lang=yo style='FONT-SIZE: 10pt; FONT-FAMILY: "Lucida Console"; MARGIN: 0in 0in 0in 0.375in'><SPAN style="COLOR: #172b4d">&lt;/</SPAN><SPAN style="COLOR: #a31515">one</SPAN><SPAN style="COLOR: #172b4d">:</SPAN><SPAN style="COLOR: #a31515">OE</SPAN><SPAN style="COLOR: #172b4d">&gt;</SPAN></P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<P lang=yo style="MARGIN: 0in"><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri">Notice that the entire URL CDATA is wrapped in a text run decorated with </SPAN><SPAN style='FONT-SIZE: 9.5pt; FONT-FAMILY: "Lucida Console"; BACKGROUND: #e8e8e8; COLOR: #172b4d'>selected="all"</SPAN><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri"> even though the selection range is actually of zero length. The OneMore Page class detects this case and sets the SelectionScope to Empty even though the full CDATA will be returned as the selected text.</SPAN></P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">Compare that to actually selecting the full URL:</P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in 0in 0in 0.375in">The <A href="https://github.com/stevencohn/OneMore/blob/main/OneMore/Models/Page.cs"><SPAN style="BACKGROUND: #e5e0ec">Page class</SPAN></A> contains…</P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">The XML looks exactly the same as it does above!</P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<P lang=yo style='FONT-SIZE: 10pt; FONT-FAMILY: "Lucida Console"; MARGIN: 0in 0in 0in 0.375in'><SPAN style="COLOR: blue">&lt;</SPAN><SPAN style="COLOR: #a31515">one</SPAN><SPAN style="COLOR: blue">:</SPAN><SPAN style="COLOR: #a31515">OE </SPAN><SPAN style="COLOR: red">alignment</SPAN><SPAN style="COLOR: blue">=</SPAN><SPAN style="COLOR: black">"</SPAN><SPAN style="COLOR: blue">left</SPAN><SPAN style="COLOR: black">" </SPAN><SPAN style="COLOR: red">quickStyleIndex</SPAN><SPAN style="COLOR: blue">=</SPAN><SPAN style="COLOR: black">"</SPAN><SPAN style="COLOR: blue">3</SPAN><SPAN style="COLOR: black">" </SPAN><SPAN style="COLOR: red">selected</SPAN><SPAN style="COLOR: blue">=</SPAN><SPAN style="COLOR: black">"</SPAN><SPAN style="COLOR: blue">partial</SPAN><SPAN style="COLOR: black">"</SPAN><SPAN style="COLOR: blue">&gt;</SPAN></P>
+<P lang=yo style='FONT-SIZE: 10pt; FONT-FAMILY: "Lucida Console"; MARGIN: 0in 0in 0in 0.375in'><SPAN style="COLOR: blue"><SPAN style="mso-spacerun: yes">&nbsp; </SPAN>&lt;</SPAN><SPAN style="COLOR: #a31515">one</SPAN><SPAN style="COLOR: blue">:</SPAN><SPAN style="COLOR: #a31515">T</SPAN><SPAN style="COLOR: blue">&gt;</SPAN>&lt;![CDATA[<SPAN style="COLOR: gray">The </SPAN><SPAN style="COLOR: blue">]]&gt;</SPAN>&lt;/<SPAN style="COLOR: #a31515">one</SPAN>:<SPAN style="COLOR: #a31515">T</SPAN>&gt;</P>
+<P lang=yo style='FONT-SIZE: 10pt; FONT-FAMILY: "Lucida Console"; MARGIN: 0in 0in 0in 0.375in'><SPAN style="COLOR: blue"><SPAN style="mso-spacerun: yes">&nbsp; </SPAN></SPAN><SPAN style="BACKGROUND: #ffff99; COLOR: blue">&lt;</SPAN><SPAN style="BACKGROUND: #ffff99; COLOR: #a31515">one</SPAN><SPAN style="BACKGROUND: #ffff99; COLOR: blue">:</SPAN><SPAN style="BACKGROUND: #ffff99; COLOR: #a31515">T </SPAN><SPAN style="BACKGROUND: #ffff99; COLOR: red">selected</SPAN><SPAN style="BACKGROUND: #ffff99; COLOR: blue">=</SPAN><SPAN style="BACKGROUND: #ffff99; COLOR: black">"</SPAN><SPAN style="BACKGROUND: #ffff99; COLOR: blue">all</SPAN><SPAN style="BACKGROUND: #ffff99; COLOR: black">"</SPAN><SPAN style="BACKGROUND: #ffff99; COLOR: blue">&gt;</SPAN><SPAN style="BACKGROUND: #ffff99">&lt;![CDATA[</SPAN><SPAN style="BACKGROUND: #ffff99; COLOR: gray">&lt;a href="https://..."&gt;Page class&lt;/a&gt;</SPAN><SPAN style="BACKGROUND: #ffff99; COLOR: blue">]]&gt;</SPAN><SPAN style="BACKGROUND: #ffff99">&lt;/</SPAN><SPAN style="BACKGROUND: #ffff99; COLOR: #a31515">one</SPAN><SPAN style="BACKGROUND: #ffff99">:</SPAN><SPAN style="BACKGROUND: #ffff99; COLOR: #a31515">T</SPAN><SPAN style="BACKGROUND: #ffff99">&gt;</SPAN></P>
+<P lang=yo style='FONT-SIZE: 10pt; FONT-FAMILY: "Lucida Console"; MARGIN: 0in 0in 0in 0.375in'><SPAN style="COLOR: blue"><SPAN style="mso-spacerun: yes">&nbsp; </SPAN>&lt;</SPAN><SPAN style="COLOR: #a31515">one</SPAN><SPAN style="COLOR: blue">:</SPAN><SPAN style="COLOR: #a31515">T</SPAN><SPAN style="COLOR: blue">&gt;</SPAN>&lt;![CDATA[<SPAN style="COLOR: gray"> contains...</SPAN><SPAN style="COLOR: blue">]]&gt;</SPAN>&lt;/<SPAN style="COLOR: #a31515">one</SPAN>:<SPAN style="COLOR: #a31515">T</SPAN>&gt;</P>
+<P lang=yo style='FONT-SIZE: 10pt; FONT-FAMILY: "Lucida Console"; MARGIN: 0in 0in 0in 0.375in'><SPAN style="COLOR: black">&lt;/</SPAN><SPAN style="COLOR: #a31515">one</SPAN>:<SPAN style="COLOR: #a31515">OE</SPAN>&gt;</P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">OneNote doesn't project these two cases differently in the XML. So OneNote needs to treat them the same.</P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<H1 lang=yo style="FONT-SIZE: 16pt; FONT-FAMILY: Calibri; COLOR: #1e4e79; MARGIN: 0in">How OneMore Edits Text</H1>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">OneMore has many internal routines to parse complex structures in the page XML. The <A href="https://github.com/stevencohn/OneMore/blob/main/OneMore/Models/Page.cs">Page class</A> contains most of these routines including:</P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<DIV style="DIRECTION: ltr">
+<TABLE title="" style="BORDER-TOP: #a3a3a3 0pt solid; BORDER-RIGHT: #a3a3a3 0pt solid; BORDER-COLLAPSE: collapse; BORDER-BOTTOM: #a3a3a3 0pt solid; DIRECTION: ltr; MARGIN-LEFT: 0.333in; BORDER-LEFT: #a3a3a3 0pt solid" cellSpacing=0 cellPadding=0 summary="" border=0 valign="top">
+<TBODY>
+<TR>
+<TD style="BORDER-LEFT-WIDTH: 0pt; BORDER-RIGHT-WIDTH: 0pt; WIDTH: 4.618in; VERTICAL-ALIGN: top; BORDER-BOTTOM-WIDTH: 0pt; PADDING-BOTTOM: 2pt; PADDING-TOP: 2pt; PADDING-LEFT: 3pt; PADDING-RIGHT: 3pt; BORDER-TOP-WIDTH: 0pt">
+<P style="MARGIN: 0in"><IMG src="TechNote%20-%20Editing%20Text_files/image001.png" width=425 height=196></P></TD>
+<TD style="BORDER-LEFT-WIDTH: 0pt; BORDER-RIGHT-WIDTH: 0pt; WIDTH: 0.5in; VERTICAL-ALIGN: top; BORDER-BOTTOM-WIDTH: 0pt; PADDING-BOTTOM: 2pt; PADDING-TOP: 2pt; PADDING-LEFT: 3pt; PADDING-RIGHT: 3pt; BORDER-TOP-WIDTH: 0pt">
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P></TD></TR></TBODY></TABLE></DIV>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<P lang=yo style="MARGIN: 0in"><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri">The routines most commonly used by OneMore commands are </SPAN><SPAN style='FONT-SIZE: 9.5pt; FONT-FAMILY: "Lucida Console"; BACKGROUND: #e8e8e8; COLOR: #172b4d'>GetSelectedText</SPAN><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri"> and </SPAN><SPAN style='FONT-SIZE: 9.5pt; FONT-FAMILY: "Lucida Console"; BACKGROUND: #e8e8e8; COLOR: #172b4d'>GetSelectectedElements</SPAN><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri">.</SPAN></P>
+<P lang=yo style="MARGIN: 0in"><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri"><BR>The most complex routine, as you may guess, is </SPAN><SPAN style='FONT-SIZE: 9.5pt; FONT-FAMILY: "Lucida Console"; BACKGROUND: #e8e8e8; COLOR: #172b4d'>EditSelected</SPAN><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri">. The two overrides of this routine invoke an edit function on the selected text. The selection may be either infered from the current cursor position or explicitly highlighted as a selected region. No assumptions are made as to the resultant content or the order in which parts of context are edited.</SPAN></P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">The callback Func accepts an XNode and returns an XNode. This is either an XText or a "span" XElement. The returned XNode can be either the original unmodified, the original modified, or a new XNode. Regardless, the returned XNode will replace the current XNode in the content.</P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<P lang=yo style="MARGIN: 0in"><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri">The </SPAN><SPAN style='FONT-SIZE: 9.5pt; FONT-FAMILY: "Lucida Console"; BACKGROUND: #e8e8e8; COLOR: #172b4d'>EditSelected</SPAN><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri"> routines take it one step further to emulate functionality similar to the way Microsoft Word lets you modify text. If the cursor is placed on a word, and that word is expressed as multiple text runs due to varying styling, EditSelected will apply the Func to the entire word. If there is a selection range greater than zero then the routine will apply the Func to the entire selection even if that means splitting treatments in the middle of a word.</SPAN></P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<P lang=yo style="MARGIN: 0in"><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri">The </SPAN><SPAN style='FONT-SIZE: 9.5pt; FONT-FAMILY: "Lucida Console"; BACKGROUND: #e8e8e8; COLOR: #172b4d'>SelectionScope</SPAN><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri"> property gets the most recently known selection state where </SPAN><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; FONT-STYLE: italic">none</SPAN><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri"> means unknown, </SPAN><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; FONT-STYLE: italic">all</SPAN><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri"> means there is an obvious selection region, and </SPAN><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; FONT-STYLE: italic">partial</SPAN><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri"> means the selection region is zero.</SPAN></P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<P lang=yo style="MARGIN: 0in"><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri">The </SPAN><SPAN style='FONT-SIZE: 9.5pt; FONT-FAMILY: "Lucida Console"; BACKGROUND: #e8e8e8; COLOR: #172b4d'>SelectionSpecial</SPAN><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri"> property gets an indication that the text cursor is positioned over either a hyperlink or a MathML equation, both of which return zero-length selection ranges.</SPAN></P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<P lang=yo style='FONT-SIZE: 10pt; FONT-FAMILY: "Courier New"; COLOR: #43577c; MARGIN: 0in'>────────────────────────────────────────────────────────────────────────────────────────────────────</P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in"><SPAN style="FONT-STYLE: italic">Page PlantUML (</SPAN><A href="onemore://PlantUmlCommand/d673f0746bcd4d849788b1ebbddb6a41"><SPAN style="FONT-STYLE: italic">Refresh</SPAN></A><SPAN style="FONT-STYLE: italic">)</SPAN></P>
+<P lang=yo style='FONT-SIZE: 10pt; FONT-FAMILY: "Lucida Console"; MARGIN: 0in 0in 0in 0.375in'><SPAN style="FONT-WEIGHT: bold; COLOR: #5b9bd5">@startuml</SPAN><SPAN style="COLOR: black"> Page</SPAN></P>
+<P lang=yo style='FONT-SIZE: 10pt; FONT-FAMILY: "Lucida Console"; MARGIN: 0in 0in 0in 0.375in'><SPAN style="COLOR: #a5a5a5">skinparam</SPAN><SPAN style="COLOR: black"> defaultFontSize </SPAN><SPAN style="COLOR: #8064a2">9</SPAN></P>
+<P lang=yo style='FONT-SIZE: 10pt; FONT-FAMILY: "Lucida Console"; MARGIN: 0in 0in 0in 0.375in'><SPAN style="COLOR: lightseagreen">class</SPAN><SPAN style="COLOR: black"> Page {</SPAN></P>
+<P lang=yo style='FONT-SIZE: 10pt; FONT-FAMILY: "Lucida Console"; COLOR: black; MARGIN: 0in 0in 0in 0.375in'><SPAN style="mso-spacerun: yes">&nbsp;</SPAN>+get_SelectionScope: SelectionScope</P>
+<P lang=yo style='FONT-SIZE: 10pt; FONT-FAMILY: "Lucida Console"; COLOR: black; MARGIN: 0in 0in 0in 0.375in'><SPAN style="mso-spacerun: yes">&nbsp;</SPAN>+get_SelectionSpecial: bool</P>
+<P lang=yo style='FONT-SIZE: 10pt; FONT-FAMILY: "Lucida Console"; COLOR: black; MARGIN: 0in 0in 0in 0.375in'><SPAN style="mso-spacerun: yes">&nbsp;</SPAN>+bool EditNode(XElement cursor, Func edit)</P>
+<P lang=yo style='FONT-SIZE: 10pt; FONT-FAMILY: "Lucida Console"; COLOR: black; MARGIN: 0in 0in 0in 0.375in'><SPAN style="mso-spacerun: yes">&nbsp;</SPAN>+bool EditSelected(Func edit)</P>
+<P lang=yo style='FONT-SIZE: 10pt; FONT-FAMILY: "Lucida Console"; COLOR: black; MARGIN: 0in 0in 0in 0.375in'><SPAN style="mso-spacerun: yes">&nbsp;</SPAN>+bool EditSelected(XElement root, Func edit)</P>
+<P lang=yo style='FONT-SIZE: 10pt; FONT-FAMILY: "Lucida Console"; COLOR: black; MARGIN: 0in 0in 0in 0.375in'><SPAN style="mso-spacerun: yes">&nbsp;</SPAN>+XElement ExtractSelectedContent(out XElement firstParent)</P>
+<P lang=yo style='FONT-SIZE: 10pt; FONT-FAMILY: "Lucida Console"; MARGIN: 0in 0in 0in 0.375in'><SPAN style="COLOR: black"><SPAN style="mso-spacerun: yes">&nbsp;</SPAN>+IEnumerable GetSelectedElements(bool all = </SPAN><SPAN style="COLOR: #2e75b5">true</SPAN><SPAN style="COLOR: black">)</SPAN></P>
+<P lang=yo style='FONT-SIZE: 10pt; FONT-FAMILY: "Lucida Console"; COLOR: black; MARGIN: 0in 0in 0in 0.375in'><SPAN style="mso-spacerun: yes">&nbsp;</SPAN>+string GetSelectedText()</P>
+<P lang=yo style='FONT-SIZE: 10pt; FONT-FAMILY: "Lucida Console"; COLOR: black; MARGIN: 0in 0in 0in 0.375in'>}</P>
+<P lang=yo style='FONT-SIZE: 10pt; FONT-FAMILY: "Lucida Console"; COLOR: #5b9bd5; MARGIN: 0in 0in 0in 0.375in'><SPAN style="FONT-WEIGHT: bold">@enduml</SPAN></P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<P><CITE lang=yo style="FONT-SIZE: 9pt; FONT-FAMILY: Calibri; COLOR: #595959; MARGIN: 0in">#omwiki #omdeveloper #omtechnote</CITE></P>
+<P><CITE lang=yo style="FONT-SIZE: 9pt; FONT-FAMILY: Calibri; COLOR: #595959; MARGIN: 0in">&nbsp;</CITE></P>
+<P><CITE lang=yo style="FONT-SIZE: 10pt; FONT-FAMILY: Calibri; COLOR: #595959; MARGIN: 0in">© 2020 Steven M Cohn. All rights reserved.</CITE></P>
+<P><CITE lang=yo style="FONT-SIZE: 10pt; FONT-FAMILY: Calibri; COLOR: #595959; MARGIN: 0in">Please consider a <A href="https://github.com/sponsors/stevencohn">sponsorship or one-time donation</A> to support ongoing development</CITE></P></DIV></DIV></DIV>
+<DIV>
+<P style="MARGIN: 0in">&nbsp;</P>
+<P style="FONT-SIZE: 9pt; FONT-FAMILY: Arial; COLOR: #969696; DIRECTION: ltr; TEXT-ALIGN: left; MARGIN: 0in">Created with OneNote.</P></DIV>
+    </div>
+
+  </div>
+  <script>
+    $('#developers-section').addClass('active');
+    let pageID = '#' + window.location.pathname.match(/.*\/(.*).htm$/)[1];
+    pageID = pageID.toLowerCase().replace(/%20| |\./g,'-')
+    if ( $(pageID).length > 0) { $(pageID).addClass('active'); }
+  </script>
+</body>
+
+</html>

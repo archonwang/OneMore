@@ -1,9 +1,10 @@
 ﻿//************************************************************************************************
-// Copyright © 2020 Steven M Cohn.  All rights reserved.
+// Copyright © 2020 Steven M Cohn. All rights reserved.
 //************************************************************************************************
 
 namespace River.OneMoreAddIn.Models
 {
+	using River.OneMoreAddIn.Commands.Snippets.TocGenerators;
 	using River.OneMoreAddIn.Styles;
 	using System;
 	using System.Collections.Generic;
@@ -12,7 +13,7 @@ namespace River.OneMoreAddIn.Models
 	using System.Xml;
 	using System.Xml.Linq;
 	using Hap = HtmlAgilityPack;
-	using Resx = River.OneMoreAddIn.Properties.Resources;
+	using Resx = Properties.Resources;
 
 
 	internal partial class Page
@@ -28,7 +29,16 @@ namespace River.OneMoreAddIn.Models
 		 * </one:OE>
 		 */
 
-		public List<Heading> GetHeadings(OneNote one)
+		/// <summary>
+		/// Load the Headings for the page.
+		/// </summary>
+		/// <param name="one"></param>
+		/// <param name="linked">
+		/// True to lookup hyperlinks and set the Link property for each heading.
+		/// Use false when deferring the lookup for performance, such as Navigator
+		/// </param>
+		/// <returns></returns>
+		public List<Heading> GetHeadings(OneNote one, bool linked = true)
 		{
 			quickStyles = GetQuickStyles();
 
@@ -41,11 +51,18 @@ namespace River.OneMoreAddIn.Models
 
 			// Find all OE blocks with text, e.g., containing at least one T
 
+			// TODO: this is a terribly inefficient query
+			var candidates = Root
+				.Elements(Namespace + "Outline")
+				.Descendants(Namespace + "OE")
+				.Where(e => !e.Ancestors().Elements(Namespace + "Meta")
+					.Any(m => m.Attribute("name").Value.Equals(Toc.MetaName)));
+
 			var blocks =
-				from e in Root.Elements(Namespace + "Outline").Descendants(Namespace + "OE")
-				// get the first non-empty CDATA
+				from e in candidates
+					// get the first non-empty CDATA
 				let c = e.Elements(Namespace + "T").DescendantNodes()
-					.FirstOrDefault(p => 
+					.FirstOrDefault(p =>
 						p.NodeType == XmlNodeType.CDATA && (((XCData)p).Value.Length > 0)) as XCData
 				where c?.Value.Length > 0 && !Regex.IsMatch(c.Value, @"[\s\b]+<span[\s\b]+style=") &&
 					(e.Attribute("quickStyleIndex") != null || e.Attribute("style") != null)
@@ -66,6 +83,10 @@ namespace River.OneMoreAddIn.Models
 						continue;
 					}
 
+					// strip out all <style> elements
+					var wrapper = new XElement("wrapper", text);
+					text = wrapper.TextValue();
+
 					Heading heading = null;
 
 					if (block.GetAttributeValue("quickStyleIndex", out var quickStyleIndex, -1))
@@ -81,7 +102,7 @@ namespace River.OneMoreAddIn.Models
 								Root = block,
 								// text might include <style...
 								Text = text,
-								Link = GetHyperlink(block, one),
+								Link = linked ? GetHyperlink(block, one) : string.Empty,
 								Style = style
 							};
 
@@ -103,7 +124,7 @@ namespace River.OneMoreAddIn.Models
 								Root = block,
 								// text might include <style...
 								Text = text,
-								Link = GetHyperlink(block, one),
+								Link = linked ? GetHyperlink(block, one) : string.Empty,
 								Style = style
 							};
 
@@ -134,10 +155,7 @@ namespace River.OneMoreAddIn.Models
 				.Select(e => e.Attribute("color").Value)
 				.FirstOrDefault();
 
-			if (pageColor == null)
-			{
-				pageColor = "automatic";
-			}
+			pageColor ??= "automatic";
 		}
 
 
@@ -163,7 +181,7 @@ namespace River.OneMoreAddIn.Models
 			// test if header has a right-aligned Top of page neighbor cell
 			var cell = heading.Root.Parent.Parent;
 
-			if (cell.Name.LocalName == "Cell" && 
+			if (cell.Name.LocalName == "Cell" &&
 				cell.NextNode is XElement next && next.Name.LocalName == "Cell")
 			{
 				var cdata = next.DescendantNodes().OfType<XCData>().FirstOrDefault();
@@ -176,13 +194,14 @@ namespace River.OneMoreAddIn.Models
 					if (text == Resx.InsertTocCommand_Top)
 					{
 						heading.HasTopLink = true;
+						heading.IsRightAligned = true;
 					}
 				}
 			}
 		}
 
 
-		private string GetHyperlink(XElement element, OneNote one)
+		public string GetHyperlink(XElement element, OneNote one)
 		{
 			var attr = element.Attribute("objectID");
 			if (!string.IsNullOrEmpty(attr?.Value))

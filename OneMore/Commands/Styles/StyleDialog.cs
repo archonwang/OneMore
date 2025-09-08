@@ -1,10 +1,11 @@
 ﻿//************************************************************************************************
-// Copyright © 2016 Steven M Cohn.  Yada yada...
+// Copyright © 2016 Steven M Cohn. All rights reserved.
 //************************************************************************************************
 
 namespace River.OneMoreAddIn.Commands
 {
 	using River.OneMoreAddIn.Styles;
+	using River.OneMoreAddIn.UI;
 	using System;
 	using System.Collections.Generic;
 	using System.Drawing;
@@ -12,39 +13,50 @@ namespace River.OneMoreAddIn.Commands
 	using System.IO;
 	using System.Linq;
 	using System.Windows.Forms;
-	using Resx = River.OneMoreAddIn.Properties.Resources;
+	using Resx = Properties.Resources;
 
 
 	/// <summary>
-	/// Edit a single style to create or edit multiple styles to manage.
+	/// Edits a single style an entire style theme.
 	/// </summary>
 	/// <remarks>
 	/// Disposables: the List of Styles is input and managed by the consumer.
 	/// All other local disposables are handled.
 	/// </remarks>
 
-	internal partial class StyleDialog : UI.LocalizableForm
+	internal partial class StyleDialog : MoreForm
 	{
-		private GraphicStyle selection;
-		private readonly Color pageColor;
-		private bool allowEvents;
+		private Color pageColor;
+		private readonly Color originalColor;
+		private readonly bool darkMode;
 		private Theme theme;
+
+		private GraphicStyle selection;
+		private Control activeFocus;
+		private bool eventing;
 
 
 		#region Lifecycle
 
 		/// <summary>
-		/// Create a dialog to edit a single style; this is for creating new styles
+		/// Initialize the dialog to edit a single style; called to create new styles
 		/// </summary>
-		/// <param name="style"></param>
+		/// <param name="style">The style to copy</param>
+		/// <param name="pageColor">The background color of the page</param>
+		/// <param name="darkMode">Indicates that the page is in "dark mode"</param>
 
-		public StyleDialog(Style style, Color pageColor)
+		public StyleDialog(Style style, Color pageColor, bool darkMode)
 		{
 			Initialize();
 			Logger.SetDesignMode(DesignMode);
+			eventing = false;
 
-			allowEvents = false;
-			this.pageColor = pageColor;
+			Text = Resx.phrase_NewStyle;
+
+			this.pageColor = originalColor = pageColor;
+			this.darkMode = darkMode;
+
+			selection = new GraphicStyle(style, false);
 
 			mainTools.Visible = false;
 			loadButton.Enabled = false;
@@ -53,35 +65,45 @@ namespace River.OneMoreAddIn.Commands
 			reorderButton.Enabled = false;
 			deleteButton.Enabled = false;
 
-			selection = new GraphicStyle(style, false);
-
-			Text = Resx.StyleDialog_NewText;
+			Height -= optionsGroup.Height;
+			optionsGroup.Visible = false;
 		}
 
 
 		/// <summary>
-		/// Create a dialog to edit multiple styles; this is for editing existing styles.
+		/// Initialize the dialog to edit a style theme; called to edit existing styles
 		/// </summary>
-		/// <param name="styles"></param>
-
-		public StyleDialog(Theme theme, Color pageColor)
+		/// <param name="theme">The theme to edit</param>
+		/// <param name="pageColor">The background color of the page</param>
+		/// <param name="darkMode">Indicates that the page is in "dark mode"</param>
+		public StyleDialog(Theme theme, Color pageColor, bool darkMode)
 		{
 			Initialize();
+			eventing = false;
 
-			allowEvents = false;
+			Text = string.Format(Resx.StyleDialog_ThemeText, theme.Name);
+
+			originalColor = pageColor;
+			pageColorBox.Checked = theme.SetColor;
+
+			this.darkMode = darkMode;
+
+			this.pageColor = theme.SetColor
+				? theme.Color.Equals(StyleBase.Automatic) ? originalColor : ColorTranslator.FromHtml(theme.Color)
+				: pageColor;
+
+			darkBox.Checked = theme.Dark;
+
+			this.theme = theme;
+
+			resetButton.Enabled = theme.IsPredefined;
 
 			var styles = theme.GetStyles();
 			LoadStyles(styles);
-
 			if (styles.Count > 0)
 			{
 				selection = new GraphicStyle(styles[0], false);
 			}
-
-			this.pageColor = pageColor;
-
-			Text = string.Format(Resx.StyleDialog_ThemeText, theme.Name);
-			this.theme = theme;
 		}
 
 
@@ -98,9 +120,10 @@ namespace River.OneMoreAddIn.Commands
 					"loadButton",
 					"saveButton",
 					"newStyleButton",
-					"renameButton",
-					"deleteButton=word_Delete",
+					"renameButton.ToolTipText=word_Rename",
+					"deleteButton.ToolTipText=word_Delete",
 					"reorderButton",
+					"resetButton=word_Reset",
 					// toolstrip
 					"boldButton",
 					"italicButton",
@@ -113,6 +136,7 @@ namespace River.OneMoreAddIn.Commands
 					"defaultBlackToolStripMenuItem",
 					"transparentToolStripMenuItem",
 					// labels
+					"ignoredBox",
 					"beforeLabel",
 					"afterLabel",
 					"spacingLabel",
@@ -120,16 +144,18 @@ namespace River.OneMoreAddIn.Commands
 					"fontLabel",
 					"styleTypeLabel",
 					"applyColorsBox",
-					"okButton",
+					// options
+					"optionsGroup=word_Options",
+					"darkBox",
+					"pageColorBox",
+					"pageColorLink",
+					"okButton=word_OK",
 					"cancelButton=word_Cancel"
 				});
 
 				styleTypeBox.Items.Clear();
-				styleTypeBox.Items.AddRange(Resx.StyleDialog_styleTypeBox_Items.Split(new char[] { '\n' }));
+				styleTypeBox.Items.AddRange(Resx.StyleDialog_styleTypeBox_Items.Split('\n'));
 			}
-
-			mainTools.Rescale();
-			toolStrip.Rescale();
 
 			if (AddIn.Culture.NumberFormat.NumberDecimalSeparator != ".")
 			{
@@ -146,6 +172,8 @@ namespace River.OneMoreAddIn.Commands
 			spaceAfterSpinner.Value = 0;
 			spaceBeforeSpinner.Value = 0;
 			spacingSpinner.Value = 0;
+
+			statusLabel.Text = string.Empty;
 		}
 
 
@@ -192,7 +220,7 @@ namespace River.OneMoreAddIn.Commands
 		{
 			base.OnShown(e);
 
-			allowEvents = true;
+			eventing = true;
 
 			if (selection != null)
 			{
@@ -200,6 +228,28 @@ namespace River.OneMoreAddIn.Commands
 			}
 
 			nameBox.Focus();
+			VerifyFontFamilies();
+		}
+
+
+		private void VerifyFontFamilies()
+		{
+			var families = new List<string>();
+			foreach (GraphicStyle style in namesBox.Items)
+			{
+				if (!familyBox.Items.Contains(style.FontFamily))
+				{
+					families.Add(style.FontFamily.Contains(' ')
+						? $"\"{style.FontFamily}\""
+						: style.FontFamily);
+				}
+			}
+
+			if (families.Any())
+			{
+				var names = string.Join(", ", families);
+				MoreMessageBox.Show(this, string.Format(Resx.StyleDialog_familyWarning, names));
+			}
 		}
 
 		#endregion Lifecycle
@@ -229,7 +279,8 @@ namespace River.OneMoreAddIn.Commands
 		/// <summary>
 		/// Get the modified theme. Used when editing an entire theme.
 		/// </summary>
-		public Theme Theme => new Theme(MakeStyles(), theme.Key, theme.Name, theme.Dark);
+		public Theme Theme => new(MakeStyles(), theme.Key, theme.Name,
+			theme.Color, theme.SetColor, theme.Dark, theme.IsPredefined);
 
 
 		// = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -242,7 +293,7 @@ namespace River.OneMoreAddIn.Commands
 
 		private void ShowSelection()
 		{
-			allowEvents = false;
+			eventing = false;
 
 			// nameBox may not be visible but oh well
 			nameBox.Text = selection.Name;
@@ -262,6 +313,7 @@ namespace River.OneMoreAddIn.Commands
 			subButton.Checked = selection.IsSubscript;
 
 			applyColorsBox.Checked = selection.ApplyColors;
+			ignoredBox.Checked = selection.Ignored;
 
 			if (double.TryParse(selection.SpaceAfter, NumberStyles.Any, CultureInfo.InvariantCulture, out var sa))
 			{
@@ -284,9 +336,22 @@ namespace River.OneMoreAddIn.Commands
 					spacingSpinner.Value = dss;
 			}
 
-			allowEvents = true;
+			eventing = true;
 
 			previewBox.Invalidate();
+		}
+
+
+		private Color BestBackgroundColor()
+		{
+			if (pageColor.IsEmpty || pageColor.Equals(Color.Transparent))
+			{
+				return originalColor.IsEmpty || originalColor.Equals(Color.Transparent)
+					? (darkMode ? BasicColors.BlackSmoke : Color.White)
+					: originalColor;
+			}
+
+			return pageColor;
 		}
 
 
@@ -294,9 +359,18 @@ namespace River.OneMoreAddIn.Commands
 		{
 			var vcenter = previewBox.Height / 2;
 
-			var contrastPen = pageColor.GetBrightness() <= 0.5 ? Pens.White : Pens.Black;
+			var background = BestBackgroundColor();
 
-			e.Graphics.Clear(pageColor);
+			tooltip.SetToolTip(previewBox,
+				$"pageColor:{pageColor.ToRGBHtml()}\n" +
+				$"background:{background.ToRGBHtml()}\n" +
+				$"theme:{theme?.Color} {(theme?.SetColor == true ? " (set-color)" : string.Empty)}");
+
+			using var contrastPen = background.GetBrightness() <= 0.5
+				? new Pen(Color.White)
+				: new Pen(BasicColors.BlackSmoke);
+
+			e.Graphics.Clear(background);
 			e.Graphics.DrawLine(contrastPen, 0, vcenter, 15, vcenter);
 			e.Graphics.DrawLine(contrastPen, previewBox.Width - 15, vcenter, previewBox.Width, vcenter);
 
@@ -307,9 +381,9 @@ namespace River.OneMoreAddIn.Commands
 				sampleFontSize = (float)StyleBase.DefaultFontSize;
 			}
 
-			var sampleFont = offset
+			using var sampleFont = offset
 				? new Font(familyBox.Text, sampleFontSize)
-				: MakeFont(sampleFontSize); // dispose
+				: MakeFont(sampleFontSize);
 
 			var sampleSize = e.Graphics.MeasureString(offset ? "Sample" : "Sample ", sampleFont);
 
@@ -320,7 +394,7 @@ namespace River.OneMoreAddIn.Commands
 				? (float)Math.Round(sampleFontSize * 0.5)
 				: sampleFontSize;
 
-			var textFont = MakeFont(Math.Max(textFontSize, 4)); // dispose
+			using var textFont = MakeFont(Math.Max(textFontSize, 4));
 
 			var textSize = e.Graphics.MeasureString("Text", textFont);
 			var allWidth = sampleSize.Width + textSize.Width;
@@ -337,39 +411,44 @@ namespace River.OneMoreAddIn.Commands
 				!selection.Background.IsEmpty &&
 				!selection.Background.Equals(Color.Transparent))
 			{
-				using (var highBrush = new SolidBrush(selection.Background))
+				using var highBrush = new SolidBrush(selection.Background);
+				if (offset)
 				{
-					if (offset)
-					{
-						e.Graphics.FillRectangle(highBrush,
-							textClip.X, textClip.Y, textClip.Width, textClip.Height);
-					}
-					else
-					{
-						e.Graphics.FillRectangle(highBrush,
-							sampleClip.X, sampleClip.Y,
-							Math.Min(sampleClip.Width, allWidth), sampleClip.Height);
-					}
+					e.Graphics.FillRectangle(highBrush,
+						textClip.X, textClip.Y, textClip.Width, textClip.Height);
+				}
+				else
+				{
+					e.Graphics.FillRectangle(highBrush,
+						sampleClip.X, sampleClip.Y,
+						Math.Min(sampleClip.Width, allWidth), sampleClip.Height);
 				}
 			}
 
 			var format = new StringFormat(StringFormatFlags.NoWrap);
 
 			var textColor = selection?.ApplyColors == true ? selection.Foreground : contrastPen.Color;
-			var textBrush = new SolidBrush(textColor); // dispose
+			using var textBrush = new SolidBrush(textColor);
 
 			var sampleColor = offset ? Color.Gray : textColor;
-			var sampleBrush = new SolidBrush(sampleColor); // dispose
+			using var sampleBrush = new SolidBrush(sampleColor);
 
 			e.Graphics.DrawString("Sample ", sampleFont, sampleBrush, sampleClip, format);
 
 			if (subButton.Checked) textClip.Y += (int)textSize.Height;
 			e.Graphics.DrawString("Text", textFont, textBrush, textClip, format);
 
-			textBrush.Dispose();
-			sampleBrush.Dispose();
-			textFont.Dispose();
-			sampleFont.Dispose();
+			// check contrast
+			if (pageColor.IsDark() == sampleColor.IsDark())
+			{
+				statusLabel.Text = Resx.PageColorDialog_contrastWarning;
+				tooltip.SetToolTip(statusLabel, Resx.PageColorDialog_contrastTooltip);
+			}
+			else
+			{
+				statusLabel.Text = string.Empty;
+				tooltip.SetToolTip(statusLabel, string.Empty);
+			}
 		}
 
 
@@ -387,9 +466,15 @@ namespace River.OneMoreAddIn.Commands
 
 		// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+		private void SetActiveFocus(object sender, EventArgs e)
+		{
+			activeFocus = (Control)sender;
+		}
+
+
 		private void ChangeStyleName(object sender, EventArgs e)
 		{
-			if (allowEvents && nameBox.Visible)
+			if (eventing && nameBox.Visible)
 			{
 				if (selection != null)
 				{
@@ -402,7 +487,7 @@ namespace River.OneMoreAddIn.Commands
 
 		private void ChangeStyleListSelection(object sender, EventArgs e)
 		{
-			if (allowEvents && namesBox.Visible)
+			if (eventing && namesBox.Visible)
 			{
 				selection = namesBox.SelectedItem as GraphicStyle;
 				ShowSelection();
@@ -419,7 +504,7 @@ namespace River.OneMoreAddIn.Commands
 
 			if (selection != null)
 			{
-				if (allowEvents)
+				if (eventing)
 				{
 					selection.StyleType = (StyleType)styleTypeBox.SelectedIndex;
 				}
@@ -444,7 +529,7 @@ namespace River.OneMoreAddIn.Commands
 
 		private void ChangeFontFamily(object sender, EventArgs e)
 		{
-			if (allowEvents && (selection != null))
+			if (eventing && (selection != null))
 			{
 				var save = selection.Font;
 
@@ -465,7 +550,7 @@ namespace River.OneMoreAddIn.Commands
 
 		private void ChangeFontSize(object sender, EventArgs e)
 		{
-			if (allowEvents && (selection != null))
+			if (eventing && (selection != null))
 			{
 				var save = selection.Font;
 
@@ -486,7 +571,7 @@ namespace River.OneMoreAddIn.Commands
 
 		private void ChangeFontStyle(object sender, EventArgs e)
 		{
-			if (allowEvents && (selection != null))
+			if (eventing && (selection != null))
 			{
 				var save = selection.Font;
 
@@ -562,18 +647,17 @@ namespace River.OneMoreAddIn.Commands
 
 		private Color SelectColor(string title, Rectangle bounds, Color color)
 		{
-			var location = PointToScreen(toolStrip.Location);
+			var location = PointToScreen(fontTools.Location);
 
-			using (var dialog = new UI.MoreColorDialog(title,
+			using var dialog = new UI.MoreColorDialog(title,
 				location.X + bounds.Location.X,
-				location.Y + bounds.Height + 4))
-			{
-				dialog.Color = color;
+				location.Y + bounds.Height + 4);
 
-				if (dialog.ShowDialog() == DialogResult.OK)
-				{
-					return dialog.Color;
-				}
+			dialog.Color = color;
+
+			if (dialog.ShowDialog(this) == DialogResult.OK)
+			{
+				return dialog.Color;
 			}
 
 			return Color.Empty;
@@ -591,20 +675,62 @@ namespace River.OneMoreAddIn.Commands
 		}
 
 
+		private void ChangeIgnored(object sender, EventArgs e)
+		{
+			selection.Ignored = ignoredBox.Checked;
+		}
+
+
 		private void ChangeSpaceAfter(object sender, EventArgs e)
 		{
 			selection.SpaceAfter = spaceAfterSpinner.Value.ToString("#0.0", CultureInfo.InvariantCulture);
 
 		}
 
+
 		private void ChangeSpaceBefore(object sender, EventArgs e)
 		{
 			selection.SpaceBefore = spaceBeforeSpinner.Value.ToString("#0.0", CultureInfo.InvariantCulture);
 		}
 
+
 		private void ChangeSpacing(object sender, EventArgs e)
 		{
 			selection.Spacing = spacingSpinner.Value.ToString("#0.0", CultureInfo.InvariantCulture);
+		}
+
+
+		private void SaveStyle(object sender, EventArgs e)
+		{
+			// handles case where cursor is left in a text box without losing focus before
+			// the Save button is pressed; will force the appropriate model update before saving
+
+			if (activeFocus == nameBox) { ChangeStyleName(nameBox, e); }
+			else if (activeFocus == styleTypeBox) { ChangeStyleType(styleTypeBox, e); }
+			else if (activeFocus == familyBox) { ChangeFontFamily(familyBox, e); }
+			else if (activeFocus == sizeBox) { ChangeFontSize(sizeBox, e); }
+			else if (activeFocus == spaceAfterSpinner) { ChangeSpaceAfter(spaceAfterSpinner, e); }
+			else if (activeFocus == spaceBeforeSpinner) { ChangeSpaceBefore(spaceBeforeSpinner, e); }
+			else if (activeFocus == spacingSpinner) { ChangeSpacing(spacingSpinner, e); }
+
+			if (theme != null)
+			{
+				if (!pageColorBox.Checked)
+				{
+					theme.SetColor = false;
+					theme.Color = StyleBase.Automatic;
+				}
+				else
+				{
+					theme.SetColor = true;
+					theme.Color = pageColor.Equals(Color.Transparent)
+						? StyleBase.Automatic
+						: pageColor.ToRGBHtml();
+				}
+
+				theme.Dark = darkBox.Checked;
+				// save will be done when we return to EditStylesCommand...
+			}
 		}
 
 
@@ -625,19 +751,15 @@ namespace River.OneMoreAddIn.Commands
 
 			var name = "Style-" + new Random().Next(1000, 9999).ToString();
 
-			using (var dialog = new NameStyleDialog(names, name))
+			using var dialog = new RenameDialog(names, name);
+			if (dialog.ShowDialog(this) != DialogResult.OK)
 			{
-				if (dialog.ShowDialog(this) != DialogResult.OK)
-				{
-					return;
-				}
-
-				name = dialog.StyleName;
+				return;
 			}
 
 			namesBox.Items.Add(new GraphicStyle(new Style
 			{
-				Name = name,
+				Name = dialog.StyleName,
 				Index = index
 			},
 			false));
@@ -671,19 +793,14 @@ namespace River.OneMoreAddIn.Commands
 			}
 
 			var style = (GraphicStyle)namesBox.Items[namesBox.SelectedIndex];
-			var name = style.Name;
 
-			using (var dialog = new NameStyleDialog(names, name) { Rename = true })
+			using var dialog = new RenameDialog(names, style.Name) { Rename = true };
+			if (dialog.ShowDialog(this) != DialogResult.OK)
 			{
-				if (dialog.ShowDialog(this) != DialogResult.OK)
-				{
-					return;
-				}
-
-				name = dialog.StyleName;
+				return;
 			}
 
-			style.Name = name;
+			style.Name = dialog.StyleName;
 			index = namesBox.SelectedIndex;
 			namesBox.Items.RemoveAt(index);
 			namesBox.Items.Insert(index, style);
@@ -694,8 +811,9 @@ namespace River.OneMoreAddIn.Commands
 
 		private void DeleteStyle(object sender, EventArgs e)
 		{
-			var result = MessageBox.Show(this, "Delete this custom style?", "Confirm",
-				MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button2);
+			var result = UI.MoreMessageBox.Show(this,
+				"Delete this custom style?",
+				MessageBoxButtons.YesNo, MessageBoxIcon.Question);
 
 			if (result == DialogResult.Yes)
 			{
@@ -731,32 +849,34 @@ namespace River.OneMoreAddIn.Commands
 
 		private void ReorderStyles(object sender, EventArgs e)
 		{
-			using (var dialog = new ReorderDialog(namesBox.Items))
+			using var dialog = new ReorderDialog(namesBox.Items);
+			dialog.ManualLocation = true;
+			var point = PointToScreen(mainTools.Location);
+			dialog.Location = new Point(point.X + dialog.Width, point.Y);
+
+			var result = dialog.ShowDialog(this);
+			if (result == DialogResult.OK)
 			{
-				var result = dialog.ShowDialog(this);
-				if (result == DialogResult.OK)
+				string name = null;
+				if (namesBox.SelectedItem != null)
 				{
-					string name = null;
-					if (namesBox.SelectedItem != null)
-					{
-						name = ((GraphicStyle)namesBox.SelectedItem).Name;
-					}
+					name = ((GraphicStyle)namesBox.SelectedItem).Name;
+				}
 
-					var items = dialog.GetItems();
-					namesBox.Items.Clear();
-					namesBox.Items.AddRange(items);
+				var items = dialog.GetItems();
+				namesBox.Items.Clear();
+				namesBox.Items.AddRange(items);
 
-					var selected = namesBox.Items.Cast<GraphicStyle>()
-						.FirstOrDefault(s => s.Name.Equals(name));
+				var selected = namesBox.Items.Cast<GraphicStyle>()
+					.FirstOrDefault(s => s.Name.Equals(name));
 
-					if (selected != null)
-					{
-						namesBox.SelectedItem = selected;
-					}
-					else
-					{
-						namesBox.SelectedIndex = 0;
-					}
+				if (selected != null)
+				{
+					namesBox.SelectedItem = selected;
+				}
+				else
+				{
+					namesBox.SelectedIndex = 0;
 				}
 			}
 		}
@@ -764,80 +884,171 @@ namespace River.OneMoreAddIn.Commands
 
 		private void LoadTheme(object sender, EventArgs e)
 		{
-			using (var dialog = new OpenFileDialog())
-			{
-				dialog.DefaultExt = "xml";
-				dialog.Filter = "Theme files (*.xml)|*.xml|All files (*.*)|*.*";
-				dialog.Multiselect = false;
-				dialog.Title = "Open Style Theme";
-				dialog.ShowHelp = true; // stupid, but this is needed to avoid hang
-				dialog.AutoUpgradeEnabled = true; // simpler UI, faster
+			using var dialog = new OpenFileDialog();
+			dialog.DefaultExt = "xml";
+			dialog.Filter = Resx.LoadStyleTheme_filter;
+			dialog.Multiselect = false;
+			dialog.Title = Resx.ribLoadStylesButton_Label;
+			dialog.ShowHelp = true; // stupid, but this is needed to avoid hang
+			dialog.AutoUpgradeEnabled = true; // simpler UI, faster
 
-				var path = Path.Combine(PathFactory.GetAppDataPath(), Resx.ThemesFolder);
-				if (Directory.Exists(path))
+			var path = ThemeProvider.GetCustomThemeDirectory();
+			if (!Directory.Exists(path) ||
+				!Directory.EnumerateFiles(path, "*.xml").Any())
+			{
+				path = ThemeProvider.GetThemeDirectory();
+				PathHelper.EnsurePathExists(path);
+			}
+
+			if (Directory.Exists(path))
+			{
+				dialog.InitialDirectory = path;
+			}
+			else
+			{
+				dialog.InitialDirectory =
+					Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+			}
+
+			var result = dialog.ShowDialog(/* leave empty */);
+			if (result == DialogResult.OK)
+			{
+				theme = new ThemeProvider(dialog.FileName).Theme;
+				var styles = theme?.GetStyles();
+				if (styles?.Count > 0)
 				{
-					dialog.InitialDirectory = path;
+					LoadStyles(styles);
+
+					// update dialog title
+					Text = string.Format(Resx.StyleDialog_ThemeText, theme.Name);
+					VerifyFontFamilies();
 				}
 				else
 				{
-					dialog.InitialDirectory =
-						Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+					MoreMessageBox.Show(this,
+						"Could not load this theme file?",
+						MessageBoxButtons.OK, MessageBoxIcon.Error);
 				}
+			}
+		}
 
-				var result = dialog.ShowDialog();
-				if (result == DialogResult.OK)
-				{
-					theme = new ThemeProvider(dialog.FileName).Theme;
-					var styles = theme?.GetStyles();
-					if (styles?.Count > 0)
-					{
-						LoadStyles(styles);
 
-						// update dialog title
-						Text = string.Format(Resx.StyleDialog_ThemeText, theme.Name);
-					}
-					else
-					{
-						MessageBox.Show(this, "Could not load this theme file?", "Error",
-							MessageBoxButtons.OK, MessageBoxIcon.Error);
-					}
-				}
+		private void ResetTheme(object sender, EventArgs e)
+		{
+			if (MoreMessageBox.ShowQuestion(this,
+				"Reset the settings of this predefined theme?") != DialogResult.Yes)
+			{
+				return;
+			}
+
+			theme = new ThemeProvider().ResetPredefinedTheme(theme.Key);
+			if (theme is not null)
+			{
+				LoadStyles(theme.GetStyles());
+
+				// update dialog title
+				Text = string.Format(Resx.StyleDialog_ThemeText, theme.Name);
+				VerifyFontFamilies();
 			}
 		}
 
 
 		private void SaveTheme(object sender, EventArgs e)
 		{
-			using (var dialog = new SaveFileDialog())
+			using var dialog = new SaveFileDialog();
+			dialog.DefaultExt = "xml";
+			dialog.Filter = Resx.LoadStyleTheme_filter;
+			dialog.Title = Resx.StyleDialog_saveStylesTitle;
+			dialog.ShowHelp = true; // stupid, but this is needed to avoid hang
+
+			var path = Path.Combine(PathHelper.GetAppDataPath(), Resx.ThemesFolder);
+			if (Directory.Exists(path))
 			{
-				dialog.DefaultExt = "xml";
-				dialog.Filter = "Theme files (*.xml)|*.xml|All files (*.*)|*.*";
-				dialog.Title = "Save Style Theme";
-				dialog.ShowHelp = true; // stupid, but this is needed to avoid hang
+				dialog.InitialDirectory = path;
+			}
+			else
+			{
+				dialog.InitialDirectory =
+					Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+			}
 
-				var path = PathFactory.GetAppDataPath();
-				if (Directory.Exists(path))
+			var result = dialog.ShowDialog(/* leave empty */);
+			if (result == DialogResult.OK)
+			{
+				if (!theme.SetColor)
 				{
-					dialog.InitialDirectory = path;
+					theme.Color = StyleBase.Automatic;
 				}
-				else
+
+				var key = Path.GetFileNameWithoutExtension(dialog.FileName);
+				if (key.EndsWith("-edited"))
 				{
-					dialog.InitialDirectory =
-						Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+					key = key.Substring(0, key.Length - 7);
 				}
 
-				var result = dialog.ShowDialog();
-				if (result == DialogResult.OK)
-				{
-					var key = Path.GetFileNameWithoutExtension(dialog.FileName);
-					theme = new Theme(MakeStyles(), key, key, theme.Dark);
-					ThemeProvider.Save(theme, dialog.FileName);
+				theme = new Theme(MakeStyles(), key, key,
+					theme.Color, theme.SetColor, theme.Dark, theme.IsPredefined);
 
-					Text = string.Format(
-						Resx.StyleDialog_ThemeText,
-						Path.GetFileNameWithoutExtension(dialog.FileName));
+				ThemeProvider.Save(theme, dialog.FileName);
+
+				Text = string.Format(
+					Resx.StyleDialog_ThemeText,
+					Path.GetFileNameWithoutExtension(dialog.FileName));
+			}
+		}
+
+		private void SelectPageColor(object sender, LinkLabelLinkClickedEventArgs e)
+		{
+			var color = pageColorBox.Checked ? ColorHelper.FromHtml(theme.Color) : pageColor;
+
+			using var dialog = new PageColorDialog(color);
+			dialog.HideOptions();
+			//dialog.StartPosition = FormStartPosition.CenterParent;
+			dialog.VerticalOffset = 50;
+
+			if (dialog.ShowDialog(this) == DialogResult.OK)
+			{
+				pageColorBox.Checked = true;
+				pageColor = dialog.Color;
+
+				var dark = pageColor.IsDark();
+				if (dark && !darkBox.Checked)
+				{
+					darkBox.Checked = true;
+				}
+				else if (!dark && darkBox.Checked)
+				{
+					darkBox.Checked = false;
+				}
+
+				previewBox.Invalidate();
+			}
+		}
+
+		private void ChangePageColorOption(object sender, EventArgs e)
+		{
+			if (!eventing)
+			{
+				return;
+			}
+
+			if (pageColorBox.Checked)
+			{
+				if (theme.Color.StartsWith("#"))
+				{
+					pageColor = ColorTranslator.FromHtml(theme.Color);
+					if (darkMode)
+					{
+						pageColor = pageColor.Invert();
+					}
 				}
 			}
+			else
+			{
+				pageColor = originalColor;
+			}
+
+			previewBox.Invalidate();
 		}
 	}
 }

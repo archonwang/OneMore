@@ -1,41 +1,39 @@
 {
   "colors": {
-    "Black": "#FFFFFF",
-    "Blue": "#569CD6",
+    // Auto=DarkPlainText is near-white
+    "Auto": "#F0F0F0",
+    "AutoNative": "#000000",
+    "Black": "#000000",
+    "Blue": "#2E75B5",
+    "CornflowerBlue": "#5B9BD5",
     "DarkCyan": "#008B8B",
     "DarkOliveGreen": "#556B2F",
-    "DullRed": "#A31515",
+    "DarkRed": "#7D180D",
+    "DarkYellow": "#BF9000",
+    "DiffGreen": "#CCFFCC",
+    "DiffRed": "#F2DCDB",
+    "Firebrick": "#B22222",
     "Gray": "#808080",
     "Green": "#008000",
-    "Magenta": "#FF00FF",
+    "LightGray": "#A5A5A5",
+    "LightGreen": "#00B050",
+    "LightSeaGreen": "#20B2AA",
+    "Magenta": "#CC00FF",
     "MediumTurqoise": "#48D1CC",
-    "Navy": "#000080",
+    // DarkNavy is light blue
+    "Navy": "#92CAF4",
     "OliveDrab": "#6B8E23",
-    "OrangeRed": "#FF4500",
-    "PowderBlue": "#B0E0E6",
-    "Purple": "#800080",
-    "Red": "#FF0000",
+    "Orange": "#FF5800",
+    "Purple": "#8064A2",
+    "Red": "#E30303",
+    "Salmon": "#F1937A",
     "Teal": "#008080",
-    "White": "#000000",
-    "Yellow": "#FFFF00",
-    "AutoPlainText": "#202020",
-    "DarkPlainText": "#F0F0F0",
-    "DarkXmlDelimeter": "#808080",
-    "DarkXmlName": "#E6E6E6",
-    "DarkXmlAttribute": "#92CAF4",
-    "DarkXamlCData": "#C0D088",
-    "DarkXmlComment": "#608B4E",
-    "DarkComment": "#57A64A",
-    "DarkKeyword": "#569CD6",
-    "DarkGray": "#9B9B9B",
-    "DarkNumber": "#B5CEA8",
-    "DarkClass": "#4EC9B0",
-    "DarkString": "#D69D85"
+    "Yellow": "#FFFF00"
   },
   "styles": [
     {
       "name": "PlainText",
-      "foreground": "DarkPlainText"
+      "foreground": "Auto"
     },
     {
       "name": "Attribute",
@@ -54,11 +52,11 @@
     },
     {
       "name": "ClassName",
-      "foreground": "DarkClass"
+      "foreground": "MediumTurqoise"
     },
     {
       "name": "Comment",
-      "foreground": "DarkComment"
+      "foreground": "LightGreen"
     },
     {
       "name": "Constructor",
@@ -66,7 +64,7 @@
     },
     {
       "name": "ControlKeyword",
-      "foreground": "DarkKeyword"
+      "foreground": "Blue"
     },
     {
       "name": "CssPropertyName",
@@ -74,14 +72,22 @@
     },
     {
       "name": "CssPropertyValue",
-      "foreground": "DarkKeyword"
+      "foreground": "Blue"
     },
     {
       "name": "CssSelector",
-      "foreground": "DullRed"
+      "foreground": "Firebrick"
     },
     {
       "name": "Delimeter"
+    },
+    {
+      "name": "DiffAdd",
+      "background": "DiffGreen"
+    },
+    {
+      "name": "DiffRemove",
+      "background": "DiffRed"
     },
     {
       "name": "HtmlServerSideScript",
@@ -89,15 +95,15 @@
     },
     {
       "name": "HtmlComment",
-      "foreground": "DarkComment"
+      "foreground": "LightGreen"
     },
     {
       "name": "HtmlTagDelimeter",
-      "foreground": "DarkKeyword"
+      "foreground": "Blue"
     },
     {
       "name": "HtmlElementName",
-      "foreground": "DullRed"
+      "foreground": "Firebrick"
     },
     {
       "name": "HtmlAttributeName",
@@ -105,7 +111,7 @@
     },
     {
       "name": "HtmlAttributeValue",
-      "foreground": "DarkKeyword"
+      "foreground": "Blue"
     },
     {
       "name": "HtmlEntity",
@@ -113,11 +119,19 @@
     },
     {
       "name": "HtmlOperator",
-      "foreground": "DarkKeyword"
+      "foreground": "Blue"
+    },
+    {
+      "name": "JsonKey",
+      "foreground": "Orange"
     },
     {
       "name": "Keyword",
-      "foreground": "DarkKeyword"
+      "foreground": "Blue"
+    },
+    {
+      "name": "Macro",
+      "foreground": "Purple"
     },
     {
       "name": "MarkdownBold",
@@ -125,7 +139,7 @@
     },
     {
       "name": "MarkdownCode",
-      "foreground": "DarkString"
+      "foreground": "Teal"
     },
     {
       "name": "MarkdownEmph",
@@ -137,7 +151,7 @@
     },
     {
       "name": "MarkdownHeader",
-      "foreground": "DarkKeyword",
+      "foreground": "Blue",
       "bold": true
     },
     {
@@ -146,18 +160,51 @@
     },
     {
       "name": "Number",
-      "foreground": "DarkNumber"
+      "foreground": "Purple"
     },
     {
       "name": "Operator"
     },
     {
+      "name": "PlantArrow",
+      "foreground": "CornflowerBlue"
+    },
+    {
+      "name": "PlantBlock",
+      "foreground": "CornflowerBlue",
+      "bold": true
+    },
+    {
+      "name": "PlantClass",
+      "foreground": "LightSeaGreen"
+    },
+    {
+      "name": "PlantComment",
+      "foreground": "LightGreen"
+    },
+    {
+      "name": "PlantNote",
+      "foreground": "DarkYellow"
+    },
+    {
+      "name": "PlantSkin",
+      "foreground": "LightGray"
+    },
+    {
       "name": "PowerShellAttribute",
-      "foreground": "PowderBlue"
+      "foreground": "CornflowerBlue"
+    },
+    {
+      "name": "PowerShellCommand",
+      "foreground": "Blue"
+    },
+    {
+      "name": "PowerShellKeyword",
+      "foreground": "Purple"
     },
     {
       "name": "PowerShellOperator",
-      "foreground": "DarkGray"
+      "foreground": "Gray"
     },
     {
       "name": "PowerShellType",
@@ -165,7 +212,7 @@
     },
     {
       "name": "PowerShellVariable",
-      "foreground": "OrangeRed"
+      "foreground": "Orange"
     },
     {
       "name": "Predefined",
@@ -173,15 +220,27 @@
     },
     {
       "name": "PsuedoKeyword",
-      "foreground": "Navy"
+      "foreground": "CornflowerBlue"
     },
     {
       "name": "PreprocessorKeyword",
-      "foreground": "DarkKeyword"
+      "foreground": "Blue"
     },
     {
       "name": "PreprocessorParameter",
       "foreground": "Magenta"
+    },
+    {
+      "name": "RegDelete",
+      "foreground": "Gray"
+    },
+    {
+      "name": "ShellKnownVariable",
+      "foreground": "Firebrick"
+    },
+    {
+      "name": "ShellUserVariable",
+      "foreground": "Orange"
     },
     {
       "name": "SpecialCharacter"
@@ -192,15 +251,15 @@
     },
     {
       "name": "String",
-      "foreground": "DarkString"
+      "foreground": "Firebrick"
     },
     {
       "name": "StringCSharpVerbatim",
-      "foreground": "DarkString"
+      "foreground": "Firebrick"
     },
     {
       "name": "StringEscape",
-      "foreground": "DarkGray"
+      "foreground": "Gray"
     },
     {
       "name": "Type",
@@ -212,40 +271,44 @@
       "italic": true
     },
     {
+      "name": "Variable",
+      "foreground": "Navy"
+    },
+    {
       "name": "XmlAttribute",
-      "foreground": "DarkXmlAttribute"
+      "foreground": "Red"
     },
     {
       "name": "XmlAttributeQuotes",
-      "foreground": "DarkKeyword"
+      "foreground": "Black"
     },
     {
       "name": "XmlAttributeValue",
-      "foreground": "DarkKeyword"
+      "foreground": "Blue"
     },
     {
       "name": "XmlCDataSection",
-      "foreground": "DarkXmlCData"
+      "foreground": "Gray"
     },
     {
       "name": "XmlComment",
-      "foreground": "DarkComment"
+      "foreground": "LightGreen"
     },
     {
       "name": "XmlDelimiter",
-      "foreground": "DarkXmlDelimiter"
+      "foreground": "Blue"
     },
     {
       "name": "XmlDocTag",
-      "foreground": "DarkXmlComment"
+      "foreground": "Gray"
     },
     {
       "name": "XmlDocComment",
-      "foreground": "DarkXmlComment"
+      "foreground": "Green"
     },
     {
       "name": "XmlName",
-      "foreground": "DarkXmlName"
+      "foreground": "DarkRed"
     }
   ]
 }

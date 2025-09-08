@@ -1,5 +1,5 @@
 ﻿//************************************************************************************************
-// Copyright © 2018 Steven M Cohn.  All rights reserved.
+// Copyright © 2018 Steven M Cohn. All rights reserved.
 //************************************************************************************************
 
 namespace River.OneMoreAddIn.Commands
@@ -7,16 +7,18 @@ namespace River.OneMoreAddIn.Commands
 	using River.OneMoreAddIn.Settings;
 	using System;
 	using System.Linq;
+	using System.Text.RegularExpressions;
+	using System.Web;
 	using System.Xml.Linq;
-	using Resx = River.OneMoreAddIn.Properties.Resources;
+	using Resx = Properties.Resources;
 
 
-	internal partial class SearchAndReplaceDialog : UI.LocalizableForm
+	internal partial class SearchAndReplaceDialog : UI.MoreForm
 	{
 		private XElement whats;
 
 
-		public SearchAndReplaceDialog ()
+		public SearchAndReplaceDialog()
 		{
 			InitializeComponent();
 
@@ -30,10 +32,18 @@ namespace River.OneMoreAddIn.Commands
 					"withLabel",
 					"matchBox",
 					"regBox",
+					"scopeLabel=word_Scope",
+					"scopeBox",
+					"rawBox",
 					"okButton=word_OK",
 					"cancelButton=word_Cancel"
 				});
 			}
+
+			whatStatusLabel.Text = string.Empty;
+			withStatusLabel.Text = string.Empty;
+
+			scopeBox.SelectedIndex = 0;
 
 			LoadSettings();
 		}
@@ -42,6 +52,14 @@ namespace River.OneMoreAddIn.Commands
 		private void LoadSettings()
 		{
 			var provider = new SettingsProvider();
+
+			var experimental = provider.GetCollection("GeneralSheet").Get<bool>("experimental");
+			if (!experimental)
+			{
+				rawBox.Visible = false;
+				Height -= rawBox.Height;
+			}
+
 			var settings = provider.GetCollection("SearchReplace");
 			if (settings != null)
 			{
@@ -57,9 +75,15 @@ namespace River.OneMoreAddIn.Commands
 				var withs = settings.Get<XElement>("withs");
 				if (withs != null)
 				{
-					foreach (var withText in withs.Elements())
+					foreach (var withText in withs.Elements().Select(e => e.Value))
 					{
-						withBox.Items.Add(withText.Value);
+						var text = withText;
+						if (text.StartsWith("&lt;") && text.EndsWith("&gt;"))
+						{
+							text = HttpUtility.HtmlDecode(text);
+						}
+
+						withBox.Items.Add(text);
 					}
 				}
 			}
@@ -67,6 +91,10 @@ namespace River.OneMoreAddIn.Commands
 
 
 		public bool MatchCase => matchBox.Checked;
+
+		public XElement RawXml { get; private set; }
+
+		public OneNote.Scope Scope { get; private set; } = OneNote.Scope.Self;
 
 		public string WithText => withBox.Text;
 
@@ -80,16 +108,111 @@ namespace River.OneMoreAddIn.Commands
 		}
 
 
-		private void SearchAndReplaceDialog_Shown (object sender, EventArgs e)
+		private void FocusOnWhat(object sender, EventArgs e)
 		{
-			UIHelper.SetForegroundWindow(this);
 			whatBox.Focus();
 		}
 
-		private void WTextChanged (object sender, EventArgs e)
+
+		private void ToggleRegex(object sender, EventArgs e)
 		{
-			okButton.Enabled = whatBox.Text.Length > 0;
+			CheckPattern(sender, e);
 		}
+
+
+		private void ToggleRawXml(object sender, EventArgs e)
+		{
+			CheckXmlFormat(sender, e);
+		}
+
+
+		private void CheckPattern(object sender, EventArgs e)
+		{
+			var text = whatBox.Text.Trim();
+			if (text.Length == 0)
+			{
+				whatStatusLabel.Text = string.Empty;
+				withStatusLabel.Text = string.Empty;
+			}
+
+			if (regBox.Checked)
+			{
+				try
+				{
+					var regex = new Regex(text);
+
+					var count = regex.GetGroupNumbers().Length - 1;
+					if (count > 0)
+					{
+						var range = count == 1
+							? "$1"
+							: $"$1 - ${count}";
+
+						whatStatusLabel.Text = string.Empty;
+
+						withStatusLabel.Text =
+							string.Format(Resx.SearchAndReplaceDialog_substitutions, range);
+					}
+					else
+					{
+						whatStatusLabel.Text = string.Empty;
+						withStatusLabel.Text = string.Empty;
+					}
+
+					okButton.Enabled = whatBox.Text.Length > 0;
+				}
+				catch (Exception exc)
+				{
+					logger.WriteLine(text, exc);
+					whatStatusLabel.Text = exc.Message;
+					withStatusLabel.Text = string.Empty;
+					okButton.Enabled = false;
+				}
+			}
+			else
+			{
+				whatStatusLabel.Text = string.Empty;
+				withStatusLabel.Text = string.Empty;
+				okButton.Enabled = whatBox.Text.Length > 0;
+			}
+		}
+
+
+		private void CheckXmlFormat(object sender, EventArgs e)
+		{
+			if (rawBox.Checked)
+			{
+				// rawBox lets users replace content with XML snippets;
+				// it does not replace XML with xML!
+
+				var xml = withBox.Text.Trim();
+				try
+				{
+					// if XML then ensure the 'one' prefix is defined as an xmlns...
+
+					var match = Regex.Match(xml, @"^<(?:(?<prefix>\w+):)?\w+(?<space>\s*)>");
+					if (match.Success && match.Groups["prefix"].Length > 0)
+					{
+						xml = xml.Insert(6, $" xmlns:{match.Groups["prefix"].Value}='anything'");
+					}
+
+					RawXml = XElement.Parse(xml);
+				}
+				catch
+				{
+					withStatusLabel.Text = "XML format is not correct";
+					return;
+				}
+			}
+			else
+			{
+				RawXml = null;
+			}
+
+			// ensure whatStatus is restored correctly
+			CheckPattern(sender, e);
+		}
+
 
 
 		private void SelectedWhat(object sender, EventArgs e)
@@ -115,6 +238,17 @@ namespace River.OneMoreAddIn.Commands
 					}
 				}
 			}
+		}
+
+		private void ChangeScope(object sender, EventArgs e)
+		{
+			Scope = scopeBox.SelectedIndex switch
+			{
+				1 => OneNote.Scope.Pages,
+				2 => OneNote.Scope.Sections,
+				3 => OneNote.Scope.Notebooks,
+				_ => OneNote.Scope.Self
+			};
 		}
 	}
 }

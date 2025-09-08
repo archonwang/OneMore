@@ -33,21 +33,19 @@ namespace River.OneMoreAddIn.Helpers.Office
 			var version = GetOfficeVersion();
 			var path = $@"SOFTWARE\Microsoft\Office\{version}\Common\LanguageResources\EnabledEditingLanguages";
 
-			using (var key = Registry.CurrentUser.OpenSubKey(path, false))
+			using var key = Registry.CurrentUser.OpenSubKey(path, false);
+			if (key != null)
 			{
-				if (key != null)
+				var list = new List<string>();
+				var names = key.GetValueNames();
+				foreach (var name in names)
 				{
-					var list = new List<string>();
-					var names = key.GetValueNames();
-					foreach (var name in names)
+					if (key.GetValue(name) is int value && ((value & 1) == 1))
 					{
-						if (key.GetValue(name) is int value && ((value & 1) == 1))
-						{
-							list.Add(name);
-						}
+						list.Add(name);
 					}
-					return list.ToArray();
 				}
+				return list.ToArray();
 			}
 
 			return new string[0];
@@ -72,16 +70,14 @@ namespace River.OneMoreAddIn.Helpers.Office
 
 		private static Version GetVersion(string name, int latest)
 		{
-			using (var key = Registry.ClassesRoot.OpenSubKey($@"\{name}.Application\CurVer", false))
+			using var key = Registry.ClassesRoot.OpenSubKey($@"\{name}.Application\CurVer", false);
+			if (key != null)
 			{
-				if (key != null)
-				{
-					// get default value string
-					var value = (string)key.GetValue(string.Empty);
-					// extract version number
-					var version = new Version(value.Substring(value.LastIndexOf('.') + 1) + ".0");
-					return version;
-				}
+				// get default value string
+				var value = (string)key.GetValue(string.Empty);
+				// extract version number
+				var version = new Version(value.Substring(value.LastIndexOf('.') + 1) + ".0");
+				return version;
 			}
 
 			// presume latest
@@ -106,42 +102,38 @@ namespace River.OneMoreAddIn.Helpers.Office
 		/// using the "Switch background" button
 		/// </summary>
 		/// <returns>True if Black theme is set; otherwise false</returns>
-		public static bool IsBlackThemeEnabled()
+		public static bool IsBlackThemeEnabled(bool ignorePage = false)
 		{
 			var version = GetOfficeVersion();
 
 			int? theme = 0;
 
-			using (var key = Registry.CurrentUser.OpenSubKey(
-				$@"Software\Microsoft\Office\{version.Major}.{version.Minor}\Common"))
+			using var key = Registry.CurrentUser.OpenSubKey(
+				$@"Software\Microsoft\Office\{version.Major}.{version.Minor}\Common");
+
+			/* Office Themes
+			 * -------------
+			 * Colorful   0
+			 * Dark Gray  3
+			 * Black      4
+			 * White      5
+			 * System     6
+			 */
+
+			if (key != null)
 			{
-				/* Office Themes
-				 * -------------
-				 * Colorful   0
-				 * Dark Gray  3
-				 * Black      4
-				 * White      5
-				 * System     6
-				 */
+				theme = key.GetValue("UI Theme") as Int32?;
+				theme ??= key.GetValue("Theme") as Int32?;
+			}
 
-				if (key != null)
-				{
-					theme = key.GetValue("UI Theme") as Int32?;
-					if (theme == null)
-					{
-						theme = key.GetValue("Theme") as Int32?;
-					}
-				}
-
-				if (theme == 4 && !DarkModeLightsOn())
-				{
-					return true;
-				}
+			if (theme == 4 && (ignorePage || !DarkModeLightsOn()))
+			{
+				return true;
 			}
 
 			// if office theme is 6 then use the system default...
 
-			if (theme == 6 && SystemDefaultDarkMode() && !DarkModeLightsOn())
+			if (theme == 6 && SystemDefaultDarkMode() && (ignorePage || !DarkModeLightsOn()))
 			{
 				return true;
 			}
@@ -158,27 +150,28 @@ namespace River.OneMoreAddIn.Helpers.Office
 		/// <returns></returns>
 		private static bool DarkModeLightsOn()
 		{
-			using (var key = Registry.CurrentUser.OpenSubKey(
-				@"Software\Microsoft\Office\16.0\OneNote\General"))
-			{
-				var enabled = key.GetValue("DarkModeCanvasLightsOn") as Int32?;
-				return enabled == 1;
-			}
+			using var key = Registry.CurrentUser.OpenSubKey(
+				@"Software\Microsoft\Office\16.0\OneNote\General");
+
+			var enabled = key.GetValue("DarkModeCanvasLightsOn") as Int32?;
+			return enabled == 1;
 		}
 
 
 		/// <summary>
 		/// Determines if Windows is set to dark mode
 		/// </summary>
-		/// <returns></returns>
-		private static bool SystemDefaultDarkMode()
+		/// <returns>True if the system default is dark mode</returns>
+		/// <remarks>
+		/// Declared as public so it can be used by OneMoreCalendar
+		/// </remarks>
+		public static bool SystemDefaultDarkMode()
 		{
-			using (var key = Registry.CurrentUser.OpenSubKey(
-				@"SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize"))
-			{
-				var light = key.GetValue("AppsUseLightTheme") as Int32?;
-				return light == 0;
-			}
+			using var key = Registry.CurrentUser.OpenSubKey(
+				@"SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize");
+
+			var light = key.GetValue("AppsUseLightTheme") as Int32?;
+			return light == 0;
 		}
 	}
 }

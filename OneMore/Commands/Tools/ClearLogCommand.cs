@@ -1,5 +1,5 @@
 ﻿//************************************************************************************************
-// Copyright © 2020 Steven M Cohn.  All rights reserved.
+// Copyright © 2020 Steven M Cohn. All rights reserved.
 //************************************************************************************************
 
 namespace River.OneMoreAddIn.Commands
@@ -7,7 +7,7 @@ namespace River.OneMoreAddIn.Commands
 	using System.IO;
 	using System.Threading.Tasks;
 	using System.Windows.Forms;
-	using Resx = River.OneMoreAddIn.Properties.Resources;
+	using Resx = Properties.Resources;
 
 
 	internal class ClearLogCommand : Command
@@ -23,12 +23,8 @@ namespace River.OneMoreAddIn.Commands
 		{
 			if (File.Exists(logger.LogPath))
 			{
-				var result = MessageBox.Show(
-					Resx.ClearLog_Message,
-					Resx.ClearLog_Title,
-					MessageBoxButtons.YesNo, MessageBoxIcon.Question,
-					MessageBoxDefaultButton.Button1,
-					MessageBoxOptions.DefaultDesktopOnly);
+				var result = UI.MoreMessageBox.Show(owner,
+					Resx.ClearLog_Message, MessageBoxButtons.YesNo, MessageBoxIcon.Question);
 
 				if (result == DialogResult.Yes)
 				{
@@ -37,13 +33,8 @@ namespace River.OneMoreAddIn.Commands
 			}
 			else
 			{
-				MessageBox.Show(
-					Resx.ClearLog_NoneMessage,
-					Resx.ClearLog_NoneTitle,
-					MessageBoxButtons.OK,
-					MessageBoxIcon.Information,
-					MessageBoxDefaultButton.Button1,
-					MessageBoxOptions.DefaultDesktopOnly);
+				UI.MoreMessageBox.Show(owner,
+					Resx.ClearLog_NoneMessage, MessageBoxButtons.OK, MessageBoxIcon.Information);
 			}
 
 			await Task.Yield();

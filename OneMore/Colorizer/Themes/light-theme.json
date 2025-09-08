@@ -1,22 +1,31 @@
 {
   "colors": {
+    "Auto": "#000000",
+    "AutoNative": "#000000",
     "Black": "#000000",
-    "Blue": "#0000FF",
+    "Blue": "#2E75B5",
+    "CornflowerBlue": "#5B9BD5",
     "DarkCyan": "#008B8B",
     "DarkOliveGreen": "#556B2F",
-    "DullRed": "#A31515",
+    "DarkRed": "#7D180D",
+    "DarkYellow": "#BF9000",
+    "DiffGreen": "#E3FAE3",
+    "DiffRed": "#FAECE9",
+    "Firebrick": "#B22222",
     "Gray": "#808080",
     "Green": "#008000",
-    "Magenta": "#FF00FF",
+    "LightGray": "#A5A5A5",
+    "LightGreen": "#00B050",
+    "LightSeaGreen": "#20B2AA",
+    "Magenta": "#CC00FF",
     "MediumTurqoise": "#48D1CC",
     "Navy": "#000080",
     "OliveDrab": "#6B8E23",
-    "OrangeRed": "#FF4500",
-    "CornflowerBlue": "#6495ED",
-    "Purple": "#800080",
-    "Red": "#FF0000",
+    "Orange": "#FF5800",
+    "Purple": "#8064A2",
+    "Red": "#E30303",
+    "Salmon": "#F1937A",
     "Teal": "#008080",
-    "White": "#FFFFFF",
     "Yellow": "#FFFF00"
   },
   "styles": [
@@ -45,7 +54,7 @@
     },
     {
       "name": "Comment",
-      "foreground": "Green"
+      "foreground": "LightGreen"
     },
     {
       "name": "Constructor",
@@ -65,10 +74,18 @@
     },
     {
       "name": "CssSelector",
-      "foreground": "DullRed"
+      "foreground": "Firebrick"
     },
     {
       "name": "Delimeter"
+    },
+    {
+      "name": "DiffAdd",
+      "background": "DiffGreen"
+    },
+    {
+      "name": "DiffRemove",
+      "background": "DiffRed"
     },
     {
       "name": "HtmlServerSideScript",
@@ -76,7 +93,7 @@
     },
     {
       "name": "HtmlComment",
-      "foreground": "Green"
+      "foreground": "LightGreen"
     },
     {
       "name": "HtmlTagDelimeter",
@@ -84,7 +101,7 @@
     },
     {
       "name": "HtmlElementName",
-      "foreground": "DullRed"
+      "foreground": "Firebrick"
     },
     {
       "name": "HtmlAttributeName",
@@ -103,8 +120,16 @@
       "foreground": "Blue"
     },
     {
+      "name": "JsonKey",
+      "foreground": "Orange"
+    },
+    {
       "name": "Keyword",
       "foreground": "Blue"
+    },
+    {
+      "name": "Macro",
+      "foreground": "Purple"
     },
     {
       "name": "MarkdownBold",
@@ -133,14 +158,47 @@
     },
     {
       "name": "Number",
-      "foreground": "DarkCyan"
+      "foreground": "Purple"
     },
     {
       "name": "Operator"
     },
     {
+      "name": "PlantArrow",
+      "foreground": "CornflowerBlue"
+    },
+    {
+      "name": "PlantBlock",
+      "foreground": "CornflowerBlue",
+      "bold": true
+    },
+    {
+      "name": "PlantClass",
+      "foreground": "LightSeaGreen"
+    },
+    {
+      "name": "PlantComment",
+      "foreground": "LightGreen"
+    },
+    {
+      "name": "PlantNote",
+      "foreground": "DarkYellow"
+    },
+    {
+      "name": "PlantSkin",
+      "foreground": "LightGray"
+    },
+    {
       "name": "PowerShellAttribute",
       "foreground": "CornflowerBlue"
+    },
+    {
+      "name": "PowerShellCommand",
+      "foreground": "Blue"
+    },
+    {
+      "name": "PowerShellKeyword",
+      "foreground": "Purple"
     },
     {
       "name": "PowerShellOperator",
@@ -152,7 +210,7 @@
     },
     {
       "name": "PowerShellVariable",
-      "foreground": "OrangeRed"
+      "foreground": "Orange"
     },
     {
       "name": "Predefined",
@@ -171,6 +229,18 @@
       "foreground": "Magenta"
     },
     {
+      "name": "RegDelete",
+      "foreground": "Gray"
+    },
+    {
+      "name": "ShellKnownVariable",
+      "foreground": "Firebrick"
+    },
+    {
+      "name": "ShellUserVariable",
+      "foreground": "Orange"
+    },
+    {
       "name": "SpecialCharacter"
     },
     {
@@ -179,11 +249,11 @@
     },
     {
       "name": "String",
-      "foreground": "DullRed"
+      "foreground": "Firebrick"
     },
     {
       "name": "StringCSharpVerbatim",
-      "foreground": "DullRed"
+      "foreground": "Firebrick"
     },
     {
       "name": "StringEscape",
@@ -197,6 +267,10 @@
       "name": "TypeVariable",
       "foreground": "Teal",
       "italic": true
+    },
+    {
+      "name": "Variable",
+      "foreground": "Navy"
     },
     {
       "name": "XmlAttribute",
@@ -216,7 +290,7 @@
     },
     {
       "name": "XmlComment",
-      "foreground": "Green"
+      "foreground": "LightGreen"
     },
     {
       "name": "XmlDelimiter",
@@ -232,7 +306,7 @@
     },
     {
       "name": "XmlName",
-      "foreground": "DullRed"
+      "foreground": "DarkRed"
     }
   ]
 }

@@ -1,5 +1,5 @@
 ﻿//************************************************************************************************
-// Copyright © 2020 Steven M Cohn.  All rights reserved.
+// Copyright © 2020 Steven M Cohn. All rights reserved.
 //************************************************************************************************
 
 namespace River.OneMoreAddIn.Commands.Search
@@ -7,13 +7,11 @@ namespace River.OneMoreAddIn.Commands.Search
 	using River.OneMoreAddIn.UI;
 	using System;
 	using System.Collections.Generic;
-	using System.Linq;
 	using System.Windows.Forms;
-	using System.Xml.Linq;
-	using Resx = River.OneMoreAddIn.Properties.Resources;
+	using Resx = Properties.Resources;
 
 
-	internal partial class SearchDialog : LocalizableForm
+	internal partial class SearchDialog : MoreForm
 	{
 		private readonly OneNote one;
 
@@ -36,7 +34,7 @@ namespace River.OneMoreAddIn.Commands.Search
 				});
 
 				scopeBox.Items.Clear();
-				scopeBox.Items.AddRange(Resx.SearchDialog_scopeBox_Items.Split(new char[] { '\n' }));
+				scopeBox.Items.AddRange(Resx.phrase_scopeOptions.Split('\n'));
 			}
 
 			scopeBox.SelectedIndex = 0;
