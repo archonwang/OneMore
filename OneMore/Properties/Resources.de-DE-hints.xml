@@ -140,7 +140,7 @@
     <source>Include pages in each section</source>
     <preferred>Füge Seiten in jeden Abschnitt ein</preferred>
   </hint>
-  <hint name="InsertTocDialog_previewBox.Text">
+  <hint name="InsertTocDialog_previewBox">
     <source>Include text preview of each page</source>
     <preferred>Füge die Textvorschau der jeder Seite ein</preferred>
   </hint>
@@ -168,7 +168,7 @@
     <source>Include a synopsis of each page</source>
     <preferred>Füge eine Zusammenfassung jeder Seite hinzu</preferred>
   </hint>
-  <hint name="NameStyleDialog_errorLabel.Text">
+  <hint name="RenameDialog_errorLabel.Text">
     <source>Name exists. Choose a different name.</source>
     <preferred>Name existiert. Wähle einen anderen Namen.</preferred>
   </hint>
@@ -286,7 +286,7 @@ Vergrößere kleinere Bilder nicht</preferred>
     <source>Add a caption to each attachment on the page</source>
     <preferred>Fügt jedem Anhang auf der Seite eine Beschriftung hinzu</preferred>
   </hint>
-  <hint name="ribChooseFavoriteButton_Label">
+  <hint name="ribFavoritesButton_Label">
     <source>Choose Favorite</source>
     <preferred>Favorit wählen</preferred>
   </hint>
@@ -602,7 +602,7 @@ Vergrößere kleinere Bilder nicht</preferred>
     <source>Enter one or more keywords, "quoted phrases", and use uppercase AND and OR</source>
     <preferred>Gib ein oder mehrere Schlüsselwörter, \"Phrasen in Anführungszeichen\", ein und verwende UND und ODER in Großbuchstaben</preferred>
   </hint>
-  <hint name="SearchEngineDialog_upButton.Text">
+  <hint name="SearchEngineSheet_upButton.Text">
     <source>Move up</source>
     <preferred>Nach oben</preferred>
   </hint>

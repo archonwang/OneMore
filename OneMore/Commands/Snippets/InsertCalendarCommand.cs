@@ -1,5 +1,5 @@
 ﻿//************************************************************************************************
-// Copyright © 2020 Steven M Cohn.  All rights reserved.
+// Copyright © 2020 Steven M Cohn. All rights reserved.
 //************************************************************************************************
 
 namespace River.OneMoreAddIn.Commands
@@ -11,7 +11,7 @@ namespace River.OneMoreAddIn.Commands
 	using System.Threading.Tasks;
 	using System.Windows.Forms;
 	using System.Xml.Linq;
-	using Resx = River.OneMoreAddIn.Properties.Resources;
+	using Resx = Properties.Resources;
 
 
 	internal class InsertCalendarCommand : Command
@@ -45,6 +45,9 @@ namespace River.OneMoreAddIn.Commands
 				ShowError(Resx.Error_BodyContext);
 				return;
 			}
+
+			using var guard = EnterOnce();
+			if (guard is null) { return; }
 
 			using var dialog = new InsertCalendarDialog();
 			if (dialog.ShowDialog(owner) != DialogResult.OK)

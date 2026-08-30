@@ -3,54 +3,144 @@
 Build OneMore full installer kit for the specified architecture, or default project builds.
 
 .PARAMETER Architecture
-Builds the installer kit for the specifies architecture: x86 (default), x64, ARM64, or All.
+Builds the installer kit for the specifies architecture: x86, x64 (default), ArmNative, ARM64, All, or x.
+'x' is a shorthand for building x86 and x64, without the ARM64 builds.
+'ArmNative' builds a fully native ARM64 MSI and bundle containing ARM64 OneMore
+binaries (on-demand only; excluded from -All).
+'ARM64' builds a mixed ARM64 bundle installer containing x64 OneMore binaries (for ARM64EC Office).
+
+.PARAMETER Beta
+Flags this as a beta version of the installer kit.
+
+.PARAMETER BetaNumber
+The beta build number, e.g. 3 for "7.1.1 (Beta 3)". Only meaningful together
+with -Beta; ignored otherwise. When omitted (or 0), beta builds fall back to
+the plain " Beta" tag with no number.
 
 .PARAMETER Clean
 Clean all projects in the solution, removing all bin and obj directories.
-No build is performed.
+No build is performed. This is a standalone command that executes and exits.
+
+.PARAMETER CompileOnly
+Compiles the solution for the specified architecture and stops, without building the
+installer kit. Used by CI to insert a code-signing step between compiling assemblies
+and packaging them into the MSI. This is a standalone command that executes and exits.
+
+.PARAMETER BuildMsi
+Builds only the MSI for the specified architecture, reusing whatever is already compiled
+in bin, and stops before building the Burn bundle or moving anything to Downloads. Used by
+CI to insert a code-signing step between building the MSI and (for ARM64) embedding it in
+the bundle. This is a standalone command that executes and exits.
+
+.PARAMETER FinishKit
+Resumes after an MSI has already been built (see -BuildMsi), building the Burn bundle for
+ARM64 and moving the final installer(s) to Downloads. This is a standalone command that
+executes and exits.
+
+.PARAMETER DetailedLog
+Enable verbose logging for MSBuild. This is useful for debugging build issues.
 
 .PARAMETER Detect
-Detect the targeted CPU architecture of the specified DLL or EXE file.
+Detect and report the targeted CPU architecture of the specified DLL or EXE file.
+This is a standalone command that executes and exits.
+
+.PARAMETER EchoLog
+When building with MSBuild, echo the build log to the console in addition to writing it to a
+file. This is useful for debugging build issues.
 
 .PARAMETER Fast
-Build just the .csproj projects using default parameters:
-OneMore, OneMorCalendar, OneMoreProtocolHandler, OneMoreSetupActions, and OneMoreTray.
+Build just the .csproj projects using default parameters: OneMore, OneMorCalendar, 
+OneMoreProtocolHandler, OneMoreSetupActions, and OneMoreTray.
+This is a standalone command that executes and exits.
 
-.PARAMETER Local
-Do not attempt to git restore the vdproj file. Keep the local version.
+.PARAMETER Kit
+Skips recompiling the binaries, grabbing whatever is in the bin, and proceeds to build
+the installer kit for the specified architecture.
 
-.PARAMETER Prep
-Run DisableOutOfProcBuild. This only needs to be run once on a machine, or after upgrading
-or reinstalling Visual Studio. It is required to build installer kits from the command line.
-No build is performed.
+.PARAMETER Main
+When building with -Fast, only build the main OneMore add-in project, skipping the tray, 
+calendar, protocol handler, and setup actions projects. This is a debugging option.
 
 .PARAMETER Stepped
 When building All architectures, pause between each architecture build to allow examination
 of output and configuration of vdproj. This is a debugging option.
 
-.PARAMETER VLog
-Enable verbose logging for MSBuild. This is useful for debugging build issues.
+.PARAMETER Test
+Run the OneMoreTests automation tests using vstest.console.exe. The test assembly must
+already be built (run -Fast or a full build first). This is a standalone command that
+executes and exits.
+
+.COPYRIGHT
+Copyright © 2016 Steven M Cohn. All rights reserved.
 #>
 
 [CmdletBinding(SupportsShouldProcess = $true)]
 param (
-	[ValidateSet('x86','x64','ARM64','All')]
-	[string] $Architecture = 'x86',
+	[ValidateSet('x86','x64','ARM64','All','ArmNative','x')]
+	[string] $Architecture = 'x64',
 
 	[ValidateScript({ Test-Path $_ -PathType Leaf })]
 	[string] $Detect,
 
+	[switch] $Beta,
+	[ValidateRange(0,999)]
+	[int] $BetaNumber = 0,
 	[switch] $Clean,
+	[switch] $EchoLog,
 	[switch] $Fast,
-	[switch] $Local,
-	[switch] $Prep,
+	[switch] $Kit,
+	[switch] $Main,
 	[switch] $Stepped,
-	[switch] $VLog
+	[switch] $Test,
+	[switch] $DetailedLog,
+	[switch] $CompileOnly,
+	[switch] $BuildMsi,
+	[switch] $FinishKit
 	)
 
 Begin
 {
 	$script:guid = '{88AB88AB-CDFB-4C68-9C3A-F10B75A5BC61}'
+	$script:checksums = @()
+
+	# AssemblyInfo.cs files carrying the "#if BETA ... \" Beta\" ..." BuildTag pattern;
+	# ApplyBetaTag/RestoreBetaTag temporarily substitute the beta number into these
+	# before compiling and restore the originals afterward so the working tree is
+	# never left modified.
+	$script:betaInfoFiles = @(
+		'OneMore\Properties\AssemblyInfo.cs',
+		'OneMoreTray\Properties\AssemblyInfo.cs',
+		'OneMoreCalendar\Properties\AssemblyInfo.cs',
+		'OneMoreProtocolHandler\Properties\AssemblyInfo.cs',
+		'OneMoreSetupActions\Properties\AssemblyInfo.cs',
+		'OneMoreCli\Properties\AssemblyInfo.cs'
+	)
+
+	function ApplyBetaTag
+	{
+		param([int] $Number)
+
+		$replacement = '" (Beta ' + $Number + ')"'
+		$script:betaBackup = @{}
+		foreach ($f in $script:betaInfoFiles)
+		{
+			$content = Get-Content -Raw $f
+			$script:betaBackup[$f] = $content
+			Set-Content -Path $f -Value $content.Replace('" Beta"', $replacement) -NoNewline
+		}
+	}
+
+	function RestoreBetaTag
+	{
+		if ($script:betaBackup)
+		{
+			foreach ($f in $script:betaBackup.Keys)
+			{
+				Set-Content -Path $f -Value $script:betaBackup[$f] -NoNewline
+			}
+			$script:betaBackup = $null
+		}
+	}
 
 	# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 	# Helpers...
@@ -66,6 +156,9 @@ Begin
 			write-Host "... devenv found at $devenv" -Fore DarkGray
 			return $true
 		}
+
+		$0 = 'C:\Program Files\Microsoft Visual Studio\18' # VS 2026
+		if (FindVS $0) { return $true }
 
 		$0 = 'C:\Program Files\Microsoft Visual Studio\2022'
 		if (FindVS $0) { return $true }
@@ -132,9 +225,11 @@ Begin
 		if ($pushpop) { Push-Location .. }
 		CleanProject 'OneMore'
 		CleanProject 'OneMoreCalendar'
+		CleanProject 'OneMoreCli'
 		CleanProject 'OneMoreProtocolHandler'
 		CleanProject 'OneMoreSetup'
 		CleanProject 'OneMoreSetupActions'
+		CleanProject 'OneMoreTests'
 		CleanProject 'OneMoreTray'
 		if ($pushpop) { Pop-Location }
 	}
@@ -160,22 +255,6 @@ Begin
 		}
 	}
 
-	function DisablOutOfProcBuild
-	{
-		$0 = Join-Path $ideroot 'CommonExtensions\Microsoft\VSI\DisableOutOfProcBuild'
-		if (Test-Path $0)
-		{
-			Push-Location $0
-			if (Test-Path .\DisableOutOfProcBuild.exe) {
-				.\DisableOutOfProcBuild.exe
-			}
-			Pop-Location
-			Write-Host '... disabled out-of-proc builds; reboot is recommended'
-			return
-		}
-		Write-Host "*** could not find $0\DisableOutOfProcBuild.exe" -ForegroundColor Yellow
-	}
-
 	function DetectArchitecture
 	{
 		param($dllPath)
@@ -196,14 +275,14 @@ Begin
 			$machine = [int]$reader.PEHeaders.CoffHeader.Machine
 
 			switch ($machine) {
-				# some ARM64X/ARM64EC hybrids still present 0x8664
+				# some arm64X/arm64EC hybrids still present 0x8664
                 # Without external tools or parsing CHPE metadata, we can't be 100% certain.
 				0x8664 { 'x64' }
 
 				0x014c { 'x86' }
 				0xaa64 { 'ARM64' }
-				0xA641 { "ARM64EC" }
-				0xA64E { "ARM64X" }
+				0xA641 { 'ARM64EC' }
+				0xA64E { 'ARM64X' }
 				0x01c4 { 'ARM' }
 				0x0200 { 'Itanium' }
 
@@ -215,15 +294,53 @@ Begin
 	}
 
 
+	function RunTests
+	{
+		Write-Host "`n... running OneMore tests" -ForegroundColor Cyan
+
+		$testDll = '.\OneMoreTests\bin\Debug\OneMoreTests.dll'
+		if (-not (Test-Path $testDll))
+		{
+			Write-Host "... test assembly not found at $testDll; run a build first" -ForegroundColor Red
+			return $false
+		}
+
+		$vstest = Join-Path $script:ideroot 'Extensions\TestPlatform\vstest.console.exe'
+		if (-not (Test-Path $vstest))
+		{
+			Write-Host "... vstest.console.exe not found at $vstest" -ForegroundColor Red
+			return $false
+		}
+
+		$tempdir = $env:RUNNER_TEMP ?? $env:TEMP
+		$trx = Join-Path $tempdir 'OneMoreTests.trx'
+
+		$vstestArgs = @(
+			$testDll,
+			'/Platform:x64',
+			'/Logger:trx;LogFileName=OneMoreTests.trx',
+			"/ResultsDirectory:$tempdir"
+		)
+		Write-Host "... & '$vstest' $vstestArgs" -ForegroundColor DarkGray
+		& $vstest @vstestArgs
+
+		$exitCode = $LASTEXITCODE
+		$color = $exitCode -eq 0 ? 'Green' : 'Red'
+		Write-Host "`n... vstest exit code: $exitCode" -ForegroundColor $color
+		return $exitCode -eq 0
+	}
+
 	# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 	# Fast...
 
 	function BuildFast
 	{
-		Write-Host "`n... fast build with default configs" -ForegroundColor Cyan
+		Write-Host "`n... fast build with default configs ($Architecture)" -ForegroundColor Cyan
 
 		NugetRestore 'OneMore'
 		BuildProject 'OneMore'
+		
+		if ($Main) { return }
 
 		NugetRestore 'OneMoreTray'
 		BuildProject 'OneMoreTray'
@@ -231,9 +348,14 @@ Begin
 		NugetRestore 'OneMoreCalendar'
 		BuildProject 'OneMoreCalendar'
 
-		BuildProject 'OneMoreProtocolHandler'
+		NugetRestore 'OneMoreCli'
+		BuildProject 'OneMoreCli'
 
+		BuildProject 'OneMoreProtocolHandler'
 		BuildProject 'OneMoreSetupActions'
+
+		NugetRestore 'OneMoreTests'
+		BuildProject 'OneMoreTests'
 
 		ReportArchitectures
 	}
@@ -263,7 +385,7 @@ Begin
 			Remove-Item .\Debug\*.* -Force -Confirm:$false
 		}
 
-		$cmd = ". '$devenv' .\$name.csproj /project $name /projectconfig 'Debug|AnyCPU' /build"
+		$cmd = ". '$devenv' .\$name.csproj /project $name /projectconfig 'Debug|$Architecture' /build"
 		write-Host $cmd -ForegroundColor DarkGray
 		Invoke-Expression $cmd
 
@@ -273,15 +395,39 @@ Begin
 	# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 	# Kit...
 
-	function Build
+	function CompileOnly
 	{
-		param($arc)
-		$script:Architecture = $arc
+		# ARM64: bundle is ARM64 but OneMore binaries and MSI are x64 (for ARM64EC Office)
+		# ArmNative: fully native ARM64; solutionPlatform stays ARM64
+		$solutionPlatform = if ($Architecture -eq 'ARM64') { 'x64' } elseif ($Architecture -eq 'ArmNative') { 'ARM64' } else { $Architecture }
 
 		CleanSolution
 		RestoreSolution
 
-		if (BuildSolution)
+		if (BuildSolution $solutionPlatform)
+		{
+			ReportArchitectures
+		}
+	}
+
+	function Build
+	{
+		param($arc)
+		$script:Architecture = $arc
+		# ARM64: bundle is ARM64 but OneMore binaries and MSI are x64 (for ARM64EC Office)
+		# ArmNative: fully native ARM64; solutionPlatform stays ARM64
+		$solutionPlatform = if ($arc -eq 'ARM64') { 'x64' } elseif ($arc -eq 'ArmNative') { 'ARM64' } else { $arc }
+
+		if ($Stepped -and $arc -ne 'ArmNative' -and $arc -ne 'ARM64')
+		{
+			Write-Host "`n... press Enter to continue with $arc build: " -Fore Magenta -nonewline
+			Read-Host
+		}
+
+		CleanSolution
+		RestoreSolution
+
+		if (BuildSolution $solutionPlatform)
 		{
 			ReportArchitectures
 			BuildKit
@@ -295,64 +441,62 @@ Begin
 		NugetRestore 'OneMore'
 		NugetRestore 'OneMoreTray'
 		NugetRestore 'OneMoreCalendar'
+		NugetRestore 'OneMoreCli'
+		NugetRestore 'OneMoreTests'
 	}
 
 	function BuildSolution
 	{
-		Write-Host "`n... building $Architecture solution" -ForegroundColor Cyan
+		param([string]$platform = $script:Architecture)
+
+		Write-Host "`n... building $Architecture solution (platform: $platform)" -ForegroundColor Cyan
 		Write-Host
 
-		SetBuildVerbosity 4
-
-		try
+		$vsRoot = Split-Path -Parent (Split-Path -Parent $script:ideroot)
+		$msbuild = Join-Path $vsRoot 'MSBuild\Current\Bin\MSBuild.exe'
+		if (-not (Test-Path $msbuild))
 		{
-			$log = "$($env:TEMP)\OneMoreBuild.log"
-			if (Test-Path $log) { Remove-Item $log -Force -Confirm:$false }
-
-			$cmd = ". '$devenv' .\OneMore.sln /build 'Debug|$Architecture' /out '$log'"
-			Write-Host $cmd -ForegroundColor DarkGray
-			Invoke-Expression $cmd
-		}
-		finally
-		{
-			SetBuildVerbosity 1
+			Write-Host "... MSBuild not found at $msbuild" -ForegroundColor Red
+			return $false
 		}
 
-		$succeeded = 0;
-		$failed = 1
+		# RUNNER_TEMP is set by GitHub Actions; locally falls back to TEMP
+		$tempdir = $env:RUNNER_TEMP ?? $env:TEMP
+		$log = Join-Path $tempdir 'OneMoreBuild.log'
 
-		Get-Content $env:TEMP\OneMoreBuild.log -ErrorAction SilentlyContinue | `
-			where { $_ -match '== Build: (\d+) succeeded, (\d+) failed'} | `
-			select -last 1 | `
-			foreach {
-				$succeeded = $matches[1]
-				$failed = $matches[2]
-				$color = $failed -eq 0 ? 'Green' : 'Red'
-				write-Host "`n... build completed: $succeeded succeeded, $failed failed" -ForegroundColor $color
-			}
+		$verbosity = $DetailedLog ? 'detailed' : 'minimal'
+		Write-Host "& '$msbuild' .\OneMore.sln /p:Configuration=Debug /p:Platform=$platform /m /nologo /verbosity:$verbosity" -ForegroundColor DarkGray
+		Write-Host "... build log: $log" -ForegroundColor DarkGray
 
-		return [bool]($succeeded -gt 0 -and $failed -eq 0)
-	}
-
-	function SetBuildVerbosity
-	{
-		param($level)
-		if ($VLog)
+		if ($EchoLog)
 		{
-			$desc = $level -eq 4 ? 'enabling' : 'disabling'
-			Write-Host "... $desc MSBuild verbose logging" -ForegroundColor DarkYellow
-			$cmd = ". '$vsregedit' set local HKCU General MSBuildLoggerVerbosity dword $level`n | Out-Null"
-			write-Host $cmd -ForegroundColor DarkGray
-			Invoke-Expression $cmd
+			& $msbuild .\OneMore.sln `
+				/p:Configuration=Debug `
+				/p:Platform=$platform `
+				/m /nologo /verbosity:$verbosity | Tee-Object -FilePath $log | Write-Host
 		}
+		else
+		{
+			& $msbuild .\OneMore.sln `
+				/p:Configuration=Debug `
+				/p:Platform=$platform `
+				/m /nologo /verbosity:$verbosity | Out-File -FilePath $log
+		}
+
+		$exitCode = $LASTEXITCODE
+		$color = $exitCode -eq 0 ? 'Green' : 'Red'
+		Write-Host "`n... msbuild exit code: $exitCode" -ForegroundColor $color
+		return $exitCode -eq 0
 	}
 
 	function ReportArchitectures
 	{
-		$arc = (DetectArchitecture .\OneMore\bin\$Architecture\Debug\River.OneMoreAddIn.dll)
+		#$arc = (DetectArchitecture .\OneMore\bin\$Architecture\Debug\River.OneMoreAddIn.dll)
+		$arc = (DetectArchitecture .\OneMore\bin\Debug\River.OneMoreAddIn.dll)
 		Write-Host "... OneMore: $arc" -ForegroundColor DarkGray
 
 		ReportModuleArchitecture 'OneMoreCalendar'
+		ReportModuleArchitecture 'OneMoreCli'
 		ReportModuleArchitecture 'OneMoreProtocolHandler'
 		ReportModuleArchitecture 'OneMoreSetupActions'
 		ReportModuleArchitecture 'OneMoreTray'
@@ -362,28 +506,61 @@ Begin
 	function ReportModuleArchitecture
 	{
 		param($name)
-		$arc = (DetectArchitecture .\$name\bin\Debug\$name.exe)
+		#$arc = (DetectArchitecture .\$name\bin\Debug\$name.exe)
+		$arc = (DetectArchitecture .\OneMore\bin\Debug\$name.exe)
 		Write-Host "... $name`: $arc" -ForegroundColor DarkGray
 	}
 
-	function BuildKit
+	function BuildMsi
 	{
-		Write-Host "`n... building $Architecture kit" -ForegroundColor Cyan
+		Write-Host "`n... building $Architecture MSI" -ForegroundColor Cyan
 		Write-Host
 
+		# ARM64: MSI is x64 (for ARM64EC Office); bundle is native ARM64.
+		# ArmNative: MSI and bundle are both native ARM64.
+		$msiArch = if ($Architecture -eq 'ARM64') { 'x64' } elseif ($Architecture -eq 'ArmNative') { 'ARM64' } else { $Architecture }
+
+		# Read product version from the built DLL
+		$dllPath = '.\OneMore\bin\Debug\River.OneMoreAddIn.dll'
+		if (-not (Test-Path $dllPath))
+		{
+			Write-Host "... $dllPath not found; run a solution build first" -ForegroundColor Red
+			return
+		}
+		# use FileVersion (always plain numeric), not ProductVersion: once a beta
+		# build sets AssemblyInformationalVersion, ProductVersion includes the
+		# "(Beta n)" tag, which WiX's numeric ProductVersion can't accept
+		$ver = (Get-Item $dllPath).VersionInfo.FileVersion
+		# Normalise x.y.z.w → x.y.z (strip revision component)
+		if ($ver -match '^(\d+\.\d+\.\d+)\.\d+$') { $ver = $matches[1] }
+		$script:productVersion = $ver
+
+		# human-readable beta tag for the installer's display name (e.g. " (Beta 3)");
+		# the numeric $ver above always stays plain major.minor.build for WiX/MSI
+		$betaTag = if ($Beta -and $BetaNumber -gt 0) { " (Beta $BetaNumber)" } else { '' }
+
+		Write-Host "... building $Architecture MSI for v$ver$betaTag" -ForegroundColor Yellow
+
+		# Locate MSBuild from the VS installation found by FindVisualStudio
+		$vsRoot = Split-Path -Parent (Split-Path -Parent $script:ideroot)
+		$msbuild = Join-Path $vsRoot 'MSBuild\Current\Bin\MSBuild.exe'
+		if (-not (Test-Path $msbuild))
+		{
+			Write-Host "... MSBuild not found at $msbuild; ensure Visual Studio is installed" -ForegroundColor Red
+			return
+		}
+
 		Push-Location OneMoreSetup
-		$vdproj = Resolve-Path .\OneMoreSetup.vdproj
-
-		PreserveVdproj $vdproj
-
 		try
 		{
-			ConfigureSetupProject $vdproj
+			$cmd = "& '$msbuild' OneMoreSetup.wixproj" +
+				" /Restore" +
+				" /p:Platform=$msiArch" +
+				" /p:Configuration=Debug" +
+				" /p:ProductVersion=$ver" +
+				" /p:BetaTag=`"$betaTag`"" +
+				" /nologo /m"
 
-			$log = "$($env:TEMP)\OneMoreBuild.log"
-			$cmd = ". '$devenv' .\OneMoreSetup.vdproj /build 'Debug|$Architecture' /project Setup /out '$log'"
-			
-			Write-Host
 			Write-Host $cmd -ForegroundColor DarkGray
 
 			if ($Stepped)
@@ -396,292 +573,151 @@ Begin
 
 			if ($LASTEXITCODE -eq 0)
 			{
-				$0 = Get-ChildItem .\Debug\OneMore_*.msi | select -first 1
-				if (Test-Path $0)
+				$msi = Get-ChildItem "bin\$msiArch\Debug\OneMore_*.msi" | Select-Object -First 1
+				if ($msi)
 				{
-					# move msi to Downloads for safe-keeping and to allow next Platform build
-					$1 = "$home\Downloads\OneMore_$productVersion`_Setup$Architecture.msi"
-					Move-Item $0 $1 -Force -Confirm:$false
-					Write-Host "... $Architecture MSI moved to $1" -ForegroundColor DarkYellow
-
-					if (Get-Command checksum -ErrorAction SilentlyContinue)
-					{
-						if (Test-Path $1)
-						{
-							$sum = (checksum -t sha256 $1)
-							Write-Host "... $Architecture checksum: $sum" -ForegroundColor DarkYellow
-						}
-					}
+					Write-Host "... $Architecture MSI built: $($msi.FullName)" -ForegroundColor DarkYellow
 				}
 			}
 		}
 		finally
 		{
-			RestoreVdproj $vdproj
 			Pop-Location
 		}
 	}
 
-	function PreserveVdproj
+	function FinishKit
 	{
-		param($vdproj)
-		Write-Host '... preserving vdproj' -ForegroundColor DarkGray
-
-		if ($Local) {
-			Write-Host '... using local copy of vdproj' -Fore DarkGray
-		} else {
-			Write-Host '... restoring vdproj from git' -Fore DarkGray
-			git restore $vdproj
-		}
-
-		Copy-Item $vdproj .\vdproj.tmp -Force -Confirm:$false
-	}
-
-	function RestoreVdproj
-	{
-		param($vdproj)
-		Write-Host '... restoring vdproj' -ForegroundColor DarkGray
-		$0 = (Resolve-Path .\vdproj.tmp)
-		if (Test-Path $0)
-		{
-			Copy-Item $0 $vdproj -Force -Confirm:$false
-			Remove-Item $0 -Force -Confirm:$false
-		}
-	}
-
-	function ConfigureSetupProject
-	{
-		param($vdproj)
-
-		$json = ConvertVdprojToJson $vdproj
-		$folders = GetArcFolders $json
-
-		$lines = (Get-Content $vdproj)
-
-		$script:productVersion = $lines | `
-			where { $_ -match '"ProductVersion" = "8:(.+?)"' } | `
-			foreach { $matches[1] }
-
+		Write-Host "`n... finishing $Architecture kit" -ForegroundColor Cyan
 		Write-Host
-		Write-Host "... configuring vdproj for $Architecture build of $productVersion" -ForegroundColor Yellow
 
-		'' | Out-File $vdproj -nonewline
+		# ARM64: MSI is x64 (for ARM64EC Office); bundle is native ARM64.
+		# ArmNative: MSI and bundle are both native ARM64.
+		$msiArch    = if ($Architecture -eq 'ARM64') { 'x64' } elseif ($Architecture -eq 'ArmNative') { 'ARM64' } else { $Architecture }
+		$bundleArch = if ($Architecture -eq 'ARM64' -or $Architecture -eq 'ArmNative') { 'ARM64' } else { $Architecture }
 
-		$lines | foreach `
+		# Read product version from the built DLL
+		$dllPath = '.\OneMore\bin\Debug\River.OneMoreAddIn.dll'
+		if (-not (Test-Path $dllPath))
 		{
-			if ($_ -match '"OutputFileName" = "')
-			{
-				# "OutputFilename" = "8:Debug\\OneMore_v_Setupx64.msi"
-				$line = $_.Replace('OneMore_v_', "OneMore_$($productVersion)_")
-				$line.Replace('x64', $Architecture) | Out-File $vdproj -Append
-			}
-			elseif ($_ -match '"DefaultLocation" = "')
-			{
-				# "DefaultLocation" = "8:[ProgramFilesFolder][Manufacturer]\\[ProductName]"
-				if ($Architecture -ge 'x86') {
-					$_.Replace('ProgramFiles64Folder', 'ProgramFilesFolder') | Out-File $vdproj -Append
-				} else {
-					$_.Replace('ProgramFilesFolder', 'ProgramFiles64Folder') | Out-File $vdproj -Append
-				}
-			}
-			elseif ($_ -match '"TargetPlatform" = "')
-			{
-				# x86 -> "3:0"
-				# x64 -> "3:1"
-				if ($Architecture -ge 'x86') {
-					'"TargetPlatform" = "3:0"' | Out-File $vdproj -Append
-				} else {
-					'"TargetPlatform" = "3:1"' | Out-File $vdproj -Append
-				}
-			}
-			elseif (($_ -match ' --x86'))
-			{
-				# "Name" = "8:OneMoreSetupActions --install --x86"
-				# "Arguments" = "8:--install --x86"
-				$_.Replace('x86', $Architecture) | Out-File $vdproj -Append
-			}
-			elseif ($_ -match '"SourcePath" = .*WebView2Loader\.dll"$')
-			{
-				if ($Architecture -ne 'x86')
-				{
-					$_.Replace('x86', $Architecture.ToLower()) | Out-File $vdproj -Append
-				}
-				else
-				{
-					$_ | Out-File $vdproj -Append
-				}
-			}
-			elseif ($_ -match '"SourcePath" = .*SQLite.Interop\.dll"$')
-			{
-				if ($Architecture -eq 'x64')
-				{
-					$_.Replace('x86', 'x64') | Out-File $vdproj -Append
-				}
-				elseif ($Architecture -eq 'ARM64')
-				{
-					$_.Replace('bin\\x86\\Debug\\x86', 'bin\\ARM64\\Debug\\x64') | Out-File $vdproj -Append
-				}
-				else
-				{
-					$_ | Out-File $vdproj -Append
-				}
-			}
-			elseif ($_.Trim() -eq """Folder"" = ""8:$($folders.x86)""" -and $Architecture -ne 'x86')
-			{
-				# SQLite.Interop.dll Folder location
-				Write-Host "... updating SQLite.Interop x86 folder from $($folders.x86) to $($folders.x64)" -Fore DarkGray
-				"""Folder"" = ""8:$($folders.x64)""" | Out-File $vdproj -Append
-			}
-			elseif ($_.Trim() -eq """Folder"" = ""8:$($folders.win86)""" -and $Architecture -ne 'x86')
-			{
-				# WebView2Loader.dll Folder location
-				Write-Host "... updating WebView2Loader win-x86 folder from $($folders.win86) to $($folders.win64)" -Fore DarkGray
-				"""Folder"" = ""8:$($folders.win64)""" | Out-File $vdproj -Append
-			}
-			elseif ($_ -notmatch '^"Scc')
-			{
-				$_ | Out-File $vdproj -Append
-			}
+			Write-Host "... $dllPath not found; run a solution build first" -ForegroundColor Red
+			return
 		}
-	}
+		$ver = (Get-Item $dllPath).VersionInfo.FileVersion
+		if ($ver -match '^(\d+\.\d+\.\d+)\.\d+$') { $ver = $matches[1] }
+		$script:productVersion = $ver
 
-	function ConvertVdprojToJson
-	{
-		param($vdproj)
+		$betaTag = if ($Beta -and $BetaNumber -gt 0) { " (Beta $BetaNumber)" } else { '' }
 
-		$file = "$vdproj.json"
-		'' | out-file $file
-
-		$lines = (Get-Content $vdproj) | Select-Object -Skip 1
-
-		$depth = 0
-		$containerDepth = -1
-
-		for ($i = 0; $i -lt $lines.Count; $i++)
+		# Locate MSBuild from the VS installation found by FindVisualStudio
+		$vsRoot = Split-Path -Parent (Split-Path -Parent $script:ideroot)
+		$msbuild = Join-Path $vsRoot 'MSBuild\Current\Bin\MSBuild.exe'
+		if (-not (Test-Path $msbuild))
 		{
-			$line = $lines[$i]
-			if ($line -match '^\s*"([^"]+)"$')
-			{
-				# Hierarchy.Entry[] is the only collection with duplicate names.
-				# So we only need to track Entries and wrap them in a JSON array.
+			Write-Host "... MSBuild not found at $msbuild; ensure Visual Studio is installed" -ForegroundColor Red
+			return
+		}
 
-				if ($matches[1] -eq 'Hierarchy')
-				{
-					$containerDepth = $depth
-					"$line`:" | out-File $file -Append
-				}
-				elseif ($matches[1] -ne 'Entry') # skip Entry object names
-				{
-					"$line`:" | out-File $file -Append
-				}
-			}
-			elseif ($line -match '^(\s*)("[^"]+") = ("(.*)")$')
+		Push-Location OneMoreSetup
+		try
+		{
+			$msi = Get-ChildItem "bin\$msiArch\Debug\OneMore_*.msi" | Select-Object -First 1
+			if (-not $msi)
 			{
-				$text = "$($matches[1])$($matches[2]): $($matches[3])"
-				if (($i -lt $lines.Count - 1) -and -not $lines[$i+1].EndsWith('}'))
+				Write-Host "... no MSI found in OneMoreSetup\bin\$msiArch\Debug; run -BuildMsi first" -ForegroundColor Red
+				return
+			}
+
+			$bundleExe = $null
+			if  ($Architecture -eq 'ARM64')
+			{
+				# only burn the bundle for ARM64...
+				# this could change in the future to solve permission issues writing to TEMP!
+				# see https://github.com/stevencohn/OneMore/issues/2124
+
+				# Build Burn bundle (.exe) while the MSI is still in its output location;
+				# Bundle.wxs resolves the MSI via a relative path from OneMoreBundle/.
+
+				Push-Location ..\OneMoreBundle
+				try
 				{
-					"$text," | out-File $file -Append
+					$bundleCmd = "& '$msbuild' OneMoreBundle.wixproj" +
+						" /Restore" +
+						" /p:Platform=$bundleArch" +
+						" /p:Configuration=Debug" +
+						" /p:ProductVersion=$ver" +
+						" /p:BetaTag=`"$betaTag`""
+
+					# ARM64: signal Bundle.wxs to reference the x64 MSI instead of ARM64
+					if ($Architecture -eq 'ARM64')
+					{
+						$bundleCmd += " /p:MixedBundle=true"
+					}
+
+					$bundleCmd += " /nologo /m"
+					Write-Host $bundleCmd -ForegroundColor DarkGray
+					Invoke-Expression $bundleCmd
+					if ($LASTEXITCODE -eq 0)
+					{
+						$bundleExe = Get-ChildItem "bin\$bundleArch\Debug\OneMore_*.exe" | Select-Object -First 1
+					}
 				}
-				else
+				finally
 				{
-					"$text" | out-File $file -Append
+					Pop-Location
 				}
 			}
 			else
 			{
-				$tag = $line.Trim()
-				if ($tag -eq '{')
+				# ARM64: MSI is x64 content embedded in the ARM64 bundle; don't distribute
+				# the MSI separately (the bundle EXE is the distributable for this variant).
+
+				$dest = "$home\Downloads\OneMore_${ver}_Setup${Architecture}.msi"
+				Move-Item $msi $dest -Force -Confirm:$false
+				Write-Host "... $Architecture MSI moved to $dest" -ForegroundColor DarkYellow
+
+				if (Get-Command checksum -ErrorAction SilentlyContinue)
 				{
-					if ($depth -eq $containerDepth)
-					{
-						$line = $line.Replace('{', '[')
-					}
-
-					$depth = $depth + 1
+					$sum = (checksum -t sha256 $dest)
+					Write-Host "... $Architecture = $sum" -ForegroundColor DarkYellow
+					$script:checksums += "$Architecture = $sum"
 				}
-				elseif ($tag -eq '}')
+			}
+
+			# move bundle to Downloads; use $Architecture in filename to distinguish
+			# SetupArmNative.exe (pure ARM64) from SetupARM64.exe (mixed ARM64+x64)
+			if ($bundleExe)
+			{
+				$exeDest = "$home\Downloads\OneMore_${ver}_Setup${Architecture}.exe"
+				Move-Item $bundleExe $exeDest -Force -Confirm:$false
+				Write-Host "... $Architecture bundle moved to $exeDest" -ForegroundColor DarkYellow
+
+				if (Get-Command checksum -ErrorAction SilentlyContinue)
 				{
-					$depth = $depth - 1
-					if ($depth -eq $containerDepth)
-					{
-						$line = $line.Replace('}', ']')
-						$containerDepth = -1
-					}
-
-					if (($i -lt $lines.Count - 1) -and 
-						($lines[$i+1] -match '^\s*"[^"]+"$' -or $lines[$i+1] -match '^(\s*)("[^"]+"\s*)= ("(.*)")$'))
-					{
-						$line = "$line,"
-					}
+					$sum = (checksum -t sha256 $exeDest)
+					Write-Host "... $Architecture bundle = $sum" -ForegroundColor DarkYellow
+					$script:checksums += "$Architecture bundle = $sum"
 				}
-
-				"$line" | out-File $file -Append
 			}
 		}
-
-		$json = Get-Content $file | ConvertFrom-Json
-		return $json
-	}
-
-	function GetArcFolders
-	{
-		param($json)
-
-		$folder = $json.Deployable.Folder
-		$folders = ($folder | ExplodeNoteProperties | where { $_.Property -eq '8:TARGETDIR' }).Folders
-		# $json.Deployable.Folder['TARGETDIR'].Folders['8:x86'].omKey
-		$x86 = $folders | ExplodeNoteProperties | where { $_.Name -eq '8:x86' } | select -expand omKey
-		# $json.Deployable.Folder['TARGETDIR'].Folders['8:x64'].omKey
-		$x64 = $folders | ExplodeNoteProperties | where { $_.Name -eq '8:x64' } | select -expand omKey
-
-		$runtimes = ($folders | ExplodeNoteProperties | where { $_.Name -eq '8:runtimes' }).Folders
-
-		# $json.Deployable.Folder['TARGETDIR'].Folders['8:runtimes']['8:win-x86'].Folders['8:native'].omKey
-		$win86 = ($runtimes | `
-			ExplodeNoteProperties | where { $_.Name -eq '8:win-x86' }).Folders | `
-			ExplodeNoteProperties | where { $_.Name -eq '8:native' } | `
-			select -expand omKey
-
-		# $json.Deployable.Folder['TARGETDIR'].Folders['8:runtimes']['8:win-x64'].Folders['8:native'].omKey
-		$win64 = ($runtimes | `
-			ExplodeNoteProperties | where { $_.Name -eq '8:win-x64' }).Folders | `
-			ExplodeNoteProperties | where { $_.Name -eq '8:native' } | `
-			select -expand omKey
-
-		$rex = '{[0-9A-F\-]+}:(_[0-9A-F]+)$'
-		if ($x86 -match $rex) { $x86 = $matches[1] }
-		if ($x64 -match $rex) { $x64 = $matches[1] }
-		if ($win86 -match $rex) { $win86 = $matches[1] }
-		if ($win64 -match $rex) { $win64 = $matches[1] }
-
-		Write-Host
-		Write-Host "... x86 folder: $x86" -Fore DarkGray
-		Write-Host "... x64 folder: $x64" -Fore DarkGray
-		Write-Host "... win-x86 folder: $win86" -Fore DarkGray
-		Write-Host "... win-x64 folder: $win64" -Fore DarkGray
-
-		return [PSCustomObject]@{
-			'x86' = $x86
-			'x64' = $x64
-			'win86' = $win86
-			'win64' = $win64
-		}
-	}
-
-	function ExplodeNoteProperties
-	{
-		[CmdletBinding()]
-		param([Parameter(ValueFromPipeline)]$json)
-		Process
+		finally
 		{
-			# explode hashtable NoteProperty into object of properties
-			$json | Get-Member -MemberType NoteProperty | foreach {
-				$omKey = $_.Name
-				$obj = $json.$omKey
-				# inject omKey property into object to hold the object's name (json key)
-				$obj | Add-Member -MemberType NoteProperty -Name 'omKey' -Value $omKey -Force
-				Write-Output $obj
-			}
+			Pop-Location
+		}
+	}
+
+	function BuildKit
+	{
+		BuildMsi
+		FinishKit
+	}
+
+	function ReportChecksums
+	{
+		if ($script:checksums.Count -gt 0)
+		{
+			Write-Host "`n... checksums" -ForegroundColor Cyan
+			$script:checksums | foreach { Write-Host $_ -ForegroundColor DarkYellow }
 		}
 	}
 }
@@ -694,39 +730,54 @@ Process
 
 	if ($Detect) { DetectArchitecture $Detect; return }
 
-	if ($Prep) { DisablOutOfProcBuild; return }
+	if ($Test) { if (-not (RunTests)) { exit 1 }; return }
 
-	if (OneNoteRunning) { return }
-
-	if ($Clean) { CleanSolution; return }
-
-	if ($Fast) { BuildFast; return }
-
-	if ($Architecture -eq 'All')
+	if ($Beta)
 	{
-		Build 'ARM64'
-
-		if ($Stepped)
-		{
-			Write-Host "`n... press Enter to continue with x64 build: " -Fore Magenta -nonewline
-			Read-Host
-		}
-
-		Build 'x64'
-
-		if ($Stepped)
-		{
-			Write-Host "`n... press Enter to continue with x86 build: " -Fore Magenta -nonewline
-			Read-Host
-		}
-
-		Build 'x86'
+		$env:Beta = 'true'
+		if ($BetaNumber -gt 0) { ApplyBetaTag $BetaNumber }
 	}
 	else
 	{
-		if ($Architecture -eq 'arm64') { $Architecture = 'ARM64' }
+		Remove-Item env:Beta -ErrorAction SilentlyContinue
+	}
 
-		Build $Architecture
+	try
+	{
+		if (OneNoteRunning) { return }
+
+		if ($Clean) { CleanSolution; return }
+
+		if ($Fast) { BuildFast; return }
+
+		if ($CompileOnly) { CompileOnly; return }
+
+		if ($BuildMsi) { BuildMsi; return }
+
+		if ($FinishKit) { FinishKit; return }
+
+		if ($Kit) { BuildKit; return }
+
+		if ($Architecture -eq 'All' -or $Architecture -eq 'x')
+		{
+			if ($Architecture -eq 'All')
+			{
+				Build 'ARM64'
+			}
+
+			Build 'x86'
+			Build 'x64'
+
+			ReportChecksums
+		}
+		else
+		{
+			Build $Architecture
+		}
+	}
+	finally
+	{
+		RestoreBetaTag
 	}
 }
 End

@@ -8,14 +8,15 @@
     content="OneMore is an add-in for OneNote with simple and powerful features that make OneNote a better OneNote">
   <meta name="author" content="Steven M Cohn">
   <meta name="generator" content="OneMore">
-  <title>OneMore - a OneNote add-in</title>
+  <title>OneMore: Image Commands</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha2/dist/css/bootstrap.min.css" rel="stylesheet"
     integrity="sha384-aFq/bzH65dt+w6FI2ooMVUpc+21e0SRygnTpmBvdBgSdnuTN7QbdgL+OapgHtvPp" crossorigin="anonymous">
   <link href="/nav.css" rel="stylesheet">
   <link href="/toc.css" rel="stylesheet">
+  <link href="/pagefind/pagefind-ui.css" rel="stylesheet">
 </head>
 
-<body>
+<body class="sidebar-layout">
   <svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
     <symbol id="book-half" viewBox="0 0 16 16">
       <path fill="currentColor" fill-rule="evenodd"
@@ -83,6 +84,7 @@
           <a class="nav-link" href="/context-menus/index.html" id="context-menus-section">Context Menus</a>
           <a class="nav-link" href="/developers/index.html" id="developers-section">Developers</a>
         </div>
+        <div id="search" class="d-flex flex-grow-1 mx-lg-3"></div>
         <div class="d-flex">
           <a class="nav-link nav-glyph py-2 px-lg-2" href="https://facebook.com/OneMoreAddIn" target="_blank" rel="noopener">
             <svg width="22px" height="22px" viewBox="0 0 512 512" id="fbglyph" xmlns="http://www.w3.org/2000/svg"
@@ -129,9 +131,8 @@
             <li><a id="clean-commands" href="Clean Commands.htm">Clean Commands</a></li>
 <li><a id="colorize-command" href="Colorize Command.htm">Colorize Command</a></li>
 <li><a id="edit-commands" href="Edit Commands.htm">Edit Commands</a></li>
-<li><a id="favorites-commands" href="Favorites Commands.htm">Favorites Commands</a></li>
 <li><a id="file-commands" href="File Commands.htm">File Commands</a></li>
-<li><a id="---plugins" href="-- Plugins.htm">-- Plugins</a></li>
+<li><a id="→-plugins" href="→ Plugins.htm">→ Plugins</a></li>
 <li><a id="hashtag-commands" href="Hashtag Commands.htm">Hashtag Commands</a></li>
 <li><a id="image-commands" href="Image Commands.htm">Image Commands</a></li>
 <li><a id="my-styles-commands" href="My Styles Commands.htm">My Styles Commands</a></li>
@@ -142,7 +143,7 @@
 <li><a id="search-commands" href="Search Commands.htm">Search Commands</a></li>
 <li><a id="snippets-commands" href="Snippets Commands.htm">Snippets Commands</a></li>
 <li><a id="table-commands" href="Table Commands.htm">Table Commands</a></li>
-<li><a id="---tables-and-calculations" href="-- Tables and Calculations.htm">-- Tables and Calculations</a></li>
+<li><a id="→-tables-and-calculations" href="→ Tables and Calculations.htm">→ Tables and Calculations</a></li>
 <li><a id="table-style-commands" href="Table Style Commands.htm">Table Style Commands</a></li>
 <li><a id="extra-commands" href="Extra Commands.htm">Extra Commands</a></li>
           </ul>
@@ -151,38 +152,38 @@
     </nav>
 
     <!-- Page Content -->
-    <div id="content" style="margin-left: 30px; margin-top:100px;">
+    <div id="content">
       <DIV style="DIRECTION: ltr">
 <DIV style="WIDTH: 8.437in; MARGIN-TOP: 0in; DIRECTION: ltr; MARGIN-LEFT: 0in">
 <DIV style="WIDTH: 2.543in; MARGIN-TOP: 0in; DIRECTION: ltr; MARGIN-LEFT: 0in">
 <P lang=yo style='FONT-SIZE: 20pt; FONT-FAMILY: "Calibri Light"; MARGIN: 0in'>Image Commands</P></DIV>
 <DIV style="WIDTH: 2.413in; MARGIN-TOP: 0.042in; DIRECTION: ltr; MARGIN-LEFT: 0in">
-<P style="FONT-SIZE: 10pt; FONT-FAMILY: Calibri; COLOR: #767676; MARGIN: 0in">Sunday, February 19, 2023</P>
-<P style="FONT-SIZE: 10pt; FONT-FAMILY: Calibri; COLOR: #767676; MARGIN: 0in">6:31 PM</P></DIV>
+<P style="FONT-SIZE: 10pt; FONT-FAMILY: Calibri; COLOR: #767676; MARGIN: 0in">February 19, 2023</P>
+<P style="FONT-SIZE: 10pt; FONT-FAMILY: Calibri; COLOR: #767676; MARGIN: 0in">Last updated on August 15, 2026</P></DIV>
 <DIV style="WIDTH: 8.437in; MARGIN-TOP: 0.427in; DIRECTION: ltr; MARGIN-LEFT: 0in">
-<H1 lang=yo style="FONT-SIZE: 16pt; FONT-FAMILY: Calibri; COLOR: #1e4e79; MARGIN: 0in">Add Caption</H1>
-<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">Adds a caption to the selected image by moving the image into a one-row, one-column table and centering the word "Caption" below the image, which of course you should edit immediately. If your custom styles has a style named exactly "Caption" then that style will be applied, otherwise, a default caption style is used.</P>
+<H1 lang=yo id=add-caption style="FONT-SIZE: 16pt; FONT-FAMILY: Calibri; COLOR: #1e4e79; MARGIN: 0in">Add Caption</H1>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">Adds a caption to the selected image by moving the image into a one-row, one-column table and centering the word "Caption" below the image, which of course you should edit immediately. If you have a custom style named exactly "Caption" then that style will be applied, otherwise, a default caption style is used.</P>
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
-<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">If the image contains PlantUML metadata then the caption will include an <SPAN style="FONT-STYLE: italic">Extract</SPAN> hyperlink that can be used to extract the original PlantUML code from image.</P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">If the image contains PlantUML metadata then the caption will include an <SPAN style="FONT-STYLE: italic">Extract</SPAN> hyperlink that can be used to extract the original PlantUML code from the image.</P>
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
-<H1 lang=yo style="FONT-SIZE: 16pt; FONT-FAMILY: Calibri; COLOR: #1e4e79; MARGIN: 0in">Compress Images</H1>
+<H1 lang=yo id=compress-images style="FONT-SIZE: 16pt; FONT-FAMILY: Calibri; COLOR: #1e4e79; MARGIN: 0in">Compress Images</H1>
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">Attempts to minimize storage size of selected images, or all images, on the current page. Images that are displayed using dimensions smaller than the actual size of the stored image will be resized to that smaller size and replaced on the page. This will likely result in some loss of quality or sharpness for many images.</P>
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
-<H1 lang=yo style="FONT-SIZE: 16pt; FONT-FAMILY: Calibri; COLOR: #1e4e79; MARGIN: 0in">Crop and Rotate</H1>
+<H1 lang=yo id=crop-and-rotate style="FONT-SIZE: 16pt; FONT-FAMILY: Calibri; COLOR: #1e4e79; MARGIN: 0in">Crop and Rotate</H1>
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">Opens an image editing window that allows you to precisely crop an image by selecting a region, moving that region around the image, and even resizing the region. Press <SPAN style="BACKGROUND: #ffff99">Ctrl + A</SPAN> to select the entire image. Press <SPAN style="BACKGROUND: #ffff99">Ctrl + D</SPAN> to deselect the current selection region.</P>
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
-<P style="MARGIN: 0in 0in 0in 0.375in"><IMG src="Image%20Commands_files/image001.png" width=567 height=414></P>
+<P style="MARGIN: 0in 0in 0in 0.375in"><IMG src="/commands/Image%20Commands_files/image001.png" width=567 height=414></P>
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">This dialog also includes a rotate feature that can rotate an image to any angle, beyond just the 90 degree increments built into OneNote.</P>
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
-<H1 lang=yo style="FONT-SIZE: 16pt; FONT-FAMILY: Calibri; COLOR: #1e4e79; MARGIN: 0in">Open Image With</H1>
+<H1 lang=yo id=open-image-with style="FONT-SIZE: 16pt; FONT-FAMILY: Calibri; COLOR: #1e4e79; MARGIN: 0in">Open Image With</H1>
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; COLOR: gray; MARGIN: 0in"><SPAN style="FONT-STYLE: italic">Available only from the Image context menu</SPAN></P>
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">Opens the selected image in an external image viewer/editor. If blank, it will invoke the system default image viewer. This can be customized in the Settings Images page. Enter either the full path to an image viewer, or enter a command available in the current PATH, such as "mspaint".</P>
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
-<H1 lang=yo style="FONT-SIZE: 16pt; FONT-FAMILY: Calibri; COLOR: #1e4e79; MARGIN: 0in">Draw Mermaid</H1>
+<H1 lang=yo id=draw-mermaid style="FONT-SIZE: 16pt; FONT-FAMILY: Calibri; COLOR: #1e4e79; MARGIN: 0in">Draw Mermaid</H1>
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">Converts Mermaid source code into a graphic using the kroki.io online service. Select the code to convert before invoking this command.</P>
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
-<H1 lang=yo style="FONT-SIZE: 16pt; FONT-FAMILY: Calibri; COLOR: #1e4e79; MARGIN: 0in">Draw PlantUML</H1>
+<H1 lang=yo id=draw-plantuml style="FONT-SIZE: 16pt; FONT-FAMILY: Calibri; COLOR: #1e4e79; MARGIN: 0in">Draw PlantUML</H1>
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">Converts PlantUML source code into a graphic using the plantuml.com online service. Select the code to convert before invoking this command.</P>
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
 <P lang=yo style='FONT-SIZE: 10pt; FONT-FAMILY: "Lucida Console"; MARGIN: 0in 0in 0in 0.375in'><SPAN style="BACKGROUND: #dbe5f1; FONT-WEIGHT: bold; COLOR: cornflowerblue">@startuml</SPAN><SPAN style="BACKGROUND: #dbe5f1; COLOR: black"> Sample</SPAN></P>
@@ -195,10 +196,10 @@
 <TBODY>
 <TR>
 <TD style="BORDER-LEFT-WIDTH: 0pt; BORDER-RIGHT-WIDTH: 0pt; WIDTH: 1.429in; VERTICAL-ALIGN: top; BORDER-BOTTOM-WIDTH: 0pt; PADDING-BOTTOM: 2pt; PADDING-TOP: 2pt; PADDING-LEFT: 3pt; PADDING-RIGHT: 3pt; BORDER-TOP-WIDTH: 0pt">
-<P style="MARGIN: 0in"><IMG src="Image%20Commands_files/image002.png" width=123 height=130></P>
+<P style="MARGIN: 0in"><IMG src="/commands/Image%20Commands_files/image002.png" width=123 height=130></P>
 <P lang=yo style="FONT-SIZE: 10pt; FONT-FAMILY: Calibri; TEXT-ALIGN: center; MARGIN: 0in"><SPAN style="FONT-WEIGHT: bold; COLOR: #5b9bd5">Sample (</SPAN><A href="onemore://PlantUmlCommand/8434894f9d11413c8cd28a1af65f5b32/extract"><SPAN style="FONT-WEIGHT: bold">Extract</SPAN></A><SPAN style="FONT-WEIGHT: bold; COLOR: #5b9bd5">)</SPAN></P></TD></TR></TBODY></TABLE></DIV>
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
-<P lang=yo style="MARGIN: 0in"><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri">The rendered image is captioned with the title of the script, using either the parameter of </SPAN><SPAN style='FONT-SIZE: 9.5pt; FONT-FAMILY: "Lucida Console"; BACKGROUND: #e8e8e8; COLOR: #172b4d'>@startuml</SPAN><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri"> or of the </SPAN><SPAN style='FONT-SIZE: 9.5pt; FONT-FAMILY: "Lucida Console"; BACKGROUND: #e8e8e8; COLOR: #172b4d'>title</SPAN><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri"> line.</SPAN></P>
+<P lang=yo style="MARGIN: 0in"><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri">The rendered image is captioned with the title of the script, using either the parameter of </SPAN><SPAN style='FONT-SIZE: 9pt; FONT-FAMILY: "Lucida Console"; BACKGROUND: #ecf5ff'>@startuml</SPAN><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri"> or of the </SPAN><SPAN style='FONT-SIZE: 9pt; FONT-FAMILY: "Lucida Console"; BACKGROUND: #ecf5ff'>title</SPAN><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri"> line.</SPAN></P>
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">Click the <SPAN style="FONT-STYLE: italic">Extract</SPAN> hyperlink to extract the PlantUML text embedded within the PNG, which is useful if you've since removed the original text. Note that this will only work if you do not copy/paste the image, crop the image, or alter it any way that might delete the PNG internal metadata.</P>
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
@@ -206,21 +207,24 @@
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">When collapsing PlantUML, OneMore adds a <SPAN style="FONT-STYLE: italic">Refresh</SPAN> link to update the diagram when you change the text. This text must remain contiguous and indented. You cannot include other text at this indentation level below the same paragraph heading. OneMore collects all text below that heading and it can only contain PlantUML text.</P>
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
-<H2 lang=yo style="FONT-SIZE: 14pt; FONT-FAMILY: Calibri; COLOR: #2e75b5; MARGIN: 0in">PlantUML Tips</H2>
+<H2 lang=yo id=plantuml-tips style="FONT-SIZE: 14pt; FONT-FAMILY: Calibri; COLOR: #2e75b5; MARGIN: 0in">PlantUML Tips</H2>
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in"><SPAN style="FONT-WEIGHT: bold">Scaling</SPAN></P>
-<P lang=yo style="MARGIN: 0in"><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri">Rendered images can get quite large. When dealing with large diagram, limit the size using one of the PlantUML </SPAN><SPAN style='FONT-SIZE: 9.5pt; FONT-FAMILY: "Lucida Console"; BACKGROUND: #e8e8e8; COLOR: #172b4d'>scale</SPAN><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri"> parameters, such as</SPAN></P>
+<P lang=yo style="MARGIN: 0in"><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri">Rendered images can get quite large. When dealing with large diagrams, limit the size using one of the PlantUML </SPAN><SPAN style='FONT-SIZE: 9pt; FONT-FAMILY: "Lucida Console"; BACKGROUND: #ecf5ff'>scale</SPAN><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri"> parameters, such as</SPAN></P>
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
 <P lang=yo style='FONT-SIZE: 9.5pt; FONT-FAMILY: "Lucida Console"; MARGIN: 0in 0in 0in 0.375in'><SPAN style="FONT-WEIGHT: bold; COLOR: olivedrab">scale</SPAN> max <SPAN style="COLOR: darkcyan">600</SPAN><SPAN style="COLOR: black"> width</SPAN></P>
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in"><SPAN style="FONT-WEIGHT: bold">Extracting PlantUML Source From Image</SPAN></P>
-<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">If the image contains PlantUML metadata but does not have a caption with the <SPAN style="FONT-STYLE: italic">Extrat </SPAN>hyperlink, you can add or replace an existing caption; the new caption will include an <SPAN style="FONT-STYLE: italic">Extract</SPAN> hyperlink that can be used to extract the original PlantUML code from image.</P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">If the image contains PlantUML metadata but does not have a caption with the <SPAN style="FONT-STYLE: italic">Extract </SPAN>hyperlink, you can add or replace an existing caption; the new caption will include an "<SPAN style="FONT-STYLE: italic">Extract"</SPAN> hyperlink that can be used to extract the original PlantUML code from image.</P>
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
-<H1 lang=yo style="FONT-SIZE: 16pt; FONT-FAMILY: Calibri; COLOR: #1e4e79; MARGIN: 0in">Paste Image</H1>
+<H1 lang=yo id=paste-image style="FONT-SIZE: 16pt; FONT-FAMILY: Calibri; COLOR: #1e4e79; MARGIN: 0in">Paste Image</H1>
 <P><CITE lang=yo style="FONT-SIZE: 9pt; FONT-FAMILY: Calibri; COLOR: #595959; MARGIN: 0in">Default shortcut is Alt + Shift + I</CITE></P>
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">Adjust and paste a valid image available on the system clipboard. Valid images must be PNG, JPG, GIF, or BMP. This will open the Resize and Adjust dialog with the image from the clipboard. When accepted, it will replace the selected content with the adjusted image.</P>
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
-<H1 lang=yo style="FONT-SIZE: 16pt; FONT-FAMILY: Calibri; COLOR: #1e4e79; MARGIN: 0in">Resize and Adjust</H1>
+<H1 lang=yo id=recolor-ink style="FONT-SIZE: 16pt; FONT-FAMILY: Calibri; COLOR: #1e4e79; MARGIN: 0in">Recolor Ink</H1>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">Changes the color of select ink on the page to a chosen color.</P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
+<H1 lang=yo id=resize-and-adjust style="FONT-SIZE: 16pt; FONT-FAMILY: Calibri; COLOR: #1e4e79; MARGIN: 0in">Resize and Adjust</H1>
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">Resize and adjust selected images on the page. If no images are selected then all foreground images on the page are affected; if there are only background images, then all background images will be affected.</P>
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">OneNote maintains the original image data and lets you change the view size of that image, meaning you can resize the view of a 200x100 image to 100x50, but it keeps the original 200x100 image data stored on the page. When adjusting a single selected image, these sizes are shown in the <SPAN style="FONT-STYLE: italic">View </SPAN>size and <SPAN style="FONT-STYLE: italic">Image </SPAN>size fields.</P>
@@ -231,24 +235,27 @@
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">The opacity, brightness, contrast, saturation, and stylize adjustments will also rewrite the image data, even when preserving the stored data size. You can easily revert changes by clicking Ctrl+Z or clicking the OneNote Undo button.</P>
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
-<P style="MARGIN: 0in 0in 0in 0.375in"><IMG src="Image%20Commands_files/image003.png" width=574 height=385></P>
+<P style="MARGIN: 0in 0in 0in 0.375in"><IMG src="/commands/Image%20Commands_files/image003.png" width=574 height=385></P>
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">Page background images can also be adjusted. If there are both foreground and background images, select the background images to adjust. If there are only background images and none are selected then all are affected. This can be useful to resize or stylize imported PowerPoint slides or pages from an imported PDF document.</P>
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
-<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">All field selections and value are stored as prefered user settings and redisplayed the next time the dialog is opened. You can reset them by clicking the <SPAN style="FONT-STYLE: italic">Reset default values</SPAN> link.</P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">All field selections and values are stored as preferred user settings and redisplayed the next time the dialog is opened. You can reset them by clicking the <SPAN style="FONT-STYLE: italic">Reset default values</SPAN> link.</P>
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
-<H1 lang=yo style="FONT-SIZE: 16pt; FONT-FAMILY: Calibri; COLOR: #1e4e79; MARGIN: 0in">Select All Images</H1>
+<H1 lang=yo id=restore-background-images style="FONT-SIZE: 16pt; FONT-FAMILY: Calibri; COLOR: #1e4e79; MARGIN: 0in">Restore Background Images</H1>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; COLOR: black; MARGIN: 0in">Moves all background images into the last Outline container on the page, moving them inline as content. If no outline exists on the page, one is created to hold the images.</P>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; COLOR: black; MARGIN: 0in">&nbsp;</P>
+<H1 lang=yo id=select-all-images style="FONT-SIZE: 16pt; FONT-FAMILY: Calibri; COLOR: #1e4e79; MARGIN: 0in">Select All Images</H1>
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; COLOR: black; MARGIN: 0in">Select all images on the page. This can be used, for example, to delete all images quickly and easily. If there are both foreground and background images, it will prefer and select the foreground images.</P>
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; COLOR: black; MARGIN: 0in">&nbsp;</P>
-<H1 lang=yo style="FONT-SIZE: 16pt; FONT-FAMILY: Calibri; COLOR: #1e4e79; MARGIN: 0in">Select All Ink</H1>
-<P style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; COLOR: black; MARGIN: 0in"><SPAN lang=yo>Select all ink drawings on the page. This can be used, for example, to select all ink writing and convert it to text. Note that when </SPAN><SPAN lang=en-US>ink is selected using the OneNote UI, a bounding box is displayed that lets the you rotate the ink or access a context menu. But when selected using </SPAN><SPAN lang=en-US style="FONT-STYLE: italic">Select All Ink</SPAN><SPAN lang=en-US>, no bounding box is presented. Otherwise, the result is the same, for example, you can convert Ink to Text.</SPAN></P>
+<H1 lang=yo id=select-all-ink style="FONT-SIZE: 16pt; FONT-FAMILY: Calibri; COLOR: #1e4e79; MARGIN: 0in">Select All Ink</H1>
+<P style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; COLOR: black; MARGIN: 0in"><SPAN lang=yo>Select all ink drawings on the page. This can be used, for example, to select all ink writing and convert it to text. Note that when </SPAN><SPAN lang=en-US>ink is selected using the OneNote UI, a bounding box is displayed that lets you rotate the ink or access a context menu. But when selected using </SPAN><SPAN lang=en-US style="FONT-STYLE: italic">Select All Ink</SPAN><SPAN lang=en-US>, no bounding box is presented. Otherwise, the result is the same, for example, you can convert Ink to Text.</SPAN></P>
 <P style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; COLOR: black; MARGIN: 0in">&nbsp;</P>
-<H1 lang=yo style="FONT-SIZE: 16pt; FONT-FAMILY: Calibri; COLOR: #1e4e79; MARGIN: 0in">Stack Background Images</H1>
+<H1 lang=yo id=stack-background-images style="FONT-SIZE: 16pt; FONT-FAMILY: Calibri; COLOR: #1e4e79; MARGIN: 0in">Stack Background Images</H1>
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">Importing a PowerPoint file into OneNote results in a page containing an image per slide, but those images are stored on the page as background images. While you can adjust and resize background images, their positions are absolute. This command will reposition all background images on a page to eliminate extra whitespace between them, or spread them out to avoid overlaps.</P>
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">This feature is also available as part of the Resize and Adjust Image command as the <SPAN style="FONT-STYLE: italic">Reposition background images</SPAN> check box.</P>
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
-<H1 lang=yo style="FONT-SIZE: 16pt; FONT-FAMILY: Calibri; COLOR: #1e4e79; MARGIN: 0in">Stylize Images</H1>
+<H1 lang=yo id=stylize-images style="FONT-SIZE: 16pt; FONT-FAMILY: Calibri; COLOR: #1e4e79; MARGIN: 0in">Stylize Images</H1>
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">Applies the specified styling to all or selected images on a page. If no images are selected then all images on the page are affected.</P>
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
@@ -267,6 +274,10 @@
     let pageID = '#' + window.location.pathname.match(/.*\/(.*).htm$/)[1];
     pageID = pageID.toLowerCase().replace(/%20| |\./g,'-')
     if ( $(pageID).length > 0) { $(pageID).addClass('active'); }
+  </script>
+  <script src="/pagefind/pagefind-ui.js"></script>
+  <script>
+    new PagefindUI({ element: "#search", showSubResults: true });
   </script>
 </body>
 

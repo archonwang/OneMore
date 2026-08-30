@@ -4,8 +4,11 @@
 
 namespace River.OneMoreAddIn.Commands
 {
+	using River.OneMoreAddIn.Settings;
+	using System.IO;
 	using System.Threading.Tasks;
 	using System.Windows.Forms;
+	using Windows.UI.Notifications;
 	using Resx = Properties.Resources;
 
 
@@ -18,6 +21,15 @@ namespace River.OneMoreAddIn.Commands
 			using var scanner = new HashtagScanner();
 			await scanner.Scan();
 			scanner.Report();
+
+			if (!runningFromCli)
+			{
+				if (new SettingsProvider().GetCollection("HashtagSheet").Get<bool>("notify"))
+				{
+					SendToast(string.Format(Resx.HashtagCommand_scanComplete,
+						scanner.Stats.TotalPages, scanner.Stats.DirtyPages, scanner.Stats.Tags));
+				}
+			}
 		}
 	}
 
@@ -27,6 +39,19 @@ namespace River.OneMoreAddIn.Commands
 		public override async Task Execute(params object[] args)
 		{
 			using var one = new OneNote();
+
+			if (HashtagProvider.CatalogExists())
+			{
+				using var provider = new HashtagProvider();
+				var knownNotebooks = provider.ReadKnownNotebooks();
+				var known = knownNotebooks.Find(n => n.NotebookID == one.CurrentNotebookId);
+				if (known is not null && !known.Included)
+				{
+					ShowInfo(Resx.HashtagCommand_notebookExcluded);
+					return;
+				}
+			}
+
 			using var scanner = new HashtagScanner();
 
 			var section = await one.GetSectionInfo();
@@ -34,6 +59,15 @@ namespace River.OneMoreAddIn.Commands
 			await scanner.ScanPage(one,
 				one.CurrentPageId, one.CurrentNotebookId, one.CurrentSectionId,
 				section.Path, true);
+
+			if (!runningFromCli)
+			{
+				if (new SettingsProvider().GetCollection("HashtagSheet").Get<bool>("notify"))
+				{
+					SendToast(string.Format(Resx.HashtagCommand_scanPageComplete,
+						scanner.Stats.Tags));
+				}
+			}
 		}
 	}
 	#endregion
@@ -41,6 +75,8 @@ namespace River.OneMoreAddIn.Commands
 
 	internal class HashtagScanCommand : Command
 	{
+		private static string logoFile;
+
 
 		public HashtagScanCommand()
 		{
@@ -95,6 +131,28 @@ namespace River.OneMoreAddIn.Commands
 				scheduler.State = ScanningState.PendingScan;
 				await scheduler.Activate();
 			}
+		}
+
+
+		protected static void SendToast(string message)
+		{
+			var doc = ToastNotificationManager.GetTemplateContent(ToastTemplateType.ToastImageAndText01);
+
+			var texts = doc.GetElementsByTagName("text");
+			texts[0].AppendChild(doc.CreateTextNode(message));
+
+			if (logoFile == null || !File.Exists(logoFile))
+			{
+				logoFile = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName() + ".png");
+				Resx.Logo.Save(logoFile);
+			}
+
+			var images = doc.GetElementsByTagName("image");
+			images[0].Attributes.GetNamedItem("src").NodeValue = logoFile;
+
+			ToastNotificationManager
+				.CreateToastNotifier(Resx.HashtagCommand_toastTitle)
+				.Show(new ToastNotification(doc));
 		}
 	}
 }

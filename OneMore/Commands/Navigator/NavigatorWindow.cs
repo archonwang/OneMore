@@ -2,8 +2,11 @@
 // Copyright © 2023 Steven M Cohn. All rights reserved.
 //************************************************************************************************
 
+#pragma warning disable S125
+
 namespace River.OneMoreAddIn.Commands
 {
+	using Microsoft.Office.Core;
 	using River.OneMoreAddIn.Helpers.Extensions;
 	using River.OneMoreAddIn.Models;
 	using River.OneMoreAddIn.Settings;
@@ -36,15 +39,41 @@ namespace River.OneMoreAddIn.Commands
 		private readonly int depth;
 		private readonly bool reading;
 		private readonly bool corralled;
+		private readonly bool disabled;
 		private readonly List<IDisposable> trash;
+
+		// panel expand/collapse state
+		private bool pageExpanded;
+		private bool readingExpanded;
+		private bool historyExpanded;
+		private int rememberedSplitter1;
+		private int rememberedSplitter2;
+		private bool restoringLayout;
+
+		// defer headings load while collapsed
+		private bool pageStale;
+		private string pendingPageId;
+
+		// current page's heading fonts; replaced (and the old pair disposed) on every
+		// LoadPageHeadings call rather than accumulating in trash for the window's lifetime
+		private Font headingFont;
+		private Font headingBoldFont;
+		private MoreLinkLabel currentLabel;
 
 
 		// disposed
 		private readonly NavigationProvider provider;
 
+		// backing list for the History panel filter
+		private List<HistoryRecord> historyRecords = new();
 
-		public NavigatorWindow()
+		private readonly IRibbonUI ribbon;
+
+
+		public NavigatorWindow(IRibbonUI ribbon)
 		{
+			this.ribbon = ribbon;
+
 			InitializeComponent();
 			trash = new List<IDisposable>();
 
@@ -67,6 +96,10 @@ namespace River.OneMoreAddIn.Commands
 				tooltip.SetToolTip(copyPinnedButton, Resx.NavigatorWindow_copyTooltip);
 				tooltip.SetToolTip(copyHistoryButton, Resx.NavigatorWindow_copyTooltip);
 				tooltip.SetToolTip(deleteHistoryButton, Resx.NavigatorWindow_deleteHistoryButton_Tooltip);
+				tooltip.SetToolTip(pageFilterButton, Resx.NavigatorWindow_filterButton_Tooltip);
+				tooltip.SetToolTip(historyFilterButton, Resx.NavigatorWindow_filterButton_Tooltip);
+				tooltip.SetToolTip(pageFilterCloseButton, Resx.NavigatorWindow_filterCloseButton_Tooltip);
+				tooltip.SetToolTip(historyFilterCloseButton, Resx.NavigatorWindow_filterCloseButton_Tooltip);
 			}
 
 			ManualLocation = true;
@@ -75,7 +108,9 @@ namespace River.OneMoreAddIn.Commands
 			var settings = new SettingsProvider().GetCollection(nameof(NavigatorSheet));
 			reading = !settings.Get("hidePinned", false);
 			corralled = settings.Get("corralled", false); //|| Screen.AllScreens.Length == 1;
+			ElevatedWithOneNote = settings.Get("elevated", false);
 			depth = settings.Get("depth", NavigationService.DefaultHistoryDepth);
+			disabled = settings.Get("disabled", false);
 
 			provider = new NavigationProvider();
 			provider.Navigated += ShowHistory;
@@ -94,6 +129,7 @@ namespace River.OneMoreAddIn.Commands
 				subContainer.Panel1Collapsed = true;
 				copyHistoryButton.Left = pinButton.Left;
 				historyToolPanel.Controls.Remove(pinButton);
+				pinnedTwistButton.Visible = false;
 			}
 
 			historyBox.FullRowSelect = true;
@@ -107,6 +143,34 @@ namespace River.OneMoreAddIn.Commands
 			downButton.Rescale();
 			copyPinnedButton.Rescale();
 			copyHistoryButton.Rescale();
+			pageFilterButton.Rescale();
+			pageFilterCloseButton.Rescale();
+			historyFilterButton.Rescale();
+			historyFilterCloseButton.Rescale();
+
+			// Set DPI-aware row heights for history and pinned list views
+			using (var g = historyBox.CreateGraphics())
+			{
+				var rowHeight = HistoryControl.GetPreferredRowHeight(g);
+				historyBox.RowHeight = rowHeight;
+				pinnedBox.RowHeight = rowHeight;
+			}
+
+			pinnedBox.MouseUp += ShowPinnedContextMenu;
+			historyBox.MouseUp += ShowHistoryContextMenu;
+
+			// relax the designer-time minimums so a section can be collapsed down to
+			// just its header height
+			mainContainer.Panel1MinSize = pageHeadPanel.Height;
+			mainContainer.Panel2MinSize = historyHeadPanel.Height + (reading ? pinnedHeadPanel.Height : 0);
+			if (reading)
+			{
+				subContainer.Panel1MinSize = pinnedHeadPanel.Height;
+			}
+			subContainer.Panel2MinSize = historyHeadPanel.Height;
+
+			mainContainer.SplitterMoved += MainSplitterMoved;
+			subContainer.SplitterMoved += SubSplitterMoved;
 		}
 
 
@@ -131,7 +195,323 @@ namespace River.OneMoreAddIn.Commands
 
 			historyBox.BackColor = viewColor;
 			historyBox.HighlightBackground = manager.GetColor("LinkHighlight");
+
+			// historyFilterBox/historyFilterCloseButton are no longer Anchor=Right (see
+			// ResizeHistoryHeadPanel); set their initial position explicitly here since the
+			// panel's Resize event may not fire again once layout has already settled
+			ResizeHistoryHeadPanel(historyHeadPanel, EventArgs.Empty);
 		}
+
+
+		#region Panel expand/collapse
+		private void ToggleSectionOnClick(object sender, EventArgs e)
+		{
+			if (sender == pageTwistButton)
+			{
+				pageExpanded = !pageExpanded;
+			}
+			else if (sender == pinnedTwistButton)
+			{
+				readingExpanded = !readingExpanded;
+			}
+			else if (sender == historyTwistButton)
+			{
+				historyExpanded = !historyExpanded;
+			}
+
+			if (!pageExpanded && !(reading && readingExpanded) && !historyExpanded)
+			{
+				// the section just collapsed was the last one standing; expand the next
+				// section in visual order, or the previous one if there is no next
+				var order = reading
+					? new object[] { pageTwistButton, pinnedTwistButton, historyTwistButton }
+					: new object[] { pageTwistButton, historyTwistButton };
+
+				var index = Array.IndexOf(order, sender);
+				var fallback = index < order.Length - 1 ? order[index + 1] : order[index - 1];
+
+				if (fallback == pageTwistButton)
+				{
+					pageExpanded = true;
+				}
+				else if (fallback == pinnedTwistButton)
+				{
+					readingExpanded = true;
+				}
+				else
+				{
+					historyExpanded = true;
+				}
+			}
+
+			UpdatePanelLayout();
+
+			if (pageExpanded && pageStale)
+			{
+				pageStale = false;
+				_ = LoadPageHeadings(pendingPageId, false);
+			}
+		}
+
+
+		/// <summary>
+		/// Recomputes mainContainer/subContainer SplitterDistance from the current
+		/// expand/collapse state of the three sections. A collapsed section is shrunk to
+		/// exactly its header height; an expanded section either gets all remaining
+		/// space (if it's the only one expanded on its side) or the last known-good
+		/// (remembered) distance, clamped to leave room for a collapsed sibling.
+		/// </summary>
+		private void UpdatePanelLayout()
+		{
+			// mainContainer.SplitterDistance below resizes mainContainer.Panel2, which
+			// resizes the docked subContainer; because subContainer is itself a
+			// SplitContainer, .NET auto-adjusts ITS SplitterDistance to fit the new size,
+			// firing an incidental SplitterMoved that has nothing to do with the user
+			// dragging anything. MainSplitterMoved/SubSplitterMoved must not treat that as
+			// a real drag and clobber rememberedSplitter1/2 with it, so suppress capture
+			// for the duration of this programmatic layout pass.
+			restoringLayout = true;
+			try
+			{
+				var total = mainContainer.ClientSize.Height;
+				var subOthersExpanded = reading ? (readingExpanded || historyExpanded) : historyExpanded;
+
+				int pageHeight;
+				if (!pageExpanded)
+				{
+					pageHeight = pageHeadPanel.Height;
+				}
+				else if (!subOthersExpanded)
+				{
+					var subHeaders = (reading ? pinnedHeadPanel.Height : 0) + historyHeadPanel.Height;
+					pageHeight = total - subHeaders;
+				}
+				else
+				{
+					pageHeight = Math.Max(pageHeadPanel.Height,
+						Math.Min(rememberedSplitter1, total - mainContainer.Panel2MinSize));
+				}
+
+				mainContainer.SplitterDistance = pageHeight;
+
+				// setting SplitterDistance above schedules, but does not immediately apply, a
+				// layout pass on mainContainer.Panel2 and its docked child subContainer;
+				// without forcing that layout to run now, subContainer.Height below is still
+				// its stale pre-resize value, so setting subContainer.SplitterDistance would
+				// clamp against the wrong (too-small) bounds
+				mainContainer.Panel2.PerformLayout();
+
+				if (reading)
+				{
+					var subHeight = total - pageHeight;
+
+					int pinnedHeight;
+					if (!readingExpanded)
+					{
+						pinnedHeight = pinnedHeadPanel.Height;
+					}
+					else if (!historyExpanded)
+					{
+						pinnedHeight = subHeight - historyHeadPanel.Height;
+					}
+					else
+					{
+						pinnedHeight = Math.Max(pinnedHeadPanel.Height,
+							Math.Min(rememberedSplitter2, subHeight - historyHeadPanel.Height));
+					}
+
+					subContainer.SplitterDistance = pinnedHeight;
+				}
+
+				UpdateTwistGlyphs();
+			}
+			finally
+			{
+				restoringLayout = false;
+			}
+		}
+
+
+		private void UpdateTwistGlyphs()
+		{
+			pageTwistButton.Text = pageExpanded ? "▼" : "▶";
+			pinnedTwistButton.Text = readingExpanded ? "▼" : "▶";
+			historyTwistButton.Text = historyExpanded ? "▼" : "▶";
+		}
+
+
+		/// <summary>
+		/// historyHeadPanel is nested two SplitContainers deep (mainContainer -> subContainer
+		/// -> historyHeadPanel), unlike pageHeadPanel's single level; WinForms' Anchor engine
+		/// fixes historyFilterBox/historyFilterCloseButton's stretch baseline against a stale
+		/// intermediate width captured during that deeper nested construction, producing wildly
+		/// wrong bounds on some monitors (button positioned entirely off-panel). Both controls
+		/// are Anchor=Top|Left only (no Right) so they don't auto-stretch; position them here
+		/// instead, computed directly from the panel's real current width.
+		/// </summary>
+		private void ResizeHistoryHeadPanel(object sender, EventArgs e)
+		{
+			const int CloseButtonRightMargin = 8;
+			const int FilterBoxToCloseButtonGap = 10;
+
+			historyFilterCloseButton.Left =
+				historyHeadPanel.ClientSize.Width - CloseButtonRightMargin - historyFilterCloseButton.Width;
+			historyFilterBox.Width =
+				historyFilterCloseButton.Left - FilterBoxToCloseButtonGap - historyFilterBox.Left;
+		}
+
+
+		private void MainSplitterMoved(object sender, SplitterEventArgs e)
+		{
+			if (restoringLayout)
+			{
+				return;
+			}
+
+			if (pageExpanded && (reading ? (readingExpanded || historyExpanded) : historyExpanded))
+			{
+				rememberedSplitter1 = mainContainer.SplitterDistance;
+			}
+		}
+
+
+		private void SubSplitterMoved(object sender, SplitterEventArgs e)
+		{
+			if (restoringLayout)
+			{
+				return;
+			}
+
+			if (reading && readingExpanded && historyExpanded)
+			{
+				rememberedSplitter2 = subContainer.SplitterDistance;
+			}
+		}
+		#endregion Panel expand/collapse
+
+
+		#region Filtering
+		private void ToggleTocFilterOnClick(object sender, EventArgs e)
+		{
+			SetTocFilterMode(true);
+		}
+
+
+		private void CloseTocFilterOnClick(object sender, EventArgs e)
+		{
+			SetTocFilterMode(false);
+		}
+
+
+		private void SetTocFilterMode(bool filtering)
+		{
+			pageTwistButton.Visible = !filtering;
+			pageHeadLabel.Visible = !filtering;
+			pageFilterButton.Visible = !filtering;
+			refreshButton.Visible = !filtering;
+			pageFilterBox.Visible = filtering;
+			pageFilterCloseButton.Visible = filtering;
+
+			// Clear() already re-applies the filter via TextChanged -> FilterPageHeadings
+			// when there was text to clear, and is a no-op otherwise; an explicit follow-up
+			// call here would either duplicate that render or redo it for no reason
+			pageFilterBox.Clear();
+
+			if (filtering)
+			{
+				pageFilterBox.Focus();
+			}
+		}
+
+
+		private void ToggleHistoryFilterOnClick(object sender, EventArgs e)
+		{
+			SetHistoryFilterMode(true);
+		}
+
+
+		private void CloseHistoryFilterOnClick(object sender, EventArgs e)
+		{
+			SetHistoryFilterMode(false);
+		}
+
+
+		private void SetHistoryFilterMode(bool filtering)
+		{
+			historyTwistButton.Visible = !filtering;
+			historyHeadLabel.Visible = !filtering;
+			historyToolPanel.Visible = !filtering;
+			historyFilterBox.Visible = filtering;
+			historyFilterCloseButton.Visible = filtering;
+
+			// Clear() already re-applies the filter via TextChanged -> FilterHistoryRecords
+			// when there was text to clear, and is a no-op otherwise; an explicit follow-up
+			// call here would either duplicate that render (a second full teardown/rebuild
+			// of every hosted HistoryControl - the source of the history panel's flicker
+			// on open/close) or redo it for no reason
+			historyFilterBox.Clear();
+
+			if (filtering)
+			{
+				historyFilterBox.Focus();
+			}
+		}
+
+
+		private void FilterPageHeadings(object sender, EventArgs e)
+		{
+			ApplyPageFilter(pageFilterBox.Text.Trim());
+		}
+
+
+		private void ApplyPageFilter(string text)
+		{
+			var filtering = text.Length > 0;
+			foreach (var link in pageBox.Controls.OfType<MoreLinkLabel>())
+			{
+				link.Visible = !filtering || link.Text.ContainsICIC(text);
+			}
+		}
+
+
+		private void FilterHistoryRecords(object sender, EventArgs e)
+		{
+			ApplyHistoryFilter(historyFilterBox.Text.Trim());
+		}
+
+
+		private void ApplyHistoryFilter(string text)
+		{
+			var filtering = text.Length > 0;
+			RenderHistoryItems(filtering
+				? historyRecords.Where(r => r.Name.ContainsICIC(text))
+				: historyRecords);
+		}
+
+
+		private void SuppressFilterBoxEnter(object sender, EventArgs e)
+		{
+			// swallow Enter so it doesn't fall through to the dialog's AcceptButton
+		}
+
+
+		private void CloseFilterOnEscape(object sender, KeyEventArgs e)
+		{
+			if (e.KeyCode == Keys.Escape)
+			{
+				if (sender == pageFilterBox)
+				{
+					SetTocFilterMode(false);
+				}
+				else if (sender == historyFilterBox)
+				{
+					SetHistoryFilterMode(false);
+				}
+
+				e.Handled = true;
+			}
+		}
+		#endregion Filtering
 
 
 		#region Window Management
@@ -214,9 +594,34 @@ namespace River.OneMoreAddIn.Commands
 			// designer defines width but height is calculated
 			MaximumSize = new Size(MaximumSize.Width, screen.WorkingArea.Height - (WindowMargin * 2));
 
-			// restore splitter positions
-			mainContainer.SplitterDistance = settings.Get("splitter1", mainContainer.SplitterDistance);
-			subContainer.SplitterDistance = settings.Get("splitter2", subContainer.SplitterDistance);
+			// restore panel expand/collapse state and splitter positions
+			pageExpanded = settings.Get("pageExpanded", true);
+			readingExpanded = reading && settings.Get("readingExpanded", true);
+			historyExpanded = settings.Get("historyExpanded", true);
+
+			if (!pageExpanded && !readingExpanded && !historyExpanded)
+			{
+				// defensive: enforce "at least one expanded" invariant
+				historyExpanded = true;
+			}
+
+			rememberedSplitter1 = settings.Get("splitter1", mainContainer.SplitterDistance);
+			rememberedSplitter2 = settings.Get("splitter2", subContainer.SplitterDistance);
+
+			if (disabled && reading)
+			{
+				// the tracking service is off, so Headings/History have nothing current to
+				// show; hide them entirely rather than merely collapsing them, leaving only
+				// the reading list, whose own expand/collapse toggle is meaningless when
+				// it's the only pane shown
+				mainContainer.Panel1Collapsed = true;
+				subContainer.Panel2Collapsed = true;
+				pinnedTwistButton.Visible = false;
+			}
+			else
+			{
+				UpdatePanelLayout();
+			}
 
 			// load data
 			if (reading)
@@ -359,8 +764,20 @@ namespace River.OneMoreAddIn.Commands
 				collection.Add("top", Top);
 				collection.Add("width", Width);
 				collection.Add("height", Height);
-				collection.Add("splitter1", mainContainer.SplitterDistance);
-				collection.Add("splitter2", subContainer.SplitterDistance);
+
+				if (!disabled)
+				{
+					// while disabled, Headings/History are hidden entirely (see
+					// PositionOnLoad) rather than reflecting the user's actual preference,
+					// so leave the saved values alone; re-enabling the service should
+					// restore whatever was last genuinely set, not this hidden-away state
+					collection.Add("pageExpanded", pageExpanded);
+					collection.Add("readingExpanded", readingExpanded);
+					collection.Add("historyExpanded", historyExpanded);
+					collection.Add("splitter1", rememberedSplitter1);
+					collection.Add("splitter2", rememberedSplitter2);
+				}
+
 				settings.SetCollection(collection);
 				settings.Save();
 			}
@@ -376,22 +793,27 @@ namespace River.OneMoreAddIn.Commands
 		// Page headings...
 
 		#region Page headings
-		private async Task LoadPageHeadings(string pageID)
+		private async Task LoadPageHeadings(string pageID, bool highlight)
 		{
 			if (pageBox.InvokeRequired)
 			{
-				pageBox.BeginInvoke(new Action(async () => await LoadPageHeadings(pageID)));
+				pageBox.BeginInvoke(
+					new Action(async () => await LoadPageHeadings(pageID, highlight)));
 				return;
 			}
 
-			await using var one = new OneNote();
-			var page = await one.GetPage(pageID ?? one.CurrentPageId, OneNote.PageDetail.Basic);
+			pageStale = false;
 
-			logger.Verbose($"LoadPageHeadings [{page.Title}]");
-			logger.StartClock();
+			await using var one = new OneNote();
+			var page = await one.GetPage(
+				pageID ?? one.CurrentPageId,
+				highlight ? OneNote.PageDetail.Selection : OneNote.PageDetail.Basic);
+
+			//logger.Verbose($"LoadPageHeadings [{page.Title}]");
+			//logger.StartClock();
 
 			var headings = page.GetHeadings(one, linked: false);
-			logger.DebugTime($"GetHeadings <---", keepRunning: true);
+			//logger.DebugTime($"GetHeadings <---", keepRunning: true);
 
 			// need to escape ampersand because it is used to indicate keyboard accelerators
 			var title = page.Title.Replace("&", "&&");
@@ -399,97 +821,200 @@ namespace River.OneMoreAddIn.Commands
 				? Resx.phrase_QuickNote
 				: title;
 
-			pageBox.Controls.Clear();
-
-			// inject the page Title as the top-most Heading
-			if (page.TitleID != null)
+			// see RenderHistoryItems for why this uses LockWindowUpdate: the MoreLinkLabels
+			// added below are real child windows that paint themselves the instant they're
+			// added (default Visible=true), regardless of pageBox's own redraw state, so
+			// only a subtree-wide lock keeps a large heading list from visibly popping in
+			// one row at a time. Scope covers the dispose/clear/rebuild only, including the
+			// headings.Count==0 early return - unlocking still happens via finally.
+			Native.LockWindowUpdate(pageBox.Handle);
+			try
 			{
-				var ns = page.Root.GetNamespaceOfPrefix(OneNote.Prefix);
-				var root = page.Root
-						.Elements(ns + "Title")
-						.Elements(ns + "OE")
-						.FirstOrDefault();
-
-				if (root != null)
+				foreach (var control in pageBox.Controls)
 				{
-					headings.Insert(0, new()
+					if (control is MoreLinkLabel label)
 					{
-						// defer URL lookup until clicked
-						Link = string.Empty,
-						Root = root,
-						Text = title
+						label.Dispose();
+					}
+				}
+				pageBox.Controls.Clear();
+
+				// inject the page Title as the top-most Heading
+				if (page.TitleID != null)
+				{
+					var ns = page.Root.GetNamespaceOfPrefix(OneNote.Prefix);
+					var root = page.Root
+							.Elements(ns + "Title")
+							.Elements(ns + "OE")
+							.FirstOrDefault();
+
+					if (root != null)
+					{
+						headings.Insert(0, new()
+						{
+							// defer URL lookup until clicked
+							Link = string.Empty,
+							Root = root,
+							Text = title
+						});
+					}
+				}
+
+				if (headings.Count == 0)
+				{
+					//logger.VerboseTime("LoadPageHeadings done, 0 headings");
+					return;
+				}
+
+				Heading currentHeading = null;
+				if (highlight)
+				{
+					var range = new Models.SelectionRange(page);
+					var cursor = range.GetSelections(true).FirstOrDefault();
+
+					if (cursor is not null)
+					{
+						for (var i = headings.Count - 1; i > 0; i--)
+						{
+							if (XNode.CompareDocumentOrder(headings[i].Root, cursor) < 0)
+							{
+								currentHeading = headings[i];
+								break;
+							}
+						}
+					}
+				}
+
+				headingFont?.Dispose();
+				headingBoldFont?.Dispose();
+				headingFont = new Font("Segoe UI", 8.5F, FontStyle.Regular, GraphicsUnit.Point);
+				headingBoldFont = new Font("Segoe UI", 8.5F, FontStyle.Bold, GraphicsUnit.Point);
+
+				//logger.DebugTime($"suspending layout", keepRunning: true);
+				pageBox.SuspendLayout();
+
+				var margin = SystemInformation.VerticalScrollBarWidth * 2;
+				currentLabel = null;
+
+				using var g = pageBox.CreateGraphics();
+
+				foreach (var heading in headings)
+				{
+					var wrapper = new XElement("T", new XCData(heading.Text));
+					var text = wrapper.TextValue(true);
+
+					var leftpad = heading.Level * HeaderIndent;
+					var leftmar = leftpad + 4;
+
+					var headFont = heading == currentHeading ? headingBoldFont : headingFont;
+
+					var link = new MoreLinkLabel
+					{
+						Text = text,
+						Tag = heading,
+						Font = headFont,
+						Padding = new Padding(0),
+						Margin = new Padding(leftmar, 0, 0, 4),
+						Width = pageBox.Width - leftmar - margin,
+						ThemedFore = heading == currentHeading ? "HintText" : null,
+						Visible = false
+					};
+
+					var size = g.MeasureString(text, headFont);
+					link.Height = (int)(size.Height + link.Padding.Top + link.Padding.Bottom);
+
+					link.LinkClicked += new LinkLabelLinkClickedEventHandler(async (s, e) =>
+					{
+						if (s is MoreLinkLabel label)
+						{
+							var heading = (Heading)label.Tag;
+
+							// navigate by raw objectID rather than a constructed onenote:
+							// hyperlink; the hyperlink path (GetHyperlinkToObject + NavigateToUrl)
+							// triggers OneNote's own "searching for section" resolution UI on the
+							// first jump to an object, while the ID-based overload jumps directly
+							var objectId = heading.Root.Attribute("objectID")?.Value;
+							if (!string.IsNullOrEmpty(objectId))
+							{
+								await using var one = new OneNote();
+								await one.NavigateTo(page.PageId, objectId);
+							}
+
+							HighlightHeading(label);
+						}
 					});
+
+					if (heading == currentHeading)
+					{
+						currentLabel = link;
+					}
+
+					pageBox.Controls.Add(link);
+					pageBox.SetFlowBreak(link, true);
+
+					((ILoadControl)link).OnLoad();
+
+					// force native window creation now, while still hidden and locked,
+					// instead of paying that cost later when it's revealed
+					_ = link.Handle;
+					link.Visible = true;
+				}
+
+				pageBox.ResumeLayout();
+				//logger.DebugTime($"resumed layout", keepRunning: true);
+
+				if (pageFilterBox.Visible)
+				{
+					ApplyPageFilter(pageFilterBox.Text.Trim());
 				}
 			}
-
-			if (headings.Count == 0)
+			finally
 			{
-				logger.VerboseTime("LoadPageHeadings done, 0 headings");
-				return;
+				pageBox.Invalidate();
+				pageBox.Update();
+
+				Native.LockWindowUpdate(IntPtr.Zero);
+
+				pageBox.Invalidate();
+				pageBox.Update();
 			}
 
-			var font = new Font("Segoe UI", 8.5F, FontStyle.Regular, GraphicsUnit.Point);
-			trash.Add(font);
-
-			logger.DebugTime($"suspending layout", keepRunning: true);
-			pageBox.SuspendLayout();
-
-			var margin = SystemInformation.VerticalScrollBarWidth * 2;
-
-			foreach (var heading in headings)
+			if (currentLabel is not null)
 			{
-				var wrapper = new XElement("T", new XCData(heading.Text));
-				var text = wrapper.TextValue(true);
-
-				var leftpad = heading.Level * HeaderIndent;
-				var leftmar = leftpad + 4;
-
-				var link = new MoreLinkLabel
-				{
-					Text = text,
-					Tag = heading,
-					Font = font,
-					Padding = new Padding(0),
-					Margin = new Padding(leftmar, 0, 0, 4),
-					Width = pageBox.Width - leftmar - margin
-				};
-
-				using var g = link.CreateGraphics();
-				var size = g.MeasureString(text, font);
-				link.Height = (int)(size.Height + link.Padding.Top + link.Padding.Bottom);
-
-				link.LinkClicked += new LinkLabelLinkClickedEventHandler(async (s, e) =>
-				{
-					if (s is MoreLinkLabel label)
-					{
-						await using var one = new OneNote();
-						var heading = (Heading)label.Tag;
-						if (heading.Link == string.Empty)
-						{
-							logger.Verbose($"fetching URL for [{heading.Text}]");
-							heading.Link = page.GetHyperlink(heading.Root, one);
-						}
-						else
-						{
-							logger.Verbose($"found URL for [{heading.Text}]");
-						}
-
-						await one.NavigateTo(heading.Link);
-					}
-				});
-
-				pageBox.Controls.Add(link);
-				pageBox.SetFlowBreak(link, true);
-
-				((ILoadControl)link).OnLoad();
+				pageBox.ScrollControlIntoView(currentLabel);
 			}
 
-			pageBox.ResumeLayout();
-			logger.DebugTime($"resumed layout", keepRunning: true);
 
 			await UpdateTitles(page);
 
-			logger.DebugTime("LoadPageHeadings done");
+			//logger.DebugTime("LoadPageHeadings done");
+		}
+
+
+		/// <summary>
+		/// Marks the given heading label as the current one, restoring the previously
+		/// highlighted label (if any) back to its normal font/color.
+		/// </summary>
+		/// <param name="label">The heading label to highlight as current</param>
+		private void HighlightHeading(MoreLinkLabel label)
+		{
+			if (ReferenceEquals(currentLabel, label))
+			{
+				return;
+			}
+
+			if (currentLabel is not null)
+			{
+				currentLabel.Font = headingFont;
+				currentLabel.ThemedFore = null;
+				((ILoadControl)currentLabel).OnLoad();
+			}
+
+			label.Font = headingBoldFont;
+			label.ThemedFore = "HintText";
+			((ILoadControl)label).OnLoad();
+
+			currentLabel = label;
 		}
 
 
@@ -497,7 +1022,10 @@ namespace River.OneMoreAddIn.Commands
 		{
 			if (TitleChanged(historyBox, page) || TitleChanged(pinnedBox, page))
 			{
-				await provider.RecordHistory(page.PageId, depth);
+				if (await provider.RecordHistory(page.PageId, depth))
+				{
+					ribbon?.InvalidateControl("ribNavigatorButton");
+				}
 			}
 		}
 
@@ -522,13 +1050,26 @@ namespace River.OneMoreAddIn.Commands
 
 		private async Task ShowPageOutline(HistoryRecord info)
 		{
-			await LoadPageHeadings(info.PageId);
+			if (!pageExpanded)
+			{
+				pageStale = true;
+				pendingPageId = info.PageId;
+				return;
+			}
+
+			await LoadPageHeadings(info.PageId, false);
+		}
+
+
+		public async Task RefreshPageHeadings()
+		{
+			await LoadPageHeadings(null, true);
 		}
 
 
 		private async void RefreshPageHeadings(object sender, EventArgs e)
 		{
-			await LoadPageHeadings(null);
+			await LoadPageHeadings(null, true);
 		}
 
 
@@ -536,7 +1077,7 @@ namespace River.OneMoreAddIn.Commands
 		{
 			if (e.KeyCode == Keys.F5)
 			{
-				await LoadPageHeadings(null);
+				await LoadPageHeadings(null, true);
 				e.Handled = true;
 			}
 		}
@@ -575,25 +1116,52 @@ namespace River.OneMoreAddIn.Commands
 				return;
 			}
 
-			pinnedBox.BeginUpdate();
-			pinnedBox.Items.Clear();
-
-			var viewColor = manager.GetColor("ListView");
-			pinned.ForEach(record =>
+			// see RenderHistoryItems for why this uses LockWindowUpdate rather than
+			// BeginUpdate/WM_SETREDRAW: the hosted HistoryControls are real child windows
+			// that paint themselves the instant they're made visible, regardless of
+			// pinnedBox's own redraw state, so only a subtree-wide lock keeps the rebuild
+			// from visibly popping in one row at a time
+			Native.LockWindowUpdate(pinnedBox.Handle);
+			try
 			{
-				var control = new HistoryControl(record)
+				foreach (var label in pinnedBox.GetAllItems<MoreLinkLabel>())
 				{
-					BackColor = viewColor
-				};
+					label.Dispose();
+				}
+				pinnedBox.Items.Clear();
 
-				control.ApplyTheme(manager);
+				var viewColor = manager.GetColor("ListView");
+				pinned.ForEach(record =>
+				{
+					var control = new HistoryControl(record)
+					{
+						BackColor = viewColor,
+						Visible = false
+					};
 
-				var item = pinnedBox.AddHostedItem(control);
-				item.Tag = record;
-			});
+					control.ApplyTheme(manager);
 
-			pinnedBox.EndUpdate();
-			pinnedBox.EnableItemEventBubbling();
+					var item = pinnedBox.AddHostedItem(control);
+					item.Tag = record;
+
+					// force native window creation now, while still hidden and locked,
+					// instead of paying that cost later inside BoundHostedControls
+					_ = control.Handle;
+				});
+
+				pinnedBox.EnableItemEventBubbling();
+				pinnedBox.EnableContextMenuBubbling();
+			}
+			finally
+			{
+				pinnedBox.Invalidate();
+				pinnedBox.Update();
+
+				Native.LockWindowUpdate(IntPtr.Zero);
+
+				pinnedBox.Invalidate();
+				pinnedBox.Update();
+			}
 		}
 
 		#region Pin control
@@ -640,6 +1208,15 @@ namespace River.OneMoreAddIn.Commands
 
 			if (records.Count > 0)
 			{
+				var result = MoreMessageBox.Show(Owner,
+					string.Format(Resx.NavigatorWindow_confirmDelete, records.Count),
+					MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+
+				if (result != DialogResult.Yes)
+				{
+					return;
+				}
+
 				var item = historyBox.SelectedItems.Count > 0
 					? historyBox.SelectedItems[historyBox.SelectedItems.Count - 1]
 					: historyBox.Items[0];
@@ -785,26 +1362,91 @@ namespace River.OneMoreAddIn.Commands
 				return;
 			}
 
-			historyBox.BeginUpdate();
-			historyBox.Items.Clear();
-			var viewColor = manager.GetColor("ListView");
+			historyRecords = log.History;
 
-			log.History.ForEach(record =>
+			RenderHistoryItems(historyFilterBox.Visible
+				? historyRecords.Where(r => r.Name.ContainsICIC(historyFilterBox.Text.Trim()))
+				: historyRecords);
+		}
+
+
+		private void RenderHistoryItems(IEnumerable<HistoryRecord> records)
+		{
+			if (historyBox.InvokeRequired)
 			{
-				var control = new HistoryControl(record)
+				historyBox.BeginInvoke(new Action(() => RenderHistoryItems(records)));
+				return;
+			}
+
+			// hosted HistoryControls are real child controls of historyBox, not native
+			// ListView rows. WM_SETREDRAW only suppresses historyBox's OWN drawing, not
+			// its children's - each HistoryControl paints itself independently the moment
+			// it becomes visible, regardless of historyBox's redraw state, which is why
+			// that approach alone still showed rows popping in one at a time. LockWindowUpdate
+			// suppresses on-screen drawing for the given window AND its entire child subtree,
+			// so nothing here reaches the screen until unlocked at the very end, when
+			// Windows flushes it all together as a single repaint.
+			Native.LockWindowUpdate(historyBox.Handle);
+			try
+			{
+				foreach (var history in historyBox.GetAllItems<HistoryControl>())
 				{
-					BackColor = viewColor
-				};
+					history.Dispose();
+				}
+				historyBox.Items.Clear();
 
-				control.ApplyTheme(manager);
+				var viewColor = manager.GetColor("ListView");
 
-				var item = historyBox.AddHostedItem(control);
-				item.Tag = record;
-			});
+				foreach (var record in records)
+				{
+					var control = new HistoryControl(record)
+					{
+						BackColor = viewColor,
+						// stay hidden at the default (0,0) position until BoundHostedControls
+						// (MoreListViewEx's WM_PAINT handler) places and reveals it at its real
+						// row bounds below, otherwise it flashes into view at the wrong spot
+						// the instant it's added, before the list view has laid out its rows
+						Visible = false
+					};
 
-			historyBox.Items[0].Selected = true;
-			historyBox.EndUpdate();
-			historyBox.EnableItemEventBubbling();
+					control.ApplyTheme(manager);
+
+					var item = historyBox.AddHostedItem(control);
+					item.Tag = record;
+
+					// while Visible=false, WinForms defers creating this control's native
+					// window (and its ColorBar/MoreLinkLabel children's windows) until it's
+					// first shown; without this, that one-time creation cost (~15-25ms per
+					// row) happens later, one row at a time, inside BoundHostedControls when
+					// it flips Visible=true - THAT staggered creation is what looked like the
+					// panel clearing and redrawing row by row. Forcing it now, while still
+					// hidden and while redraw is suppressed below, makes the later reveal a
+					// cheap ShowWindow per row instead
+					_ = control.Handle;
+				}
+
+				if (historyBox.Items.Count > 0)
+				{
+					historyBox.Items[0].Selected = true;
+				}
+
+				historyBox.EnableItemEventBubbling();
+				historyBox.EnableContextMenuBubbling();
+			}
+			finally
+			{
+				// while still locked, force the paint pass that runs BoundHostedControls
+				// (positions and reveals every row) - none of it reaches the screen yet
+				historyBox.Invalidate();
+				historyBox.Update();
+
+				Native.LockWindowUpdate(IntPtr.Zero);
+
+				// now that the lock is released, ask Windows to flush the fully-assembled
+				// state to the screen in one repaint
+				historyBox.Invalidate();
+				historyBox.Update();
+			}
 		}
 
 
@@ -895,6 +1537,95 @@ namespace River.OneMoreAddIn.Commands
 				{
 					item.Selected = true;
 				}
+			}
+		}
+
+
+		private void ShowPinnedContextMenu(object sender, MouseEventArgs e)
+		{
+			if (e.Button != MouseButtons.Right || pinnedBox.Items.Count == 0)
+			{
+				return;
+			}
+
+			var clientPt = pinnedBox.PointToClient(Cursor.Position);
+			var item = pinnedBox.GetItemAt(clientPt.X, clientPt.Y);
+			if (item != null && !item.Selected)
+			{
+				pinnedBox.SelectedItems.Clear();
+				item.Selected = true;
+			}
+
+			if (pinnedBox.SelectedItems.Count == 0)
+			{
+				return;
+			}
+
+			var menu = new MoreContextMenuStrip();
+			menu.Items.Add(new MoreMenuItem(Resx.NavigatorWindow_menuMoveUp, null, MoveUpOnClick));
+			menu.Items.Add(new MoreMenuItem(Resx.NavigatorWindow_menuMoveDown, null, MoveDownOnClick));
+			menu.Items.Add(new MoreMenuItem(Resx.NavigatorWindow_menuCopy, null,
+				(s, ev) => CopyLinks(copyPinnedButton, ev)));
+			var openItem = new MoreMenuItem(Resx.NavigatorWindow_menuOpenInNew, null, OpenInNewWindow);
+			openItem.Enabled = pinnedBox.SelectedItems.Count == 1;
+			menu.Items.Add(openItem);
+			menu.Items.Add(new ToolStripSeparator());
+			menu.Items.Add(new MoreMenuItem(Resx.NavigatorWindow_menuDelete, null, UnpinOnClick));
+			menu.Show(Cursor.Position);
+		}
+
+
+		private void ShowHistoryContextMenu(object sender, MouseEventArgs e)
+		{
+			if (e.Button != MouseButtons.Right || historyBox.Items.Count == 0)
+			{
+				return;
+			}
+
+			var clientPt = historyBox.PointToClient(Cursor.Position);
+			var item = historyBox.GetItemAt(clientPt.X, clientPt.Y);
+			if (item != null && !item.Selected)
+			{
+				historyBox.SelectedItems.Clear();
+				item.Selected = true;
+			}
+
+			if (historyBox.SelectedItems.Count == 0)
+			{
+				return;
+			}
+
+			var menu = new MoreContextMenuStrip();
+			menu.Items.Add(new MoreMenuItem(Resx.NavigatorWindow_menuAddToList, null, PinOnClick));
+			menu.Items.Add(new MoreMenuItem(Resx.NavigatorWindow_menuCopy, null,
+				(s, ev) => CopyLinks(copyHistoryButton, ev)));
+			var openItem = new MoreMenuItem(Resx.NavigatorWindow_menuOpenInNew, null, OpenInNewWindow);
+			openItem.Enabled = historyBox.SelectedItems.Count == 1;
+			menu.Items.Add(openItem);
+			menu.Items.Add(new ToolStripSeparator());
+			menu.Items.Add(new MoreMenuItem(Resx.NavigatorWindow_menuDelete, null, DeleteHistoryRecords));
+			menu.Show(Cursor.Position);
+		}
+
+
+		private async void OpenInNewWindow(object sender, EventArgs e)
+		{
+			var box = pinnedBox.SelectedItems.Count > 0 ? pinnedBox : historyBox;
+			if (box.SelectedItems.Count != 1)
+			{
+				return;
+			}
+
+			if (box.SelectedItems[0] is IMoreHostItem host && host.Tag is HistoryRecord record)
+			{
+				await using var one = new OneNote();
+				await one.NavigateTo(record.Link, true);
+
+				//System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+				//{
+				//	FileName = record.Link,
+				//	UseShellExecute = true
+				//});
 			}
 		}
 

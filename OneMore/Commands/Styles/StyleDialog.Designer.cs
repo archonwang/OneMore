@@ -31,18 +31,18 @@
 		{
 			this.components = new System.ComponentModel.Container();
 			System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(StyleDialog));
-			this.sizeBox = new System.Windows.Forms.ComboBox();
-			this.beforeLabel = new System.Windows.Forms.Label();
-			this.afterLabel = new System.Windows.Forms.Label();
-			this.nameLabel = new System.Windows.Forms.Label();
+			this.sizeBox = new River.OneMoreAddIn.UI.MoreComboBox();
+			this.beforeLabel = new River.OneMoreAddIn.UI.MoreLabel();
+			this.afterLabel = new River.OneMoreAddIn.UI.MoreLabel();
+			this.nameLabel = new River.OneMoreAddIn.UI.MoreLabel();
 			this.nameBox = new River.OneMoreAddIn.UI.MoreTextBox();
-			this.fontLabel = new System.Windows.Forms.Label();
+			this.fontLabel = new River.OneMoreAddIn.UI.MoreLabel();
 			this.spaceBeforeSpinner = new System.Windows.Forms.NumericUpDown();
 			this.spaceAfterSpinner = new System.Windows.Forms.NumericUpDown();
 			this.previewBox = new System.Windows.Forms.PictureBox();
 			this.cancelButton = new River.OneMoreAddIn.UI.MoreButton();
 			this.okButton = new River.OneMoreAddIn.UI.MoreButton();
-			this.namesBox = new System.Windows.Forms.ComboBox();
+			this.namesBox = new River.OneMoreAddIn.UI.MoreComboBox();
 			this.bodyPanel = new System.Windows.Forms.Panel();
 			this.styleTools = new River.OneMoreAddIn.UI.MoreToolStrip();
 			this.renameButton = new River.OneMoreAddIn.UI.MoreMenuItem();
@@ -64,11 +64,12 @@
 			this.pageColorLink = new River.OneMoreAddIn.UI.MoreLinkLabel();
 			this.darkBox = new River.OneMoreAddIn.UI.MoreCheckBox();
 			this.pageColorBox = new River.OneMoreAddIn.UI.MoreCheckBox();
-			this.spacingLabel = new System.Windows.Forms.Label();
+			this.spacingLabel = new River.OneMoreAddIn.UI.MoreLabel();
 			this.spacingSpinner = new System.Windows.Forms.NumericUpDown();
-			this.styleTypeLabel = new System.Windows.Forms.Label();
-			this.styleTypeBox = new System.Windows.Forms.ComboBox();
+			this.styleTypeLabel = new River.OneMoreAddIn.UI.MoreLabel();
+			this.styleTypeBox = new River.OneMoreAddIn.UI.MoreComboBox();
 			this.applyColorsBox = new River.OneMoreAddIn.UI.MoreCheckBox();
+			this.isCodeBox = new River.OneMoreAddIn.UI.MoreCheckBox();
 			this.familyBox = new River.OneMoreAddIn.UI.FontComboBox();
 			this.mainTools = new River.OneMoreAddIn.UI.MoreMenuStrip();
 			this.loadButton = new River.OneMoreAddIn.UI.MoreMenuItem();
@@ -113,29 +114,35 @@
             "26"});
 			this.sizeBox.Location = new System.Drawing.Point(539, 123);
 			this.sizeBox.Name = "sizeBox";
-			this.sizeBox.Size = new System.Drawing.Size(104, 33);
+			this.sizeBox.Size = new System.Drawing.Size(104, 32);
 			this.sizeBox.TabIndex = 3;
+			this.sizeBox.ThemedBack = null;
+			this.sizeBox.ThemedFore = null;
 			this.sizeBox.SelectedIndexChanged += new System.EventHandler(this.ChangeFontSize);
 			this.sizeBox.Enter += new System.EventHandler(this.SetActiveFocus);
 			// 
 			// beforeLabel
 			// 
 			this.beforeLabel.AutoSize = true;
-			this.beforeLabel.Location = new System.Drawing.Point(18, 289);
+			this.beforeLabel.Location = new System.Drawing.Point(18, 320);
 			this.beforeLabel.Name = "beforeLabel";
 			this.beforeLabel.Size = new System.Drawing.Size(111, 20);
 			this.beforeLabel.TabIndex = 6;
 			this.beforeLabel.Text = "Space Before:";
+			this.beforeLabel.ThemedBack = null;
+			this.beforeLabel.ThemedFore = null;
 			this.tooltip.SetToolTip(this.beforeLabel, "Spacing before a paragraph");
 			// 
 			// afterLabel
 			// 
 			this.afterLabel.AutoSize = true;
-			this.afterLabel.Location = new System.Drawing.Point(18, 326);
+			this.afterLabel.Location = new System.Drawing.Point(18, 357);
 			this.afterLabel.Name = "afterLabel";
 			this.afterLabel.Size = new System.Drawing.Size(98, 20);
 			this.afterLabel.TabIndex = 7;
 			this.afterLabel.Text = "Space After:";
+			this.afterLabel.ThemedBack = null;
+			this.afterLabel.ThemedFore = null;
 			this.tooltip.SetToolTip(this.afterLabel, "Spacing after a paragraph");
 			// 
 			// nameLabel
@@ -146,6 +153,8 @@
 			this.nameLabel.Size = new System.Drawing.Size(94, 20);
 			this.nameLabel.TabIndex = 8;
 			this.nameLabel.Text = "Style Name:";
+			this.nameLabel.ThemedBack = null;
+			this.nameLabel.ThemedFore = null;
 			this.tooltip.SetToolTip(this.nameLabel, "Must be unique");
 			// 
 			// nameBox
@@ -172,11 +181,13 @@
 			this.fontLabel.Size = new System.Drawing.Size(46, 20);
 			this.fontLabel.TabIndex = 10;
 			this.fontLabel.Text = "Font:";
+			this.fontLabel.ThemedBack = null;
+			this.fontLabel.ThemedFore = null;
 			// 
 			// spaceBeforeSpinner
 			// 
 			this.spaceBeforeSpinner.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-			this.spaceBeforeSpinner.Location = new System.Drawing.Point(169, 283);
+			this.spaceBeforeSpinner.Location = new System.Drawing.Point(169, 314);
 			this.spaceBeforeSpinner.Name = "spaceBeforeSpinner";
 			this.spaceBeforeSpinner.Size = new System.Drawing.Size(108, 31);
 			this.spaceBeforeSpinner.TabIndex = 7;
@@ -186,7 +197,7 @@
 			// spaceAfterSpinner
 			// 
 			this.spaceAfterSpinner.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-			this.spaceAfterSpinner.Location = new System.Drawing.Point(169, 319);
+			this.spaceAfterSpinner.Location = new System.Drawing.Point(169, 350);
 			this.spaceAfterSpinner.Name = "spaceAfterSpinner";
 			this.spaceAfterSpinner.Size = new System.Drawing.Size(108, 31);
 			this.spaceAfterSpinner.TabIndex = 8;
@@ -199,7 +210,7 @@
             | System.Windows.Forms.AnchorStyles.Right)));
 			this.previewBox.BackColor = System.Drawing.Color.White;
 			this.previewBox.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-			this.previewBox.Location = new System.Drawing.Point(296, 283);
+			this.previewBox.Location = new System.Drawing.Point(296, 314);
 			this.previewBox.Name = "previewBox";
 			this.previewBox.Size = new System.Drawing.Size(347, 107);
 			this.previewBox.TabIndex = 18;
@@ -213,7 +224,7 @@
 			this.cancelButton.DialogResult = System.Windows.Forms.DialogResult.Cancel;
 			this.cancelButton.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(0)))), ((int)(((byte)(0)))));
 			this.cancelButton.ImageOver = null;
-			this.cancelButton.Location = new System.Drawing.Point(527, 585);
+			this.cancelButton.Location = new System.Drawing.Point(527, 629);
 			this.cancelButton.Name = "cancelButton";
 			this.cancelButton.ShowBorder = true;
 			this.cancelButton.Size = new System.Drawing.Size(116, 38);
@@ -231,7 +242,7 @@
 			this.okButton.DialogResult = System.Windows.Forms.DialogResult.OK;
 			this.okButton.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(0)))), ((int)(((byte)(0)))));
 			this.okButton.ImageOver = null;
-			this.okButton.Location = new System.Drawing.Point(405, 585);
+			this.okButton.Location = new System.Drawing.Point(405, 629);
 			this.okButton.Name = "okButton";
 			this.okButton.ShowBorder = true;
 			this.okButton.Size = new System.Drawing.Size(116, 38);
@@ -249,10 +260,12 @@
 			this.namesBox.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
 			this.namesBox.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
 			this.namesBox.FormattingEnabled = true;
-			this.namesBox.Location = new System.Drawing.Point(18, 589);
+			this.namesBox.Location = new System.Drawing.Point(18, 633);
 			this.namesBox.Name = "namesBox";
-			this.namesBox.Size = new System.Drawing.Size(121, 33);
+			this.namesBox.Size = new System.Drawing.Size(121, 32);
 			this.namesBox.TabIndex = 10;
+			this.namesBox.ThemedBack = null;
+			this.namesBox.ThemedFore = null;
 			this.namesBox.Visible = false;
 			this.namesBox.SelectedIndexChanged += new System.EventHandler(this.ChangeStyleListSelection);
 			// 
@@ -271,6 +284,7 @@
 			this.bodyPanel.Controls.Add(this.styleTypeLabel);
 			this.bodyPanel.Controls.Add(this.styleTypeBox);
 			this.bodyPanel.Controls.Add(this.applyColorsBox);
+			this.bodyPanel.Controls.Add(this.isCodeBox);
 			this.bodyPanel.Controls.Add(this.nameLabel);
 			this.bodyPanel.Controls.Add(this.familyBox);
 			this.bodyPanel.Controls.Add(this.okButton);
@@ -287,7 +301,7 @@
 			this.bodyPanel.Location = new System.Drawing.Point(8, 35);
 			this.bodyPanel.Name = "bodyPanel";
 			this.bodyPanel.Padding = new System.Windows.Forms.Padding(15, 20, 15, 9);
-			this.bodyPanel.Size = new System.Drawing.Size(661, 635);
+			this.bodyPanel.Size = new System.Drawing.Size(661, 679);
 			this.bodyPanel.TabIndex = 25;
 			// 
 			// styleTools
@@ -477,7 +491,7 @@
 			this.ignoredBox.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(231)))), ((int)(((byte)(231)))), ((int)(((byte)(231)))));
 			this.ignoredBox.Cursor = System.Windows.Forms.Cursors.Hand;
 			this.ignoredBox.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(0)))), ((int)(((byte)(0)))));
-			this.ignoredBox.Location = new System.Drawing.Point(169, 244);
+			this.ignoredBox.Location = new System.Drawing.Point(169, 275);
 			this.ignoredBox.Name = "ignoredBox";
 			this.ignoredBox.Size = new System.Drawing.Size(176, 25);
 			this.ignoredBox.StylizeImage = false;
@@ -497,10 +511,10 @@
 			this.optionsGroup.Controls.Add(this.pageColorLink);
 			this.optionsGroup.Controls.Add(this.darkBox);
 			this.optionsGroup.Controls.Add(this.pageColorBox);
-			this.optionsGroup.Location = new System.Drawing.Point(22, 420);
+			this.optionsGroup.Location = new System.Drawing.Point(22, 458);
 			this.optionsGroup.Name = "optionsGroup";
 			this.optionsGroup.ShowOnlyTopEdge = true;
-			this.optionsGroup.Size = new System.Drawing.Size(620, 150);
+			this.optionsGroup.Size = new System.Drawing.Size(620, 156);
 			this.optionsGroup.TabIndex = 30;
 			this.optionsGroup.TabStop = false;
 			this.optionsGroup.Text = "Options";
@@ -528,6 +542,7 @@
 			this.pageColorLink.LinkColor = System.Drawing.Color.MediumOrchid;
 			this.pageColorLink.Location = new System.Drawing.Point(46, 90);
 			this.pageColorLink.Name = "pageColorLink";
+			this.pageColorLink.Selected = false;
 			this.pageColorLink.Size = new System.Drawing.Size(247, 20);
 			this.pageColorLink.StrictColors = false;
 			this.pageColorLink.TabIndex = 2;
@@ -573,17 +588,19 @@
 			// spacingLabel
 			// 
 			this.spacingLabel.AutoSize = true;
-			this.spacingLabel.Location = new System.Drawing.Point(18, 362);
+			this.spacingLabel.Location = new System.Drawing.Point(18, 393);
 			this.spacingLabel.Name = "spacingLabel";
 			this.spacingLabel.Size = new System.Drawing.Size(71, 20);
 			this.spacingLabel.TabIndex = 29;
 			this.spacingLabel.Text = "Spacing:";
+			this.spacingLabel.ThemedBack = null;
+			this.spacingLabel.ThemedFore = null;
 			this.tooltip.SetToolTip(this.spacingLabel, "Spacing between lines in a paragraph");
 			// 
 			// spacingSpinner
 			// 
 			this.spacingSpinner.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-			this.spacingSpinner.Location = new System.Drawing.Point(169, 356);
+			this.spacingSpinner.Location = new System.Drawing.Point(169, 387);
 			this.spacingSpinner.Name = "spacingSpinner";
 			this.spacingSpinner.Size = new System.Drawing.Size(108, 31);
 			this.spacingSpinner.TabIndex = 9;
@@ -598,6 +615,8 @@
 			this.styleTypeLabel.Size = new System.Drawing.Size(86, 20);
 			this.styleTypeLabel.TabIndex = 27;
 			this.styleTypeLabel.Text = "Style Type:";
+			this.styleTypeLabel.ThemedBack = null;
+			this.styleTypeLabel.ThemedFore = null;
 			this.tooltip.SetToolTip(this.styleTypeLabel, "Determines the scope of text affected by this style");
 			// 
 			// styleTypeBox
@@ -608,13 +627,19 @@
 			this.styleTypeBox.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
 			this.styleTypeBox.FormattingEnabled = true;
 			this.styleTypeBox.Items.AddRange(new object[] {
-            "Character - words in paragraph",
+            "Heading - included in TOC",
+            "Page title - page title paragraph",
+            "Citation - reference paragraph",
+            "Quote - quoted text paragraph",
+            "Code - code block paragraph",
             "Paragraph - entire paragraph",
-            "Heading - include in TOC"});
+            "Character - words in paragraph"});
 			this.styleTypeBox.Location = new System.Drawing.Point(169, 77);
 			this.styleTypeBox.Name = "styleTypeBox";
-			this.styleTypeBox.Size = new System.Drawing.Size(473, 33);
+			this.styleTypeBox.Size = new System.Drawing.Size(473, 32);
 			this.styleTypeBox.TabIndex = 1;
+			this.styleTypeBox.ThemedBack = null;
+			this.styleTypeBox.ThemedFore = null;
 			this.styleTypeBox.SelectedIndexChanged += new System.EventHandler(this.ChangeStyleType);
 			// 
 			// applyColorsBox
@@ -634,6 +659,23 @@
 			this.applyColorsBox.ThemedFore = null;
 			this.applyColorsBox.UseVisualStyleBackColor = true;
 			this.applyColorsBox.CheckedChanged += new System.EventHandler(this.ChangeApplyColorsOption);
+			// 
+			// isCodeBox
+			// 
+			this.isCodeBox.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(231)))), ((int)(((byte)(231)))), ((int)(((byte)(231)))));
+			this.isCodeBox.Cursor = System.Windows.Forms.Cursors.Hand;
+			this.isCodeBox.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(0)))), ((int)(((byte)(0)))));
+			this.isCodeBox.Location = new System.Drawing.Point(169, 244);
+			this.isCodeBox.Name = "isCodeBox";
+			this.isCodeBox.Size = new System.Drawing.Size(207, 25);
+			this.isCodeBox.StylizeImage = false;
+			this.isCodeBox.TabIndex = 7;
+			this.isCodeBox.Text = "Source code paragraph";
+			this.isCodeBox.ThemedBack = null;
+			this.isCodeBox.ThemedFore = null;
+			this.tooltip.SetToolTip(this.isCodeBox, "Mark this as the code style used by Apply Styles to Page");
+			this.isCodeBox.UseVisualStyleBackColor = true;
+			this.isCodeBox.CheckedChanged += new System.EventHandler(this.ChangeIsCodeOption);
 			// 
 			// familyBox
 			// 
@@ -741,7 +783,7 @@
 			this.AutoScaleDimensions = new System.Drawing.SizeF(9F, 20F);
 			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
 			this.CancelButton = this.cancelButton;
-			this.ClientSize = new System.Drawing.Size(676, 678);
+			this.ClientSize = new System.Drawing.Size(676, 722);
 			this.Controls.Add(this.mainTools);
 			this.Controls.Add(this.bodyPanel);
 			this.ForeColor = System.Drawing.SystemColors.ControlText;
@@ -776,12 +818,12 @@
 		#endregion
 
 		private UI.FontComboBox familyBox;
-		private System.Windows.Forms.ComboBox sizeBox;
-		private System.Windows.Forms.Label beforeLabel;
-		private System.Windows.Forms.Label afterLabel;
-		private System.Windows.Forms.Label nameLabel;
+		private UI.MoreComboBox sizeBox;
+		private UI.MoreLabel beforeLabel;
+		private UI.MoreLabel afterLabel;
+		private UI.MoreLabel nameLabel;
 		private UI.MoreTextBox nameBox;
-		private System.Windows.Forms.Label fontLabel;
+		private UI.MoreLabel fontLabel;
 		private UI.MoreToolStrip fontTools;
 		private UI.MoreSplitButton colorButton;
 		private System.Windows.Forms.NumericUpDown spaceBeforeSpinner;
@@ -790,7 +832,7 @@
 		private System.Windows.Forms.PictureBox previewBox;
 		private UI.MoreButton cancelButton;
 		private UI.MoreButton okButton;
-		private System.Windows.Forms.ComboBox namesBox;
+		private UI.MoreComboBox namesBox;
 		private System.Windows.Forms.ToolStripMenuItem transparentToolStripMenuItem;
 		private System.Windows.Forms.ToolStripMenuItem defaultBlackToolStripMenuItem;
 		private UI.MoreMenuStrip mainTools;
@@ -798,12 +840,13 @@
 		private UI.MoreMenuItem deleteButton;
 		private System.Windows.Forms.Panel bodyPanel;
 		private UI.MoreCheckBox applyColorsBox;
-		private System.Windows.Forms.Label styleTypeLabel;
-		private System.Windows.Forms.ComboBox styleTypeBox;
+		private UI.MoreCheckBox isCodeBox;
+		private UI.MoreLabel styleTypeLabel;
+		private UI.MoreComboBox styleTypeBox;
 		private UI.MoreMenuItem loadButton;
 		private UI.MoreMenuItem saveButton;
 		private UI.MoreMenuItem newStyleButton;
-		private System.Windows.Forms.Label spacingLabel;
+		private UI.MoreLabel spacingLabel;
 		private System.Windows.Forms.NumericUpDown spacingSpinner;
 		private UI.MoreMenuItem renameButton;
 		private UI.MoreGroupBox optionsGroup;

@@ -1,11 +1,12 @@
 ﻿//************************************************************************************************
-// Copyright © 2022 Steven M Cohn.  All rights reserved.
+// Copyright © 2022 Steven M Cohn. All rights reserved.
 //************************************************************************************************
 
 namespace River.OneMoreAddIn.Commands
 {
 	using System;
 	using System.Collections.Generic;
+	using System.Diagnostics;
 	using System.Linq;
 	using System.Threading.Tasks;
 	using System.Windows.Forms;
@@ -29,18 +30,38 @@ namespace River.OneMoreAddIn.Commands
 
 		public override async Task Execute(params object[] args)
 		{
+			using var guard = EnterOnce();
+			if (guard is null) { return; }
+
 			using var dialog = new CommandPaletteDialog();
 			dialog.RequestData += PopulateCommands;
 			PopulateCommands(dialog, null);
 
-			if (dialog.ShowDialog(owner) == DialogResult.OK &&
-				dialog.Index >= 0)
-			{
-				var command = dialog.Recent
-					? recent[dialog.Index]
-					: commands[dialog.Index];
+			var result = dialog.ShowDialog(owner);
+			var index = dialog.Index;
+			var isRecent = dialog.Recent;
 
-				//logger.WriteLine($"invoking command[index:{dialog.Index},recent:{dialog.Recent}] 'method:{command.Method.Name}'");
+			// the palette dialog itself is closed at this point; release the
+			// re-entry guard before invoking the chosen command, which may not
+			// return until ITS OWN dialog closes (e.g. SearchCommand/
+			// SearchTitleCommand when invoked with no message loop already
+			// running) - otherwise the palette can't be reopened until that
+			// command's dialog closes
+			guard.Dispose();
+
+			// likewise, close out our own logger block here rather than leaving it
+			// open for however long the chosen command takes to run; otherwise that
+			// command's own "Running command X" line inherits our stale ".." preamble
+			// even though, from here on, it's running as its own independent command
+			logger.End();
+
+			if (result == DialogResult.OK && index >= 0)
+			{
+				var command = isRecent
+					? recent[index]
+					: commands[index];
+
+				//logger.WriteLine($"invoking command[index:{index},recent:{isRecent}] 'method:{command.Method.Name}'");
 				await (Task)command.Method.Invoke(AddIn.Self, new object[] { null });
 
 				// save if not IsCancelled...
@@ -60,9 +81,18 @@ namespace River.OneMoreAddIn.Commands
 				}
 			}
 
-			// reset focus to OneNote window
-			await using var one = new OneNote();
-			Native.SwitchToThisWindow(one.WindowHandle, false);
+			// reset focus to OneNote window - but only if the invoked command didn't
+			// leave its own popup open and focused (CompleteHashtagCommand/
+			// SearchCommand/SearchTitleCommand can return before their modeless
+			// dialog closes, see Command.EnterOnce remarks); otherwise this would
+			// steal focus right back from a freshly shown, still-open dialog
+			var foreground = Native.GetForegroundWindow();
+			Native.GetWindowThreadProcessId(foreground, out var pid);
+			if (pid != (uint)Process.GetCurrentProcess().Id)
+			{
+				await using var one = new OneNote();
+				Native.SwitchToThisWindow(one.WindowHandle, false);
+			}
 		}
 
 

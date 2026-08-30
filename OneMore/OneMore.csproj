@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
@@ -20,7 +20,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
     <DebugSymbols>true</DebugSymbols>
-    <OutputPath>bin\x64\Debug\</OutputPath>
+    <OutputPath>bin\Debug\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <RegisterForComInterop>false</RegisterForComInterop>
     <DebugType>full</DebugType>
@@ -31,7 +31,7 @@
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
-    <OutputPath>bin\x64\Release\</OutputPath>
+    <OutputPath>bin\Release\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <Optimize>true</Optimize>
     <DebugType>pdbonly</DebugType>
@@ -44,11 +44,11 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x86'">
     <DebugSymbols>true</DebugSymbols>
-    <OutputPath>bin\x86\Debug\</OutputPath>
+    <OutputPath>bin\Debug\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <RegisterForComInterop>false</RegisterForComInterop>
     <DebugType>full</DebugType>
-    <PlatformTarget>AnyCPU</PlatformTarget>
+    <PlatformTarget>x86</PlatformTarget>
     <ErrorReport>prompt</ErrorReport>
     <CodeAnalysisRuleSet>
     </CodeAnalysisRuleSet>
@@ -57,7 +57,7 @@
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x86'">
-    <OutputPath>bin\x86\Release\</OutputPath>
+    <OutputPath>bin\Release\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <Optimize>true</Optimize>
     <DebugType>pdbonly</DebugType>
@@ -80,7 +80,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|ARM64'">
     <DebugSymbols>true</DebugSymbols>
-    <OutputPath>bin\ARM64\Debug\</OutputPath>
+    <OutputPath>bin\Debug\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <DebugType>full</DebugType>
     <PlatformTarget>ARM64</PlatformTarget>
@@ -88,7 +88,7 @@
     <ErrorReport>prompt</ErrorReport>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|ARM64'">
-    <OutputPath>bin\ARM64\Release\</OutputPath>
+    <OutputPath>bin\Release\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <Optimize>true</Optimize>
     <DebugType>pdbonly</DebugType>
@@ -97,14 +97,17 @@
     <ErrorReport>prompt</ErrorReport>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|AnyCPU'">
-    <OutputPath>bin\x86\Debug\</OutputPath>
+    <OutputPath>bin\Debug\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <PlatformTarget>AnyCPU</PlatformTarget>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Beta)' == 'true'">
+    <DefineConstants>$(DefineConstants);BETA</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup>
+    <AutoGenerateBindingRedirects>false</AutoGenerateBindingRedirects>
+  </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Aga.Controls">
-      <HintPath>External\Aga.Controls.dll</HintPath>
-    </Reference>
     <Reference Include="extensibility, Version=7.0.3300.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
       <EmbedInteropTypes>True</EmbedInteropTypes>
     </Reference>
@@ -126,9 +129,16 @@
     <Reference Include="Office, Version=15.0.0.0, Culture=neutral, PublicKeyToken=71e9bce111e9429c, processorArchitecture=MSIL">
       <EmbedInteropTypes>False</EmbedInteropTypes>
     </Reference>
+    <Reference Include="stdole">
+      <Private>True</Private>
+      <HintPath>$(DevEnvDir)PublicAssemblies\stdole.dll</HintPath>
+    </Reference>
     <Reference Include="PresentationCore" />
     <Reference Include="PresentationFramework" />
     <Reference Include="System" />
+    <Reference Include="System.Collections.Immutable, Version=9.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+    </Reference>
     <Reference Include="System.ComponentModel.Composition" />
     <Reference Include="System.ComponentModel.DataAnnotations" />
     <Reference Include="System.Configuration" />
@@ -138,10 +148,15 @@
     <Reference Include="System.Management" />
     <Reference Include="System.Net" />
     <Reference Include="System.Numerics" />
+    <Reference Include="System.Reflection.Metadata, Version=9.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="System.Runtime.Serialization" />
     <Reference Include="System.Runtime.WindowsRuntime, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\Windows\Microsoft.NET\Framework64\v4.0.30319\System.Runtime.WindowsRuntime.dll</HintPath>
+      <Private>True</Private>
+      <HintPath>$(windir)\Microsoft.NET\Framework64\v4.0.30319\System.Runtime.WindowsRuntime.dll</HintPath>
     </Reference>
     <Reference Include="System.ServiceModel" />
     <Reference Include="System.Speech" />
@@ -154,13 +169,31 @@
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
+    <Reference Include="UIAutomationClient" />
+    <Reference Include="UIAutomationTypes" />
     <Reference Include="Windows">
-      <HintPath>..\..\..\Program Files (x86)\Windows Kits\10\UnionMetadata\10.0.22621.0\Windows.winmd</HintPath>
+      <HintPath>C:\Program Files (x86)\Windows Kits\10\UnionMetadata\10.0.26100.0\Windows.winmd</HintPath>
     </Reference>
     <Reference Include="WindowsBase" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AddInCommands.cs" />
+    <Compile Include="Cli\CliCommandFactory.cs" />
+    <Compile Include="Cli\CliConstraint.cs" />
+    <Compile Include="Cli\CliLogger.cs" />
+    <Compile Include="Cli\CliNotebookResolver.cs" />
+    <Compile Include="Cli\CliParameter.cs" />
+    <Compile Include="Cli\CliParameterDefinition.cs" />
+    <Compile Include="Cli\CliParameterSet.cs" />
+    <Compile Include="Cli\Commands\GetHierarchyCommand.cs" />
+    <Compile Include="Cli\Commands\GetPageCommand.cs" />
+    <Compile Include="Cli\Commands\GotoCommand.cs" />
+    <Compile Include="Cli\Commands\PutPageCommand.cs" />
+    <Compile Include="Cli\ICliCommand.cs" />
+    <Compile Include="Cli\ICliInteractiveCommand.cs" />
+    <Compile Include="Cli\ICliPageCommand.cs" />
+    <Compile Include="Commands\Clean\RemoveIndentsCommand.cs" />
+    <Compile Include="Commands\Clean\RemoveHyperlinksCommand.cs" />
     <Compile Include="Commands\Edit\ChooseColorizerCommand.cs" />
     <Compile Include="Commands\Edit\ColorizeDialog.cs">
       <SubType>Form</SubType>
@@ -170,6 +203,46 @@
     </Compile>
     <Compile Include="Commands\Edit\ConvertMarkdownCommand.cs" />
     <Compile Include="Commands\Edit\CopyAsTextCommand.cs" />
+    <Compile Include="Commands\Edit\RecolorInkCommand.cs" />
+    <Compile Include="Commands\Office\ContactGenerator.cs" />
+    <Compile Include="Commands\Office\ContactListGenerator.cs" />
+    <Compile Include="Commands\Office\ImportOutlookContactsCommand.cs" />
+    <Compile Include="Commands\Office\ImportOutlookContactsDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Commands\Office\ImportOutlookContactsDialog.Designer.cs">
+      <DependentUpon>ImportOutlookContactsDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Commands\Office\OutlookContactCommand.cs" />
+    <Compile Include="Commands\Office\ReportControlHelper.cs" />
+    <Compile Include="Commands\Page\SnapToGridCommand.cs" />
+    <Compile Include="Commands\References\IndexModifiedCommand.cs" />
+    <Compile Include="Commands\Reminders\ReminderLocator.cs" />
+    <Compile Include="Commands\Settings\MarkdownSheet.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="Commands\Settings\MarkdownSheet.Designer.cs">
+      <DependentUpon>MarkdownSheet.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Commands\Snippets\CreateJournalCommand.cs" />
+    <Compile Include="Commands\Snippets\CreateJournalDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Commands\Snippets\CreateJournalDialog.Designer.cs">
+      <DependentUpon>CreateJournalDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Commands\Tools\SyncCommand.cs" />
+    <Compile Include="Commands\Tools\Updater\ChecksumStatus.cs" />
+    <Compile Include="Commands\Workspaces\Favorites\FavoriteModels.cs" />
+    <Compile Include="Commands\Workspaces\Favorites\AddFavoriteCommand.cs" />
+    <Compile Include="Commands\Workspaces\Favorites\FavoriteKindGlyphs.cs" />
+    <Compile Include="Commands\Workspaces\Favorites\ExportFavoritesCommand.cs" />
+    <Compile Include="Commands\Workspaces\Favorites\FavoritesMenu.cs" />
+    <Compile Include="Commands\Workspaces\Favorites\FavoritesProvider.cs" />
+    <Compile Include="Commands\Workspaces\Favorites\ImportFavoritesCommand.cs" />
+    <Compile Include="Commands\Workspaces\TargetChecker.cs" />
+    <Compile Include="Commands\Workspaces\TargetReference.cs" />
+    <Compile Include="Commands\File\Markdown\OneMoreDigCodeRenderer.cs" />
     <Compile Include="Commands\File\OpenFolderDialog.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -182,6 +255,17 @@
     <Compile Include="Commands\File\Markdown\WikilinkInline.cs" />
     <Compile Include="Commands\File\OpenFolderCommand.cs" />
     <Compile Include="Commands\File\OpenLocationCommand.cs" />
+    <Compile Include="Commands\File\Scan\ScanCommand.cs" />
+    <Compile Include="Commands\File\Scan\ScanDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Commands\File\Scan\ScanDialog.Designer.cs">
+      <DependentUpon>ScanDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Commands\File\Scan\ScanCapabilities.cs" />
+    <Compile Include="Commands\File\Scan\ScannerManager.cs" />
+    <Compile Include="Commands\File\Scan\ScanProfile.cs" />
+    <Compile Include="Commands\File\Scan\WiaExtensions.cs" />
     <Compile Include="Commands\Images\Diagrams\DiagramKeys.cs" />
     <Compile Include="Commands\Images\Diagrams\DiagramProviderFactory.cs" />
     <Compile Include="Commands\Images\Diagrams\IDiagramProvider.cs" />
@@ -189,6 +273,7 @@
     <Compile Include="Commands\Images\Diagrams\KrokiDiagramProvider.cs" />
     <Compile Include="Commands\Images\SelectInkCommand.cs" />
     <Compile Include="Commands\Navigator\NextUnreadPageCommand.cs" />
+    <Compile Include="Commands\Numbering\NumberLinesCommand.cs" />
     <Compile Include="Commands\Page\DuplicateLineCommand.cs" />
     <Compile Include="Commands\Edit\PreviewMarkdownCommand.cs" />
     <Compile Include="Commands\File\FileQuickNotesCommand.cs" />
@@ -202,6 +287,7 @@
     <Compile Include="Commands\Images\DiagramCommand.cs" />
     <Compile Include="Commands\Images\OpenImageWithCommand.cs" />
     <Compile Include="Commands\Images\Diagrams\PlantUmlDiagramProvider.cs" />
+    <Compile Include="Commands\Images\RestoreBackgroundImagesCommand.cs" />
     <Compile Include="Commands\Images\StackBackgroundImagesCommand.cs" />
     <Compile Include="Commands\Images\StylizeImagesCommand.cs" />
     <Compile Include="Commands\Images\StylizeImagesDialog.cs">
@@ -210,10 +296,18 @@
     <Compile Include="Commands\Images\StylizeImagesDialog.Designer.cs">
       <DependentUpon>StylizeImagesDialog.cs</DependentUpon>
     </Compile>
+    <Compile Include="Commands\Navigator\HistoryCommand.cs" />
     <Compile Include="Commands\Navigator\HistoryControl.cs">
       <SubType>UserControl</SubType>
     </Compile>
+    <Compile Include="Commands\Navigator\HistoryDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Commands\Navigator\HistoryDialog.Designer.cs">
+      <DependentUpon>HistoryDialog.cs</DependentUpon>
+    </Compile>
     <Compile Include="Commands\Navigator\HistoryLog.cs" />
+    <Compile Include="Commands\Navigator\HistoryMenu.cs" />
     <Compile Include="Commands\Navigator\NavigationProvider.cs" />
     <Compile Include="Commands\Navigator\NavigationService.cs" />
     <Compile Include="Commands\Navigator\NavigatorCommand.cs" />
@@ -223,21 +317,50 @@
     <Compile Include="Commands\Navigator\NavigatorWindow.Designer.cs">
       <DependentUpon>NavigatorWindow.cs</DependentUpon>
     </Compile>
-    <Compile Include="Commands\Navigator\PinPageCommand.cs" />
     <Compile Include="Commands\Page\DuplicatePageCommand.cs" />
     <Compile Include="Commands\Page\ExtractContentCommand.cs" />
     <Compile Include="Commands\Page\MovePageCommand.cs" />
     <Compile Include="Commands\Page\UpdatePageTimeCommand.cs" />
     <Compile Include="Commands\Page\ViewInBrowserCommand.cs" />
-    <Compile Include="Commands\References\BiLinkDialog.cs">
+    <Compile Include="Commands\References\BookmarkedDialog.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="Commands\References\BiLinkDialog.Designer.cs">
-      <DependentUpon>BiLinkDialog.cs</DependentUpon>
+    <Compile Include="Commands\References\BookmarkedDialog.Designer.cs">
+      <DependentUpon>BookmarkedDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Commands\References\BookmarkCommand.cs" />
+    <Compile Include="Commands\References\EmbedDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Commands\References\EmbedDialog.Designer.cs">
+      <DependentUpon>EmbedDialog.cs</DependentUpon>
     </Compile>
     <Compile Include="Commands\References\CheckUrlsCommand.cs" />
     <Compile Include="Commands\References\HyperlinkProvider.cs" />
     <Compile Include="Commands\Reminders\CleanRemindersCommand.cs" />
+    <Compile Include="Commands\Search\CardHit.cs" />
+    <Compile Include="Commands\Search\CardModel.cs" />
+    <Compile Include="Commands\Search\SearchEngine.cs" />
+    <Compile Include="Commands\Search\SearchTitleEngine.cs" />
+    <Compile Include="Commands\Search\SearchTitleCommand.cs" />
+    <Compile Include="Commands\Search\TitleQueryParser.cs" />
+    <Compile Include="Commands\Search\SearchGroupControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="Commands\Search\SearchResultsCardView.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="Commands\Settings\TableThemesSheet.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="Commands\Settings\TableThemesSheet.Designer.cs">
+      <DependentUpon>TableThemesSheet.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Commands\Tagging\AddHashtagCommand.cs" />
+    <Compile Include="Commands\Tagging\RemoveHashtagCommand.cs" />
+    <Compile Include="Commands\Tagging\SearchHashtagsCommand.cs" />
+    <Compile Include="Commands\Tools\ShowContainersCommand.cs" />
+    <Compile Include="Commands\Search\TextMatchBuilder.cs" />
     <Compile Include="Commands\Settings\VariablesSheet.cs">
       <SubType>UserControl</SubType>
     </Compile>
@@ -245,6 +368,7 @@
       <DependentUpon>VariablesSheet.cs</DependentUpon>
     </Compile>
     <Compile Include="Commands\Snippets\Emoji\Emojis.cs" />
+    <Compile Include="Commands\Snippets\Emoji\ColorGlyphRenderer.cs" />
     <Compile Include="Commands\Settings\ColorizerSheet.cs">
       <SubType>UserControl</SubType>
     </Compile>
@@ -262,6 +386,12 @@
     </Compile>
     <Compile Include="Commands\Settings\HashtagSheet.Designer.cs">
       <DependentUpon>HashtagSheet.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Commands\Settings\NotebooksDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Commands\Settings\NotebooksDialog.Designer.cs">
+      <DependentUpon>NotebooksDialog.cs</DependentUpon>
     </Compile>
     <Compile Include="Commands\Settings\NavigatorSheet.cs">
       <SubType>UserControl</SubType>
@@ -281,14 +411,14 @@
     <Compile Include="Commands\Settings\ImagesSheet.Designer.cs">
       <DependentUpon>ImagesSheet.cs</DependentUpon>
     </Compile>
-    <Compile Include="Commands\Snippets\TocGenerators\HierarchyTocGenerator.cs" />
-    <Compile Include="Commands\Snippets\TocGenerators\NotebookTocGenerator.cs" />
-    <Compile Include="Commands\Snippets\TocGenerators\PageTocGenerator.cs" />
-    <Compile Include="Commands\Snippets\TocGenerators\SectionTocGenerator.cs" />
-    <Compile Include="Commands\Snippets\TocGenerators\TocCommon.cs" />
-    <Compile Include="Commands\Snippets\TocGenerators\TocGenerator.cs" />
-    <Compile Include="Commands\Snippets\TocGenerators\TocParameters.cs" />
-    <Compile Include="Commands\Snippets\TocGenerators\TocTitleStyles.cs" />
+    <Compile Include="Commands\Snippets\Toc\HierarchyTocGenerator.cs" />
+    <Compile Include="Commands\Snippets\Toc\NotebookTocGenerator.cs" />
+    <Compile Include="Commands\Snippets\Toc\PageTocGenerator.cs" />
+    <Compile Include="Commands\Snippets\Toc\SectionTocGenerator.cs" />
+    <Compile Include="Commands\Snippets\Toc\TocCommon.cs" />
+    <Compile Include="Commands\Snippets\Toc\TocGenerator.cs" />
+    <Compile Include="Commands\Snippets\Toc\TocParameters.cs" />
+    <Compile Include="Commands\Snippets\Toc\TocTitleStyles.cs" />
     <Compile Include="Commands\Styles\PageColorCommand.cs" />
     <Compile Include="Commands\Styles\PageColorDialog.cs">
       <SubType>Form</SubType>
@@ -321,6 +451,13 @@
     <Compile Include="Commands\Tables\Formulas\Calculator.cs" />
     <Compile Include="Commands\Tables\SelectTablesCommand.cs" />
     <Compile Include="Commands\Tables\TableThemePainter.cs" />
+    <Compile Include="Commands\Tagging\CompleteHashtagCommand.cs" />
+    <Compile Include="Commands\Tagging\CompleteHashtagDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Commands\Tagging\CompleteHashtagDialog.Designer.cs">
+      <DependentUpon>CompleteHashtagDialog.cs</DependentUpon>
+    </Compile>
     <Compile Include="Commands\Tagging\Hashtag.cs" />
     <Compile Include="Commands\Tagging\HashtagCommand.cs" />
     <Compile Include="Commands\Tagging\HashtagContext.cs" />
@@ -345,11 +482,11 @@
     <Compile Include="Commands\Tagging\HashtagDialog.Designer.cs">
       <DependentUpon>HashtagDialog.cs</DependentUpon>
     </Compile>
-    <Compile Include="Commands\Tagging\HashtagErrorControl.cs">
+    <Compile Include="Commands\Search\SearchErrorControl.cs">
       <SubType>UserControl</SubType>
     </Compile>
-    <Compile Include="Commands\Tagging\HashtagErrorControl.Designer.cs">
-      <DependentUpon>HashtagErrorControl.cs</DependentUpon>
+    <Compile Include="Commands\Search\SearchErrorControl.Designer.cs">
+      <DependentUpon>SearchErrorControl.cs</DependentUpon>
     </Compile>
     <Compile Include="Commands\Tagging\HashtagScheduler.cs" />
     <Compile Include="Commands\Tagging\HashtagPageScanner.cs" />
@@ -359,6 +496,7 @@
     <Compile Include="Commands\Tagging\HashtagScannedEventArgs.cs" />
     <Compile Include="Commands\Tagging\HashtagScanner.cs" />
     <Compile Include="Commands\Tagging\HashtagService.cs" />
+    <Compile Include="Commands\Tagging\HashtagServicePause.cs" />
     <Compile Include="Commands\Tagging\ScanningState.cs" />
     <Compile Include="Commands\Tagging\ScheduleScanDialog.cs">
       <SubType>Form</SubType>
@@ -368,6 +506,26 @@
     </Compile>
     <Compile Include="Commands\Tagging\TagBankCommand.cs" />
     <Compile Include="Commands\Tools\QuickPaletteCommand.cs" />
+    <Compile Include="Commands\Tools\Telemetry\TelemetryCommand.cs" />
+    <Compile Include="Commands\Tools\Telemetry\TelemetryDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Commands\Tools\Telemetry\TelemetryDialog.Designer.cs">
+      <DependentUpon>TelemetryDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Commands\Tools\UpdateGuardDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Commands\Tools\UpdateGuardDialog.Designer.cs">
+      <DependentUpon>UpdateGuardDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Commands\Workspaces\Layouts\LayoutsProvider.cs" />
+    <Compile Include="Commands\Workspaces\Layouts\LayoutModels.cs" />
+    <Compile Include="Commands\Workspaces\Layouts\SaveLayoutCommand.cs" />
+    <Compile Include="Commands\Workspaces\Layouts\RestoreLayoutCommand.cs" />
+    <Compile Include="Commands\Workspaces\Layouts\ExportLayoutsCommand.cs" />
+    <Compile Include="Commands\Workspaces\Layouts\ImportLayoutsCommand.cs" />
+    <Compile Include="Helpers\CaretLocator.cs" />
     <Compile Include="Helpers\ColorHelper.cs" />
     <Compile Include="Helpers\DatabaseProvider.cs" />
     <Compile Include="Helpers\Extensions\ArrayExtensions.cs" />
@@ -378,7 +536,13 @@
     <Compile Include="Helpers\Extensions\ScreenExtensions.cs" />
     <Compile Include="Helpers\Heatmap.cs" />
     <Compile Include="Commands\Tagging\HashtagNotebook.cs" />
+    <Compile Include="Helpers\NaturalStringComparer.cs" />
+    <Compile Include="Helpers\Office\Models\OutlookCategory.cs" />
+    <Compile Include="Helpers\Office\Models\OutlookContact.cs" />
+    <Compile Include="Helpers\Office\Models\OutlookFolder.cs" />
+    <Compile Include="Helpers\OneNoteLinkParser.cs" />
     <Compile Include="Helpers\SessionLogger.cs" />
+    <Compile Include="Commands\Tools\Telemetry\TelemetryClient.cs" />
     <Compile Include="Models\OneImage.cs" />
     <Compile Include="Models\KnownSchemaAttributes.cs" />
     <Compile Include="Models\PageEditor.cs" />
@@ -387,6 +551,7 @@
     <Compile Include="Models\PageSchema.cs" />
     <Compile Include="Models\SectionEditor.cs" />
     <Compile Include="Models\TagMapper.cs" />
+    <Compile Include="Models\TextRun.cs" />
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
@@ -425,11 +590,47 @@
     <Compile Include="Commands\Edit\ColorizeCommand.cs" />
     <Compile Include="Commands\Edit\CopyAsMarkdownCommand.cs" />
     <Compile Include="Commands\Edit\PasteTextCommand.cs" />
-    <Compile Include="Commands\Favorites\FavoritesDialog.cs">
+    <Compile Include="Commands\Workspaces\Favorites\FavoritesDialog.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="Commands\Favorites\FavoritesDialog.Designer.cs">
+    <Compile Include="Commands\Workspaces\Favorites\FavoritesDialog.Designer.cs">
       <DependentUpon>FavoritesDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Commands\Workspaces\Favorites\MangeFavoritesControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="Commands\Workspaces\Favorites\MangeFavoritesControl.Designer.cs">
+      <DependentUpon>MangeFavoritesControl.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Commands\Workspaces\ManageWorkspaceDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Commands\Workspaces\ManageWorkspaceDialog.Designer.cs">
+      <DependentUpon>ManageWorkspaceDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Commands\Workspaces\ShowWindowsDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Commands\Workspaces\ShowWindowsDialog.Designer.cs">
+      <DependentUpon>ShowWindowsDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Commands\Workspaces\PageAliasDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Commands\Workspaces\PageAliasDialog.Designer.cs">
+      <DependentUpon>PageAliasDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Commands\Workspaces\Layouts\ManageLayoutsControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="Commands\Workspaces\Layouts\ManageLayoutsControl.Designer.cs">
+      <DependentUpon>ManageLayoutsControl.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Commands\Workspaces\Layouts\LayoutsDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Commands\Workspaces\Layouts\LayoutsDialog.Designer.cs">
+      <DependentUpon>LayoutsDialog.cs</DependentUpon>
     </Compile>
     <Compile Include="Commands\File\CrawlHyperlink.cs" />
     <Compile Include="Commands\File\CrawlWebPageCommand.cs" />
@@ -439,7 +640,23 @@
     <Compile Include="Commands\File\CrawlWebPageDialog.Designer.cs">
       <DependentUpon>CrawlWebPageDialog.cs</DependentUpon>
     </Compile>
-    <Compile Include="Commands\File\EvernoteReader.cs" />
+    <Compile Include="Commands\File\Evernote\EnexReader.cs" />
+    <Compile Include="Commands\File\Evernote\EnmlConverter.cs" />
+    <Compile Include="Commands\File\Evernote\EvernoteNote.cs" />
+    <Compile Include="Commands\File\Evernote\EvernoteResource.cs" />
+    <Compile Include="Commands\File\Evernote\ImportEvernoteCommand.cs" />
+    <Compile Include="Commands\File\Evernote\ImportEvernoteDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Commands\File\Evernote\ImportEvernoteDialog.Designer.cs">
+      <DependentUpon>ImportEvernoteDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Commands\Page\AlignContainersDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Commands\Page\AlignContainersDialog.Designer.cs">
+      <DependentUpon>AlignContainersDialog.cs</DependentUpon>
+    </Compile>
     <Compile Include="Commands\Page\ArrangeContainersCommand.cs" />
     <Compile Include="Commands\File\Markdown\MarkdownWriter.cs" />
     <Compile Include="Commands\Page\ArrangeContainersDialog.cs">
@@ -450,6 +667,12 @@
     </Compile>
     <Compile Include="Commands\Page\CaptionAttachmentsCommand.cs" />
     <Compile Include="Commands\Page\CreatePagesCommand.cs" />
+    <Compile Include="Commands\Page\CreatePagesDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Commands\Page\CreatePagesDialog.Designer.cs">
+      <DependentUpon>CreatePagesDialog.cs</DependentUpon>
+    </Compile>
     <Compile Include="Commands\Page\ExpandoCommand.cs" />
     <Compile Include="Commands\Edit\HighlightCommand.cs" />
     <Compile Include="Commands\Edit\InvertSelectionCommand.cs" />
@@ -463,14 +686,21 @@
     <Compile Include="Commands\Numbering\SortListDialog.Designer.cs">
       <DependentUpon>SortListDialog.cs</DependentUpon>
     </Compile>
-    <Compile Include="Commands\Extras\TimerWindowCommand.cs" />
-    <Compile Include="Commands\Extras\TimerWindow.cs">
+    <Compile Include="Commands\Tools\TimerWindowCommand.cs" />
+    <Compile Include="Commands\Tools\TimerWindow.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="Commands\Extras\TimerWindow.Designer.cs">
+    <Compile Include="Commands\Tools\TimerWindow.Designer.cs">
       <DependentUpon>TimerWindow.cs</DependentUpon>
     </Compile>
-    <Compile Include="Commands\Extras\DateStampCommand.cs" />
+    <Compile Include="Commands\Tools\WhereAmICommand.cs" />
+    <Compile Include="Commands\Tools\WhereAmIWindow.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Commands\Tools\WhereAmIWindow.Designer.cs">
+      <DependentUpon>WhereAmIWindow.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Commands\Tools\DateStampCommand.cs" />
     <Compile Include="Commands\File\CopyFolderCommand.cs" />
     <Compile Include="Commands\File\ImportWebCommand.cs" />
     <Compile Include="Commands\File\ImportWebDialog.cs">
@@ -486,8 +716,9 @@
     <Compile Include="Commands\Page\FitGridToTextDialog.Designer.cs">
       <DependentUpon>FitGridToTextDialog.cs</DependentUpon>
     </Compile>
-    <Compile Include="Commands\References\BiLinkCommand.cs" />
+    <Compile Include="Commands\References\TwoWayLinkCommand.cs" />
     <Compile Include="Commands\References\CopyLinkCommand.cs" />
+    <Compile Include="Commands\References\CopyToReadingListCommand.cs" />
     <Compile Include="Commands\References\EmbedSubpageProxy.cs" />
     <Compile Include="Commands\References\LinkReferencesCommand.cs" />
     <Compile Include="Commands\References\LinkDialog.cs">
@@ -506,11 +737,11 @@
     <Compile Include="Commands\References\RefreshPageLinksCommand.cs" />
     <Compile Include="Commands\Reminders\CompleteReminderCommand.cs" />
     <Compile Include="Commands\Reminders\DeleteReminderCommand.cs" />
-    <Compile Include="Commands\Reminders\ImportOutlookTasksCommand.cs" />
-    <Compile Include="Commands\Reminders\ImportOutlookTasksDialog.cs">
+    <Compile Include="Commands\Office\ImportOutlookTasksCommand.cs" />
+    <Compile Include="Commands\Office\ImportOutlookTasksDialog.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="Commands\Reminders\ImportOutlookTasksDialog.Designer.cs">
+    <Compile Include="Commands\Office\ImportOutlookTasksDialog.Designer.cs">
       <DependentUpon>ImportOutlookTasksDialog.cs</DependentUpon>
     </Compile>
     <Compile Include="Commands\Reminders\RemindScheduler.cs" />
@@ -569,10 +800,23 @@
       <DependentUpon>KeyboardSheet.cs</DependentUpon>
     </Compile>
     <Compile Include="Commands\Snippets\InsertBreadcrumbCommand.cs" />
+    <Compile Include="Commands\References\EmbedCommand.cs" />
     <Compile Include="Commands\References\EmbedSubpageCommand.cs" />
     <Compile Include="Ribbon\RibbonPosiition.cs" />
     <Compile Include="UI\EventRouter.cs" />
     <Compile Include="UI\ILoadControl.cs" />
+    <Compile Include="UI\MoreCheckList.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="UI\MoreCheckListPanel.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="UI\MoreStepIndicator.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="UI\MoreComboBox.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="UI\MoreDataGridView.cs">
       <SubType>Component</SubType>
     </Compile>
@@ -605,6 +849,9 @@
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="UI\MoreRadioButton.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="UI\MoreRichTextBox.cs">
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="UI\MoreTabControl.cs">
@@ -643,9 +890,9 @@
     </Compile>
     <Compile Include="Commands\File\ArchiveCommand.cs" />
     <Compile Include="Commands\File\Archivist.cs" />
-    <Compile Include="Commands\File\ManagePluginsCommand.cs" />
-    <Compile Include="Commands\File\Plugin.cs" />
-    <Compile Include="Commands\File\PluginsProvider.cs" />
+    <Compile Include="Commands\File\Plugins\ManagePluginsCommand.cs" />
+    <Compile Include="Commands\File\Plugins\Plugin.cs" />
+    <Compile Include="Commands\File\Plugins\PluginsProvider.cs" />
     <Compile Include="Commands\References\MapCommand.cs" />
     <Compile Include="Commands\References\MapDialog.cs">
       <SubType>Form</SubType>
@@ -660,7 +907,7 @@
     <Compile Include="Commands\Page\SplitDialog.Designer.cs">
       <DependentUpon>SplitDialog.cs</DependentUpon>
     </Compile>
-    <Compile Include="Commands\Favorites\ShowKeyboardShortcutsCommand.cs" />
+    <Compile Include="Commands\Workspaces\Favorites\ShowKeyMapsPageCommand.cs" />
     <Compile Include="Commands\References\InsertQRCommand.cs" />
     <Compile Include="Commands\Tables\Formulas\Formula.cs" />
     <Compile Include="Commands\References\RefreshFootnotesCommand.cs" />
@@ -671,6 +918,12 @@
     <Compile Include="Commands\Search\SearchDialog.Designer.cs">
       <DependentUpon>SearchDialog.cs</DependentUpon>
     </Compile>
+    <Compile Include="Commands\Search\SearchTitleDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Commands\Search\SearchTitleDialog.Designer.cs">
+      <DependentUpon>SearchTitleDialog.cs</DependentUpon>
+    </Compile>
     <Compile Include="Commands\Search\SearchServices.cs" />
     <Compile Include="Commands\Settings\PluginsSheet.cs">
       <SubType>UserControl</SubType>
@@ -679,7 +932,8 @@
       <DependentUpon>PluginsSheet.cs</DependentUpon>
     </Compile>
     <Compile Include="Commands\Snippets\InsertDateCommand.cs" />
-    <Compile Include="Commands\Favorites\ManageFavoritesCommand.cs" />
+    <Compile Include="Commands\Workspaces\ManageWorkspaceCommand.cs" />
+    <Compile Include="Commands\Workspaces\ShowWindowsCommand.cs" />
     <Compile Include="Commands\Snippets\InsertSnippetCommand.cs" />
     <Compile Include="Commands\Snippets\ManageSnippetsCommand.cs" />
     <Compile Include="Commands\Snippets\SaveSnippetCommand.cs" />
@@ -718,7 +972,7 @@
     <Compile Include="Commands\File\AnalyzeDialog.Designer.cs">
       <DependentUpon>AnalyzeDialog.cs</DependentUpon>
     </Compile>
-    <Compile Include="Commands\Extras\SectionColorCommand.cs" />
+    <Compile Include="Commands\Tools\SectionColorCommand.cs" />
     <Compile Include="Commands\Tools\CalendarCommand.cs" />
     <Compile Include="Commands\Tools\CommandPaletteCommand.cs" />
     <Compile Include="Commands\Tools\CommandPaletteDialog.cs">
@@ -748,6 +1002,7 @@
     <Compile Include="Helpers\Extensions\ColorMatrixExtensions.cs" />
     <Compile Include="Helpers\Extensions\DateTimeExtensions.cs" />
     <Compile Include="Helpers\Extensions\ImageExtensions.cs" />
+    <Compile Include="Helpers\Extensions\OneNoteExtensions.cs" />
     <Compile Include="Helpers\Extensions\ProcessExtensions.cs" />
     <Compile Include="Commands\CommandAttribute.cs" />
     <Compile Include="Helpers\Extensions\UriExtensions.cs" />
@@ -772,6 +1027,7 @@
     <Compile Include="Models\Paragraph.cs" />
     <Compile Include="Models\SelectionRange.cs" />
     <Compile Include="Models\SelectionScope.cs" />
+    <Compile Include="Models\StylizedElement.cs" />
     <Compile Include="Models\Tag.cs" />
     <Compile Include="Models\TagDef.cs" />
     <Compile Include="Ribbon\AddInRibbonTableGallery.cs" />
@@ -780,9 +1036,6 @@
     <Compile Include="Styles\StyleProperties.cs" />
     <Compile Include="Styles\Theme.cs" />
     <Compile Include="Styles\ThemeProvider.cs" />
-    <Compile Include="UI\FormTextBox.cs">
-      <SubType>Component</SubType>
-    </Compile>
     <Compile Include="Commands\File\ImportDialog.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -790,6 +1043,7 @@
       <DependentUpon>ImportDialog.cs</DependentUpon>
     </Compile>
     <Compile Include="Commands\File\ImportCommand.cs" />
+    <Compile Include="Commands\File\QuickImportCommand.cs" />
     <Compile Include="Commands\Tools\ClearLogCommand.cs" />
     <Compile Include="Commands\Command.cs" />
     <Compile Include="Commands\Page\WordCountCommand.cs" />
@@ -811,7 +1065,7 @@
     <Compile Include="Commands\Numbering\RemoveSectionNumbersCommand.cs" />
     <Compile Include="Commands\Numbering\OutlineCommand.cs" />
     <Compile Include="Commands\Edit\PronunciateCommand.cs" />
-    <Compile Include="Commands\File\RunPluginCommand.cs" />
+    <Compile Include="Commands\File\Plugins\RunPluginCommand.cs" />
     <Compile Include="Commands\File\ExportCommand.cs" />
     <Compile Include="Commands\Reminders\EditTasksCommand.cs" />
     <Compile Include="Commands\Search\SearchWebCommand.cs" />
@@ -820,9 +1074,9 @@
     <Compile Include="Commands\Tools\DiagnosticsCommand.cs" />
     <Compile Include="Commands\Styles\EditStylesCommand.cs" />
     <Compile Include="Commands\References\AddFootnoteCommand.cs" />
-    <Compile Include="Commands\Snippets\InsertEmojiCommand.cs" />
+    <Compile Include="Commands\Snippets\Emoji\InsertEmojiCommand.cs" />
     <Compile Include="Commands\Edit\AlterSizeCommand.cs" />
-    <Compile Include="Commands\Extras\CollapsePagesCommand.cs" />
+    <Compile Include="Commands\Tools\CollapsePagesCommand.cs" />
     <Compile Include="Commands\CommandFactory.cs" />
     <Compile Include="Commands\References\FootnoteEditor.cs" />
     <Compile Include="Commands\References\FootnoteReference.cs" />
@@ -875,7 +1129,13 @@
     <Compile Include="UI\MoreAutoCompleteList.cs">
       <SubType>Component</SubType>
     </Compile>
+    <Compile Include="UI\MoreListViewEx.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="UI\MoreListView.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="UI\MoreIconListView.cs">
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="UI\MoreMessageBox.cs">
@@ -911,10 +1171,10 @@
     <Compile Include="Commands\Images\AdjustImagesDialog.Designer.cs">
       <DependentUpon>AdjustImagesDialog.cs</DependentUpon>
     </Compile>
-    <Compile Include="Commands\File\PluginDialog.cs">
+    <Compile Include="Commands\File\Plugins\PluginDialog.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="Commands\File\PluginDialog.Designer.cs">
+    <Compile Include="Commands\File\Plugins\PluginDialog.Designer.cs">
       <DependentUpon>PluginDialog.cs</DependentUpon>
     </Compile>
     <Compile Include="UI\SelectorScope.cs" />
@@ -943,11 +1203,29 @@
     <Compile Include="Commands\Clean\ToggleDttmDialog.Designer.cs">
       <DependentUpon>ToggleDttmDialog.cs</DependentUpon>
     </Compile>
-    <Compile Include="Commands\Snippets\InsertTocDialog.cs">
+    <Compile Include="Commands\Snippets\Toc\CollateTocDialog.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="Commands\Snippets\InsertTocDialog.Designer.cs">
-      <DependentUpon>InsertTocDialog.cs</DependentUpon>
+    <Compile Include="Commands\Snippets\Toc\CollateTocDialog.Designer.cs">
+      <DependentUpon>CollateTocDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Commands\Snippets\Toc\InsertNotebookTocDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Commands\Snippets\Toc\InsertNotebookTocDialog.Designer.cs">
+      <DependentUpon>InsertNotebookTocDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Commands\Snippets\Toc\InsertPageTocDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Commands\Snippets\Toc\InsertPageTocDialog.Designer.cs">
+      <DependentUpon>InsertPageTocDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Commands\Snippets\Toc\InsertSectionTocDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Commands\Snippets\Toc\InsertSectionTocDialog.Designer.cs">
+      <DependentUpon>InsertSectionTocDialog.cs</DependentUpon>
     </Compile>
     <Compile Include="UI\HierarchyNode.cs" />
     <Compile Include="UI\HierarchyView.cs">
@@ -959,12 +1237,14 @@
     <Compile Include="Commands\Snippets\InsertInfoBoxCommand.cs" />
     <Compile Include="Commands\Snippets\InsertLineCommand.cs" />
     <Compile Include="Commands\Snippets\InsertStatusCommand.cs" />
-    <Compile Include="Commands\Snippets\InsertTocCommand.cs" />
+    <Compile Include="Commands\Snippets\Toc\InsertTocCommand.cs" />
+    <Compile Include="Commands\Snippets\Toc\CollateTocCommand.cs" />
     <Compile Include="Commands\References\NameUrlsCommand.cs" />
-    <Compile Include="Commands\Favorites\GotoFavoriteCommand.cs" />
+    <Compile Include="Commands\Workspaces\Favorites\FavoritesCommand.cs" />
     <Compile Include="Commands\Edit\ProofingCommand.cs" />
     <Compile Include="Commands\Edit\PasteRtfCommand.cs" />
     <Compile Include="Commands\References\RemoveFootnoteCommand.cs" />
+    <Compile Include="Commands\Search\MatchInfo.cs" />
     <Compile Include="Commands\Search\SearchAndReplaceCommand.cs" />
     <Compile Include="Commands\Search\Atoms\AtomicFactory.cs" />
     <Compile Include="Commands\Search\Atoms\ElementAtom.cs" />
@@ -972,7 +1252,14 @@
     <Compile Include="Commands\Search\SearchAndReplaceEditor.cs" />
     <Compile Include="Commands\Search\Atoms\TextAtom.cs" />
     <Compile Include="Commands\Tools\AboutCommand.cs" />
-    <Compile Include="Commands\Extras\SortCommand.cs" />
+    <Compile Include="Commands\Tools\AddTopSectionGroupCommand.cs" />
+    <Compile Include="Commands\Tools\AddTopSectionGroupDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Commands\Tools\AddTopSectionGroupDialog.Designer.cs">
+      <DependentUpon>AddTopSectionGroupDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Commands\Tools\SortCommand.cs" />
     <Compile Include="Commands\Edit\ToCaseCommand.cs" />
     <Compile Include="Commands\Clean\TrimCommand.cs" />
     <Compile Include="Commands\Styles\ReorderDialog.cs">
@@ -981,6 +1268,14 @@
     <Compile Include="Commands\Styles\ReorderDialog.Designer.cs">
       <DependentUpon>ReorderDialog.cs</DependentUpon>
     </Compile>
+    <Compile Include="Commands\Styles\ConditionalFormatDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Commands\Styles\ConditionalFormatDialog.Designer.cs">
+      <DependentUpon>ConditionalFormatDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Commands\Styles\ConditionalFormatEditor.cs" />
+    <Compile Include="Commands\Styles\ApplyConditionalFormatCommand.cs" />
     <Compile Include="UI\MoreToolStrip.cs">
       <SubType>Component</SubType>
     </Compile>
@@ -990,10 +1285,16 @@
     <Compile Include="Commands\Search\SearchAndReplaceDialog.Designer.cs">
       <DependentUpon>SearchAndReplaceDialog.cs</DependentUpon>
     </Compile>
-    <Compile Include="Commands\Extras\SortDialog.cs">
+    <Compile Include="Commands\Search\SearchAndReplaceSessionDialog.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="Commands\Extras\SortDialog.Designer.cs">
+    <Compile Include="Commands\Search\SearchAndReplaceSessionDialog.Designer.cs">
+      <DependentUpon>SearchAndReplaceSessionDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Commands\Tools\SortDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Commands\Tools\SortDialog.Designer.cs">
       <DependentUpon>SortDialog.cs</DependentUpon>
     </Compile>
     <Compile Include="UI\BasicColors.cs" />
@@ -1097,6 +1398,7 @@
     <Compile Include="Models\TableCell.cs" />
     <Compile Include="Models\TableRow.cs" />
     <Compile Include="OneNote.cs" />
+    <Compile Include="Styles\ColorStabilizer.cs" />
     <Compile Include="Styles\GraphicStyle.cs" />
     <Compile Include="Styles\QuickStyleDef.cs" />
     <Compile Include="Styles\StandardStyles.cs" />
@@ -1105,7 +1407,7 @@
     <Compile Include="Styles\StyleBase.cs" />
     <Compile Include="Styles\StyleRecord.cs" />
     <Compile Include="Styles\StyleType.cs" />
-    <Compile Include="Commands\Favorites\FavoritesProvider.cs" />
+    <Compile Include="Commands\Workspaces\Favorites\FavoritesFileProvider.cs" />
     <Compile Include="Helpers\Logger.cs" />
     <Compile Include="Helpers\ReadOnlyStream.cs" />
     <Compile Include="AddIn.cs" />
@@ -1139,8 +1441,12 @@
     <Compile Include="UI\WindowElevator.cs">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Include="Models\WindowDiagnosticsInfo.cs" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Colorizer\Languages\arduino.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="Colorizer\Languages\bash.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
@@ -1192,6 +1498,9 @@
     <Content Include="Colorizer\Languages\rust.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="Colorizer\Languages\scala.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="Colorizer\Languages\sql.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
@@ -1199,6 +1508,12 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="Colorizer\Languages\vb.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Colorizer\Languages\verilog.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Colorizer\Languages\vhdl.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="Colorizer\Languages\wolfram.png">
@@ -1210,6 +1525,7 @@
     <Content Include="Colorizer\Languages\yaml.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="Commands\Workspaces\Favorites\FavoritesDB.sql" />
     <Content Include="Commands\Navigator\Images\Copy-20.png" />
     <Content Include="Commands\Navigator\Images\Garbage-Closed-20.png" />
     <Content Include="Commands\Navigator\Images\Reload-20.png" />
@@ -1218,12 +1534,39 @@
     <Content Include="Commands\Navigator\Images\Swap-Up-20.png" />
     <Content Include="Commands\Tables\Formulas\VariablesDB.sql" />
     <Content Include="Commands\Tagging\HashtagsDB.sql" />
+    <EmbeddedResource Include="Commands\Page\CreatePagesDialog.resx">
+      <DependentUpon>CreatePagesDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Commands\Settings\MarkdownSheet.resx">
+      <DependentUpon>MarkdownSheet.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Commands\Settings\NotebooksDialog.resx">
+      <DependentUpon>NotebooksDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Commands\Workspaces\ManageWorkspaceDialog.resx">
+      <DependentUpon>ManageWorkspaceDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Commands\Workspaces\ShowWindowsDialog.resx">
+      <DependentUpon>ShowWindowsDialog.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Commands\File\OpenFolderDialog.resx">
       <DependentUpon>OpenFolderDialog.cs</DependentUpon>
       <SubType>Designer</SubType>
     </EmbeddedResource>
-    <EmbeddedResource Include="Commands\References\BiLinkDialog.resx">
-      <DependentUpon>BiLinkDialog.cs</DependentUpon>
+    <EmbeddedResource Include="Commands\File\Scan\ScanDialog.resx">
+      <DependentUpon>ScanDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Commands\References\BookmarkedDialog.resx">
+      <DependentUpon>BookmarkedDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Commands\References\EmbedDialog.resx">
+      <DependentUpon>EmbedDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Commands\Search\SearchAndReplaceSessionDialog.resx">
+      <DependentUpon>SearchAndReplaceSessionDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Commands\Settings\TableThemesSheet.resx">
+      <DependentUpon>TableThemesSheet.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Commands\Settings\VariablesSheet.resx">
       <DependentUpon>VariablesSheet.cs</DependentUpon>
@@ -1237,12 +1580,25 @@
     <EmbeddedResource Include="Commands\Tagging\ScheduleScanDialog.resx">
       <DependentUpon>ScheduleScanDialog.cs</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="Commands\Tools\Telemetry\TelemetryDialog.resx">
+      <DependentUpon>TelemetryDialog.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Commands\Tools\UpdateGuardDialog.resx">
+      <DependentUpon>UpdateGuardDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Properties\Resources.it-IT.resx">
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.ja-JP.resx">
       <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="UI\WindowElevator.resx">
       <DependentUpon>WindowElevator.cs</DependentUpon>
     </EmbeddedResource>
+    <None Include="Colorizer\Languages\arduino.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="Colorizer\Languages\bash.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
@@ -1267,7 +1623,14 @@
     <None Include="Colorizer\Languages\rust.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Include="Colorizer\Languages\vhdl.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <Compile Include="Commands\Edit\HighlightColorSchemes.cs" />
+    <None Include="Commands\Search\CLAUDE.md" />
     <None Include="Commands\Snippets\Emoji\Emojis.json" />
+    <None Include="Commands\Snippets\Emoji\EmojiCategories.json" />
+    <None Include="Commands\Snippets\Emoji\EmojiNames.json" />
     <None Include="Colorizer\Languages\golang.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
@@ -1313,7 +1676,13 @@
     <None Include="Colorizer\Languages\typescript.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Include="Colorizer\Languages\scala.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="Colorizer\Languages\vb.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Colorizer\Languages\verilog.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="Colorizer\Languages\xml.json">
@@ -1323,56 +1692,16 @@
     <EmbeddedResource Include="Commands\Navigator\HistoryControl.resx">
       <DependentUpon>HistoryControl.cs</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="Commands\Navigator\HistoryDialog.resx">
+      <DependentUpon>HistoryDialog.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Commands\Tools\sponsor-dark.png" />
-    <Content Include="Properties\Emoji\e_Architecture.png" />
-    <Content Include="Properties\Emoji\e_Automobile.png" />
-    <Content Include="Properties\Emoji\e_BallotBox.png" />
-    <Content Include="Properties\Emoji\e_Bell.png" />
-    <Content Include="Properties\Emoji\e_Bullet.png" />
-    <Content Include="Properties\Emoji\e_Calendar.png" />
-    <Content Include="Properties\Emoji\e_Camera.png" />
+    <Content Include="Commands\Tools\Telemetry\TLogo.png" />
+    <Content Include="Commands\Workspaces\Layouts\LayoutsDB.sql" />
     <Content Include="Properties\Emoji\e_CheckMark.png" />
-    <Content Include="Properties\Emoji\e_Circle.png" />
-    <Content Include="Properties\Emoji\e_Clipboard.png" />
-    <Content Include="Properties\Emoji\e_Cloud.png" />
-    <Content Include="Properties\Emoji\e_Copyright.png" />
-    <Content Include="Properties\Emoji\e_Cross.png" />
-    <Content Include="Properties\Emoji\e_Cycling.png" />
-    <Content Include="Properties\Emoji\e_Delta.png" />
-    <Content Include="Properties\Emoji\e_Envelope.png" />
-    <Content Include="Properties\Emoji\e_Eyes.png" />
-    <Content Include="Properties\Emoji\e_Family.png" />
-    <Content Include="Properties\Emoji\e_Financial.png" />
-    <Content Include="Properties\Emoji\e_Flag.png" />
-    <Content Include="Properties\Emoji\e_Folder.png" />
-    <Content Include="Properties\Emoji\e_Globe.png" />
     <Content Include="Properties\Emoji\e_Hammer.png" />
-    <Content Include="Properties\Emoji\e_Heart.png" />
-    <Content Include="Properties\Emoji\e_Interrobang.png" />
     <Content Include="Properties\Emoji\e_Journal.png" />
-    <Content Include="Properties\Emoji\e_LeftwardsArrow.png" />
-    <Content Include="Properties\Emoji\e_Lock.png" />
-    <Content Include="Properties\Emoji\e_Memo.png" />
-    <Content Include="Properties\Emoji\e_Passwords.png" />
-    <Content Include="Properties\Emoji\e_Pencil.png" />
-    <Content Include="Properties\Emoji\e_Pushpin.png" />
-    <Content Include="Properties\Emoji\e_Recycle.png" />
-    <Content Include="Properties\Emoji\e_RightwardsArrow.png" />
-    <Content Include="Properties\Emoji\e_Section.png" />
-    <Content Include="Properties\Emoji\e_Shazam.png" />
     <Content Include="Properties\Emoji\e_Smiley.png" />
-    <Content Include="Properties\Emoji\e_Software.png" />
-    <Content Include="Properties\Emoji\e_Sports.png" />
-    <Content Include="Properties\Emoji\e_SportsEU.png" />
-    <Content Include="Properties\Emoji\e_Star.png" />
-    <Content Include="Properties\Emoji\e_Summary.png" />
-    <Content Include="Properties\Emoji\e_Tasks.png" />
-    <Content Include="Properties\Emoji\e_Tools.png" />
-    <Content Include="Properties\Emoji\e_Travel.png" />
-    <Content Include="Properties\Emoji\e_Video.png" />
-    <Content Include="Properties\Emoji\e_Warning.png" />
-    <Content Include="Properties\Emoji\e_Watch.png" />
-    <Content Include="Properties\Emoji\e_XMark.png" />
     <Content Include="Properties\Images\CustomStyles.png" />
     <Content Include="Properties\Images\DarkCustomStyles.png" />
     <Content Include="Properties\Images\DarkFavorites.png" />
@@ -1386,21 +1715,27 @@
     <Content Include="Properties\Images\Favorites.png" />
     <Content Include="Properties\Images\FolderClose.png" />
     <Content Include="Properties\Images\FolderOpen.png" />
+    <None Include="Commands\Tools\Telemetry\TLogo.psd" />
     <None Include="Properties\Images\Grid40.png" />
     <Content Include="Properties\Images\HashtagsRibbon.png" />
+    <Content Include="Properties\Images\TocTodoIconStrip.png" />
     <Content Include="Properties\Menu\m_Bold.png" />
     <Content Include="Properties\Menu\m_Copy.png" />
     <Content Include="Properties\Menu\m_Delete.png" />
+    <Content Include="Properties\Menu\m_Export.png" />
     <Content Include="Properties\Menu\m_FileOpen.png" />
     <Content Include="Properties\Menu\m_FolderClose.png" />
     <Content Include="Properties\Menu\m_FolderOpen.png" />
     <Content Include="Properties\Menu\m_FontColor.png" />
     <Content Include="Properties\Menu\m_Help.png" />
     <Content Include="Properties\Menu\m_Highlighter.png" />
+    <Content Include="Properties\Menu\m_Import.png" />
     <Content Include="Properties\Menu\m_Italic.png" />
+    <Content Include="Properties\Menu\m_Layout.png" />
     <Content Include="Properties\Menu\m_MoveDown.png" />
     <Content Include="Properties\Menu\m_MoveUp.png" />
     <Content Include="Properties\Menu\m_NewStyle.png" />
+    <Content Include="Properties\Menu\m_Play.png" />
     <Content Include="Properties\Menu\m_Refresh.png" />
     <Content Include="Properties\Menu\m_Rename.png" />
     <Content Include="Properties\Menu\m_Reorder.png" />
@@ -1418,6 +1753,7 @@
     <Content Include="Properties\Menu\m_Underline.png" />
     <Content Include="Properties\Menu\m_WrapText.png" />
     <Content Include="Properties\Resources.fr-FR-hints.xml" />
+    <Content Include="Properties\Resources.it-IT-hints.xml" />
     <Content Include="Ribbon\Images\ribSearchHashtagsButton.png" />
     <Content Include="Properties\Images\Label.png" />
     <Content Include="Properties\Images\LabelSearch.png" />
@@ -1425,9 +1761,6 @@
     <Content Include="Properties\Images\DownArrow.png" />
     <Content Include="Properties\Images\EditRibbon.png" />
     <Content Include="Properties\Images\FormulaRibbon.png" />
-    <Content Include="Properties\Images\HighlightDeep.png" />
-    <Content Include="Properties\Images\HighlightFaded.png" />
-    <Content Include="Properties\Images\HighlightNormal.png" />
     <None Include="Properties\Images\Locked.png" />
     <Content Include="Properties\Images\Logo.ico" />
     <Content Include="Properties\Images\Notebook.png" />
@@ -1488,15 +1821,31 @@
     <EmbeddedResource Include="Commands\Numbering\SortListDialog.resx">
       <DependentUpon>SortListDialog.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="Commands\Extras\TimerWindow.resx">
+    <EmbeddedResource Include="Commands\Tools\TimerWindow.resx">
       <DependentUpon>TimerWindow.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="Commands\Favorites\FavoritesDialog.resx">
+    <EmbeddedResource Include="Commands\Workspaces\Favorites\FavoritesDialog.resx">
       <DependentUpon>FavoritesDialog.cs</DependentUpon>
       <SubType>Designer</SubType>
     </EmbeddedResource>
+    <EmbeddedResource Include="Commands\Workspaces\PageAliasDialog.resx">
+      <DependentUpon>PageAliasDialog.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Commands\Workspaces\Favorites\MangeFavoritesControl.resx">
+      <DependentUpon>MangeFavoritesControl.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Commands\Workspaces\Layouts\ManageLayoutsControl.resx">
+      <DependentUpon>ManageLayoutsControl.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Commands\Workspaces\Layouts\LayoutsDialog.resx">
+      <DependentUpon>LayoutsDialog.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Commands\File\CrawlWebPageDialog.resx">
       <DependentUpon>CrawlWebPageDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Commands\File\Evernote\ImportEvernoteDialog.resx">
+      <DependentUpon>ImportEvernoteDialog.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Commands\File\ImportWebDialog.resx">
       <DependentUpon>ImportWebDialog.cs</DependentUpon>
@@ -1507,6 +1856,9 @@
     <EmbeddedResource Include="Commands\Navigator\NavigatorWindow.resx">
       <DependentUpon>NavigatorWindow.cs</DependentUpon>
       <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Commands\Page\AlignContainersDialog.resx">
+      <DependentUpon>AlignContainersDialog.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Commands\Page\ArrangeContainersDialog.resx">
       <DependentUpon>ArrangeContainersDialog.cs</DependentUpon>
@@ -1521,8 +1873,11 @@
     <EmbeddedResource Include="Commands\References\RefreshPageLinksDialog.resx">
       <DependentUpon>RefreshPageLinksDialog.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="Commands\Reminders\ImportOutlookTasksDialog.resx">
+    <EmbeddedResource Include="Commands\Office\ImportOutlookTasksDialog.resx">
       <DependentUpon>ImportOutlookTasksDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Commands\Office\ImportOutlookContactsDialog.resx">
+      <DependentUpon>ImportOutlookContactsDialog.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Commands\Reminders\RemindDialog.resx">
       <DependentUpon>RemindDialog.cs</DependentUpon>
@@ -1569,6 +1924,9 @@
     <EmbeddedResource Include="Commands\Styles\PageColorSelector.resx">
       <DependentUpon>PageColorSelector.cs</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="Commands\Tagging\CompleteHashtagDialog.resx">
+      <DependentUpon>CompleteHashtagDialog.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Commands\Tagging\HashtagContextControl.resx">
       <DependentUpon>HashtagContextControl.cs</DependentUpon>
     </EmbeddedResource>
@@ -1576,8 +1934,8 @@
       <DependentUpon>HashtagDialog.cs</DependentUpon>
       <SubType>Designer</SubType>
     </EmbeddedResource>
-    <EmbeddedResource Include="Commands\Tagging\HashtagErrorControl.resx">
-      <DependentUpon>HashtagErrorControl.cs</DependentUpon>
+    <EmbeddedResource Include="Commands\Search\SearchErrorControl.resx">
+      <DependentUpon>SearchErrorControl.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.he-IL.resx">
       <SubType>Designer</SubType>
@@ -1606,6 +1964,9 @@
     <EmbeddedResource Include="Commands\Search\SearchDialog.resx">
       <DependentUpon>SearchDialog.cs</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="Commands\Search\SearchTitleDialog.resx">
+      <DependentUpon>SearchTitleDialog.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Commands\File\ImportDialog.resx">
       <DependentUpon>ImportDialog.cs</DependentUpon>
       <SubType>Designer</SubType>
@@ -1625,6 +1986,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Commands\Snippets\InsertCalendarDialog.resx">
       <DependentUpon>InsertCalendarDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Commands\Snippets\CreateJournalDialog.resx">
+      <DependentUpon>CreateJournalDialog.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Commands\Images\CropImageDialog.resx">
       <DependentUpon>CropImageDialog.cs</DependentUpon>
@@ -1685,17 +2049,23 @@
     <EmbeddedResource Include="Commands\Styles\ReorderDialog.resx">
       <DependentUpon>ReorderDialog.cs</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="Commands\Styles\ConditionalFormatDialog.resx">
+      <DependentUpon>ConditionalFormatDialog.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Commands\Images\AdjustImagesDialog.resx">
       <DependentUpon>AdjustImagesDialog.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="Commands\File\PluginDialog.resx">
+    <EmbeddedResource Include="Commands\File\Plugins\PluginDialog.resx">
       <DependentUpon>PluginDialog.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Commands\Search\SearchAndReplaceDialog.resx">
       <DependentUpon>SearchAndReplaceDialog.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="Commands\Extras\SortDialog.resx">
+    <EmbeddedResource Include="Commands\Tools\SortDialog.resx">
       <DependentUpon>SortDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Commands\Tools\AddTopSectionGroupDialog.resx">
+      <DependentUpon>AddTopSectionGroupDialog.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Commands\Styles\StyleDialog.resx">
       <DependentUpon>StyleDialog.cs</DependentUpon>
@@ -1712,8 +2082,17 @@
     <EmbeddedResource Include="Commands\Clean\ToggleDttmDialog.resx">
       <DependentUpon>ToggleDttmDialog.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="Commands\Snippets\InsertTocDialog.resx">
-      <DependentUpon>InsertTocDialog.cs</DependentUpon>
+    <EmbeddedResource Include="Commands\Snippets\Toc\CollateTocDialog.resx">
+      <DependentUpon>CollateTocDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Commands\Snippets\Toc\InsertNotebookTocDialog.resx">
+      <DependentUpon>InsertNotebookTocDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Commands\Snippets\Toc\InsertPageTocDialog.resx">
+      <DependentUpon>InsertPageTocDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Commands\Snippets\Toc\InsertSectionTocDialog.resx">
+      <DependentUpon>InsertSectionTocDialog.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.ar-SA.resx">
       <SubType>Designer</SubType>
@@ -1783,57 +2162,66 @@
       <Version>0.5.0</Version>
     </PackageReference>
     <PackageReference Include="HtmlAgilityPack">
-      <Version>1.12.2</Version>
+      <Version>1.12.4</Version>
     </PackageReference>
     <PackageReference Include="InputSimulator">
       <Version>1.0.4</Version>
     </PackageReference>
     <PackageReference Include="Markdig.Signed">
-      <Version>0.41.3</Version>
+      <Version>1.1.1</Version>
     </PackageReference>
-    <PackageReference Include="Microsoft.AspNetCore.WebUtilities">
-      <Version>2.3.0</Version>
-    </PackageReference>
-    <PackageReference Include="Microsoft.Extensions.Logging">
-      <Version>9.0.7</Version>
-    </PackageReference>
-    <PackageReference Include="Microsoft.Net.Http.Headers">
-      <Version>2.3.4</Version>
+    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces">
+      <Version>9.0.9</Version>
     </PackageReference>
     <PackageReference Include="Microsoft.Web.WebView2">
       <Version>1.0.3351.48</Version>
     </PackageReference>
     <PackageReference Include="Newtonsoft.Json">
-      <Version>13.0.3</Version>
+      <Version>13.0.4</Version>
+    </PackageReference>
+    <PackageReference Include="Svg">
+      <Version>3.4.7</Version>
     </PackageReference>
     <PackageReference Include="System.Buffers">
       <Version>4.6.1</Version>
     </PackageReference>
-    <PackageReference Include="System.Data.SQLite">
+    <PackageReference Include="System.Data.SQLite.Core">
       <Version>1.0.119</Version>
     </PackageReference>
     <PackageReference Include="System.Net.Http">
       <Version>4.3.4</Version>
     </PackageReference>
-    <PackageReference Include="System.Runtime">
-      <Version>4.3.1</Version>
-    </PackageReference>
     <PackageReference Include="System.Runtime.CompilerServices.Unsafe">
       <Version>6.1.2</Version>
     </PackageReference>
-    <PackageReference Include="System.Security.Cryptography.Algorithms">
-      <Version>4.3.1</Version>
+    <PackageReference Include="System.Threading.Tasks.Extensions">
+      <Version>4.5.4</Version>
     </PackageReference>
-    <PackageReference Include="System.Security.Cryptography.X509Certificates">
-      <Version>4.3.2</Version>
+    <PackageReference Include="Vortice.Direct2D1">
+      <Version>1.9.143</Version>
     </PackageReference>
-    <PackageReference Include="System.Text.Encodings.Web">
-      <Version>9.0.7</Version>
+    <PackageReference Include="Vortice.Direct3D11">
+      <Version>1.9.143</Version>
+    </PackageReference>
+    <PackageReference Include="Vortice.DXGI">
+      <Version>1.9.143</Version>
     </PackageReference>
   </ItemGroup>
+  <ItemGroup>
+    <COMReference Include="WIA">
+      <Guid>{94A0E92D-43C0-494E-AC29-FD45948A5221}</Guid>
+      <VersionMajor>1</VersionMajor>
+      <VersionMinor>0</VersionMinor>
+      <Lcid>0</Lcid>
+      <WrapperTool>tlbimp</WrapperTool>
+      <Isolated>False</Isolated>
+      <EmbedInteropTypes>True</EmbedInteropTypes>
+    </COMReference>
+  </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <PropertyGroup>
-    <PreBuildEvent>taskkill /fi "pid gt 0" /im ONENOTE.exe /t</PreBuildEvent>
+  <PropertyGroup Condition="'$(CI)' != 'true'">
+    <PreBuildEvent>pwsh -NonInteractive -NoProfile -ExecutionPolicy Bypass -File "$(ProjectDir)..\stop.ps1" -Close</PreBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

@@ -13,6 +13,7 @@
     integrity="sha384-aFq/bzH65dt+w6FI2ooMVUpc+21e0SRygnTpmBvdBgSdnuTN7QbdgL+OapgHtvPp" crossorigin="anonymous">
   <link href="/nav.css" rel="stylesheet">
   <link href="/toc.css" rel="stylesheet">
+  <link href="/pagefind/pagefind-ui.css" rel="stylesheet">
   <style type="text/css">
     #footer {
       background-color: #F0D9FB;
@@ -88,6 +89,7 @@
           <a class="nav-link" href="/context-menus/index.html" id="context-menus-section">Context Menus</a>
           <a class="nav-link" href="/developers/index.html" id="developers-section">Developers</a>
         </div>
+        <div id="search" class="d-flex flex-grow-1 mx-lg-3"></div>
         <div class="d-flex">
           <a class="nav-link nav-glyph py-2 px-lg-2" href="https://facebook.com/OneMoreAddIn" target="_blank"
             rel="noopener">
@@ -144,6 +146,10 @@
                       style='font-family:Calibri;font-size:11.5pt'>Command Palette</span></a><span
                     style='font-family:Calibri;font-size:11.5pt'>!</span></li>
                 <li style='margin-top:0;margin-bottom:0;vertical-align:middle;color:black' lang=yo><span
+                    style='font-family:Calibri;font-size:11.5pt'>Automate over 40 OneMore
+                    commands from the command-line using the&nbsp;</span><a href="/the-basics/OneMore%20CLI.htm"><span
+                      style='font-family:Calibri;font-size:11.5pt'>OneMore CLI Runner</span></a></span></li>
+                <li style='margin-top:0;margin-bottom:0;vertical-align:middle;color:black' lang=yo><span
                     style='font-family:Calibri;font-size:11.5pt'>Use the&nbsp;</span><a
                     href="/the-basics/Navigator.htm"><span style='font-family:Calibri;font-size:11.5pt'>Navigator
                       window</span></a><span style='font-family:Calibri;font-size:11.5pt'>&nbsp;to keep track of
@@ -175,7 +181,7 @@
                     selectively set cell background and fonts</span></li>
                 <li style='margin-top:0;margin-bottom:0;vertical-align:middle;color:black' lang=yo><span
                     style='font-family:Calibri;font-size:11.5pt'>Manage a
-                    collection of&nbsp;</span><a href="/commands/Favorites%20Commands.htm"><span
+                    collection of&nbsp;</span><a href="/the-basics/Favorites.htm"><span
                       style='font-family:Calibri;font-size:11.5pt'>favorite pages and sections</span></a><span
                     style='font-family:Calibri;font-size:11.5pt'>&nbsp;with shortcuts to
                     quickly jump to a favorite</span></li>
@@ -264,7 +270,8 @@
           <h5>Why OneMore</h5>
           <p>
             OneNote's
-            <a href="https://learn.microsoft.com/en-us/archive/blogs/chris_pratley/onenote-genesis">origin was sparked</a>
+            <a href="https://learn.microsoft.com/en-us/archive/blogs/chris_pratley/onenote-genesis">origin was
+              sparked</a>
             by the lack of solutions that let people capture and manage
             information that is "not yet a document"; it's a knowledge management system with a mostly
             minimalistic "notebook" paradigm with sections and pages just like a real notebook that
@@ -274,14 +281,19 @@
           <p>
             OneMore was born out of curiosity, imagination, and user feedback, both in OneNote social
             channels and from OneMore users as it grew and evolved. My primary goal is to "<u><i>make OneNote
-            a better OneNote</i></u>" without forcing OneNote to be more like its competitors; those alternatives
+                a better OneNote</i></u>" without forcing OneNote to be more like its competitors; those alternatives
             are great in their own spaces and have their own niche communities. OneMore tries to stay true
             to OneNote.</br>&nbsp;
           </p>
           <p>
             So come along with me on this journey. If you have ideas of how to make OneNote better, how
             to enhance the knowledge management experience and utility,
-            <a href="contact.htm">let me know</a>.
+            <a href="contact.htm">let me know</a>.</br>&nbsp;
+          </p>
+          <p>
+            OneMore now includes the ability to capture anonymous telemetry data. Please opt-in to help me improve OneMore! 
+            You can see what's captured and how it's used on the <a href="developers/Design%20-%20Telemetry.htm">design page</a>.
+          </p>
         </div>
       </div>
 
@@ -292,8 +304,12 @@
       <div class="col">
         <div class="float-right">© 2020 Steven M Cohn. All rights reserved</div>
       </div>
-    </nav>
-  </div>
+      </nav>
+    </div>
+  <script src="/pagefind/pagefind-ui.js"></script>
+  <script>
+    new PagefindUI({ element: "#search", showSubResults: true });
+  </script>
 </body>
 
 </html>

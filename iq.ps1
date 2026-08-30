@@ -1,6 +1,9 @@
 <#
 .SYNOPSIS
 Installation qualification
+
+.COPYRIGHT
+Copyright © 2016 Steven M Cohn. All rights reserved.
 #>
 
 [CmdletBinding()]
@@ -36,7 +39,14 @@ Begin
     function WriteValue
     {
         param($text)
-        Write-Host "= $text" -Fore DarkGray
+        if ($verbose) {
+            if ($text) {
+                Write-Host "   OK " -Fore DarkGreen -NoNewline
+                Write-Host $text -Fore DarkGray
+            } else {
+                Write-Host "   BAD" -Fore DarkRed
+            }
+        }
     }
 
     function HasKey
@@ -131,7 +141,38 @@ Begin
         $0 = "Registry::HKEY_CLASSES_ROOT\AppID\$guid"
         $ok = (HasKey $0)
         if ($ok) { $ok = (HasValue $0 'DllSurrogate' '') }
+        if ($ok) { $dllSurrogate = $lastValue }
         if ($ok) { WriteOK $0 } else { WriteBad $0 }
+        WriteValue "DllSurrogate = $dllSurrogate"
+
+        # LaunchPermission is REG_BINARY — decode to SDDL for human-readable output.
+        # Absence means COM surrogate launch will be denied for non-admin users on ARM64
+        # (DCOM default is more restrictive than on x64).
+        if ($ok)
+        {
+            if (HasProperty $0 'LaunchPermission')
+            {
+                try
+                {
+                    $lpBytes = (Get-ItemPropertyValue -Path $0 -Name 'LaunchPermission')
+                    $sd = [System.Security.AccessControl.RawSecurityDescriptor]::new($lpBytes, 0)
+                    $sddl = $sd.GetSddlForm([System.Security.AccessControl.AccessControlSections]::All)
+                    if ($sddl -eq 'O:BAG:BAD:(A;;CCDCSW;;;AU)(A;;CCDCSW;;;SY)(A;;CCDCSW;;;BA)') {
+                        WriteValue "LaunchPermission = $sddl"
+                    } else {
+                        WriteBad "LaunchPermission = (unexpected SDDL: $sddl)"
+                    }
+                }
+                catch
+                {
+                    WriteValue "LaunchPermission = (could not decode: $($_.Exception.Message))"
+                }
+            }
+            else
+            {
+                WriteBad 'LaunchPermission missing (ARM64 non-admin loads will fail)'
+            }
+        }
     }
 
     function CheckRoot
@@ -141,9 +182,14 @@ Begin
         $ok = (HasKey $0)
         if ($ok) {
             $ok = (HasValue $0 '(default)' 'URL:OneMore Protocol Handler') -and $ok
+            if ($ok) { $defaultValue = $lastValue }
             $ok = (HasValue $0 'URL Protocol' '') -and $ok
+            if ($ok) { $urlProtocol = $lastValue }
         }
         if ($ok) { WriteOK $0 } else { WriteBad $0 }
+
+        WriteValue "@ = $defaultValue"; $defaultValue = $null
+        WriteValue "URL Protocol = $urlProtocol"
     }
 
     function CheckShell
@@ -153,8 +199,10 @@ Begin
         $0 = 'Registry::HKEY_CLASSES_ROOT\onemore\shell\open\command'
         $ok = (HasKey $0)
         if ($ok) { $ok = (HasValue $0 '(default)' '\\OneMoreProtocolHandler.exe"? %1 %2 %3 %4 %5' -match) }
+        if ($ok) { $defaultValue = $lastValue }
         if ($ok) { WriteOK "$0" } else { WriteBad $0 }
-        WriteValue $lastvalue
+
+        WriteValue "@ = $defaultValue"; $defaultValue = $null
     }
 
     function CheckAddIn
@@ -189,9 +237,13 @@ Begin
         $ok = (HasKey $0)
         if ($ok) {
             $ok = (HasValue $0 '(default)' 'River.OneMoreAddIn.AddIn')
+            if ($ok) { $defaultValue = $lastValue }
             $ok = (HasValue $0 'AppID' $guid) -and $ok
+            if ($ok) { $appId = $lastValue }
         }
         if ($ok) { WriteOK $0 } else { WriteBad $0 ; return }
+        WriteValue "@ = $defaultValue"; $defaultValue = $null
+        WriteValue "AppID = $appId"
 
         $1 = "$0\Implemented Categories\{62C8FE65-4EBB-45E7-B440-6E39B2CDBF29}"
         $ver = $null
@@ -201,21 +253,23 @@ Begin
             $ok = (HasKey $1)
             if ($ok) {
                 $ok = (HasValue $1 '(default)' 'mscoree.dll')
+                if ($ok) { $defaultValue = $lastValue }
                 $ok = (HasValue $1 'ThreadingModel' 'Both') -and $ok
+                if ($ok) { $threadingModel = $lastValue }
                 
                 $ok = (HasValue $1 'CodeBase' '*\River.OneMoreAddIn.dll') -and $ok
                 if ($ok) { $script:codeBase = $lastValue }
 
                 $oo = (HasValue $1 'Class' 'River.OneMoreAddIn.AddIn')
-                if ($oo) { $script:class = $lastValue }
+                if ($oo) { $class = $lastValue }
                 $ok = $oo -and $ok
 
                 $oo = (HasValue $1 'RuntimeVersion' 'v*')
-                if ($oo) { $script:runtimeVersion = $lastValue }
+                if ($oo) { $runtimeVersion = $lastValue }
                 $ok = $oo -and $ok
 
                 $oo = (HasValue $1 'Assembly' 'River.OneMoreAddIn, Version=*')
-                if ($oo) { $script:assembly = $lastValue }
+                if ($oo) { $assembly = $lastValue }
                 $ok = $oo -and $ok
 
                 if ($oo)
@@ -228,45 +282,86 @@ Begin
             }
         }
         if ($ok) { WriteOK $1 } else { WriteBad $1 }
+        WriteValue "@ = $defaultValue"; $defaultValue = $null
+        WriteValue "Assembly = $assembly"
+        WriteValue "Class = $class"
+        WriteValue "CodeBase = $codeBase"
+        WriteValue "RuntimeVersion = $runtimeVersion"
+        WriteValue "ThreadingModel = $threadingModel"
 
         if ($ver)
         {
             $1 = "$0\InprocServer32\$ver"
             $ok = (HasValue $1 'Assembly' $assembly)
+            if ($ok) { $assembly = $lastValue }
             $ok = (HasValue $1 'CodeBase' $codeBase) -and $ok
+            if ($ok) { $codeBase = $lastValue }
             $ok = (HasValue $1 'RuntimeVersion' $runtimeVersion) -and $ok
+            if ($ok) { $runtimeVersion = $lastValue }
             $ok = (HasValue $1 'Class' $class) -and $ok
+            if ($ok) { $class = $lastValue }
             if ($ok) { WriteOK $1 } else { WriteBad $1 }
+
+            WriteValue "Assembly = $assembly"
+            WriteValue "Class = $class"
+            WriteValue "CodeBase = $codeBase"
+            WriteValue "RuntimeVersion = $runtimeVersion"
         }
         else
         {
             Write-Host "skipping $0\InprocServer32\<version>" -Fore Yellow
         }
 
-        WriteValue "Assembly = $assembly"
-        WriteValue "CodeBase = $codeBase"
-        WriteValue "RuntimeVersion = $runtimeVersion"
-        WriteValue "Class = $class"
-
         $1 = "$0\ProgID"
         $ok = (HasKey $1)
         if ($ok) { $ok = (HasValue $1 '(default)' 'River.OneMoreAddIn') }
+        if ($ok) { $defaultValue = $lastValue }
         if ($ok) { WriteOK $1 } else { WriteBad $1 }
+        WriteValue "@ = $defaultValue"; $defaultValue = $null
 
         $1 = "$0\Programmable"
         $ok = (HasKey $1)
         if ($ok) { $ok = (HasValue $1 '(default)' '') }
+        if ($ok) { $defaultValue = $lastValue }
         if ($ok) { WriteOK $1 } else { WriteBad $1 }
+        WriteValue "@ = $defaultValue"; $defaultValue = $null
 
         $1 = "$0\TypeLib"
         $ok = (HasKey $1)
         if ($ok) { $ok = (HasValue $1 '(default)' $guid) }
+        if ($ok) { $defaultValue = $lastValue }
         if ($ok) { WriteOK $1 } else { WriteBad $1 }
+        WriteValue "@ = $defaultValue"; $defaultValue = $null
 
         $1 = "$0\VersionIndependentProgID"
         $ok = (HasKey $1)
         if ($ok) { $ok = (HasValue $1 '(default)' 'River.OneMoreAddIn') }
+        if ($ok) { $defaultValue = $lastValue }
         if ($ok) { WriteOK $1 } else { WriteBad $1 }
+        WriteValue "@ = $defaultValue"; $defaultValue = $null
+    }
+
+    function CheckMachine
+    {
+        # Machine-wide AddIns registration — the fallback OneNote uses when HKCU
+        # is missing (e.g., Intune/SYSTEM deployments where Active Setup never ran).
+        WriteTitle 'Machine'
+        $0 = 'Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Office\OneNote\AddIns\River.OneMoreAddIn'
+        $ok = (HasKey $0)
+        if ($ok)
+        {
+            $ok = (HasValue $0 'LoadBehavior' '3') -and $ok
+            if ($Ok) { $loadBehavior = $lastValue }
+            $ok = (HasValue $0 'Description' 'Add-in for OneNote') -and $ok
+            if ($Ok) { $description = $lastValue }
+            $ok = (HasValue $0 'FriendlyName' 'OneMoreAddIn') -and $ok
+            if ($Ok) { $friendlyName = $lastValue }
+        }
+        if ($ok) { WriteOK $0 } else { WriteBad $0 }
+
+        WriteValue "LoadBehavior = $loadBehavior"
+        WriteValue "Description = $description"
+        WriteValue "FriendlyName = $friendlyName"
     }
 
     function CheckUser
@@ -279,9 +374,12 @@ Begin
 
         $0 = 'Registry::HKEY_CURRENT_USER\SOFTWARE\Microsoft\Office\OneNote\AddIns\River.OneMoreAddIn'
         $ok = (HasValue $0 'LoadBehavior' '3')
-        $ok = (HasValue $0 'Description' 'Extension for OneNote') -and $ok
+        $ok = (HasValue $0 'Description' 'Add-in for OneNote') -and $ok
         $ok = (HasValue $0 'FriendlyName' 'OneMoreAddIn') -and $ok
-        if ($ok) { WriteOK $0 } else { WriteBad $0 }
+        if ($ok) { WriteOK $0 } else {
+            WriteBad $0
+            Write-Host '... HKCU AddIns missing; HKLM fallback (Machine section above) covers this on SYSTEM/Intune installs' -Fore Yellow
+        }
 
         $0 = 'Registry::HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\River.OneMoreAddIn.dll'
         if ($codebase -eq $null) {
@@ -297,6 +395,21 @@ Begin
         $0 = "Registry::HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Office\$offVersion\Common\Security\Trusted Protocols\All Applications\onemore:"
         $ok = (HasKey $0)
         if ($ok) { WriteOK $0 } else { WriteBad $0 }
+    }
+
+    function CheckEventLogSource
+    {
+        WriteTitle 'EventLog Source'
+        $0 = 'Registry::HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\EventLog\Application\OneMore'
+        $ok = (HasKey $0)
+        if ($ok) { $ok = (HasValue $0 'TypesSupported' '7') }
+        if ($ok) { $typesSupported = $lastValue }
+        if ($ok) { 
+            WriteOK $0
+            WriteValue "TypesSupported = $typesSupported"
+        } else {
+            WriteBad $0
+        }
     }
 
     function CheckWebView2
@@ -354,6 +467,8 @@ Process
     $script:vcolor = $Host.PrivateData.VerboseForegroundColor
     $Host.PrivateData.VerboseForegroundColor = 'DarkGray'
 
+    $script:verbose = $PSCmdlet.MyInvocation.BoundParameters['Verbose']
+
     GetVersions
     CheckAppID
     CheckRoot
@@ -365,7 +480,9 @@ Process
         CheckCLSID $true
     }
 
+    CheckMachine
     CheckUser
+    CheckEventLogSource
     CheckWebView2
 }
 End

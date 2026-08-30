@@ -414,6 +414,11 @@ namespace River.OneMoreAddIn
 		/// <returns></returns>
 		public static XElement FirstAncestor(this XElement element, XName name, XName breakout = null)
 		{
+			if (element is null)
+			{
+				return null;
+			}
+
 			var found = false;
 			var ancestor = element.Parent;
 			while (ancestor != null && !found)
@@ -454,27 +459,31 @@ namespace River.OneMoreAddIn
 		/// OneMore Extension >> Extract the sanitized text value of the given element
 		/// </summary>
 		/// <param name="element">The root element from which to extract text</param>
-		/// <param name="deep">
+		/// <param name="stripHtml">
 		/// If true then also strip all HTML out of CDATA values; default is to keep HTML
 		/// </param>
 		/// <returns></returns>
-		public static string TextValue(this XElement element, bool deep = false)
+		public static string TextValue(this XElement element, bool stripHtml = false)
 		{
-			if (deep)
+			if (stripHtml)
 			{
-				// this will work for CDATA that contain zero or more <span> elements
+				// this will work for CDATA that contain zero or more <span> or <a> elements
 				// regardless of XML validity; used to use cdata.GetWrapper() but that breaks!
 
-				var regex = new Regex(@"<\s*span[^>]*>(.*?)<\s*/\s*span>", RegexOptions.Compiled);
+				// concatenate raw CDATA first, then strip.
+				// Singleline so '.' also matches embedded newlines: OneNote wraps
+				// long tags (e.g. <a\nhref="..."> or <span\nstyle="...">) across lines within
+				// the CDATA, and the lazy content group must be able to cross that line break
+				// to reach the matching close tag.
+				var anchorRegex = new Regex(@"<\s*a\b[^>]*>(.*?)<\s*/\s*a\s*>",
+					RegexOptions.Compiled | RegexOptions.Singleline);
+				var spanRegex = new Regex(@"<\s*span[^>]*>(.*?)<\s*/\s*span>",
+					RegexOptions.Compiled | RegexOptions.Singleline);
 
-				var text = string.Empty;
-				foreach (var cdata in element.DescendantNodes().OfType<XCData>())
-				{
-					var parts = regex.Split(cdata.Value);
-					text = $"{text}{string.Join(string.Empty, parts)}";
-				}
+				var raw = string.Concat(
+					element.DescendantNodes().OfType<XCData>().Select(cdata => cdata.Value));
 
-				return text;
+				return spanRegex.Replace(anchorRegex.Replace(raw, "$1"), "$1");
 
 				/*
 				var regex = new Regex(@"<span\s+", RegexOptions.Compiled);

@@ -50,6 +50,9 @@ namespace River.OneMoreAddIn.Commands
 
 		public override async Task Execute(params object[] args)
 		{
+			using var guard = EnterOnce();
+			if (guard is null) { return; }
+
 			await using var one = new OneNote(out var page, out var ns, OneNote.PageDetail.All);
 
 			pasting = args.Length > 0 && args[0] is bool b && b;
@@ -57,6 +60,7 @@ namespace River.OneMoreAddIn.Commands
 			var elements = pasting
 				? await PreparePastingElement(page, ns)
 				: FindOnPageElements(page, ns);
+
 
 			if (elements is not null && elements.Any())
 			{
@@ -68,7 +72,15 @@ namespace River.OneMoreAddIn.Commands
 
 				if (updated)
 				{
-					await one.Update(page);
+					// must force update if any embedded images on the background, such as
+					// PowerPoint slides, as OneNote will complain about invalid XML otherwise
+					var embedded = elements.Any(e =>
+						e.Attribute("xpsFileIndex") is not null ||
+						e.Attribute("originalPageNumber") is not null ||
+						e.Attribute("isPrintOut") is not null);
+
+					logger.WriteLine($"embedded:{embedded}");
+					await one.Update(page, force: embedded);
 				}
 			}
 			else if (pasting)

@@ -35,7 +35,20 @@ namespace River.OneMoreAddIn.UI
 
 			foreColor = ForeColor;
 			manager = ThemeManager.Instance;
-			boxSize = SystemInformation.MenuCheckSize.Width - 3;
+			boxSize = SystemInformation.MenuCheckSize.Width - 4;
+		}
+
+
+		protected override void Dispose(bool disposing)
+		{
+			if (disposing)
+			{
+				if (hcursor != IntPtr.Zero)
+				{
+					Native.DestroyCursor(hcursor);
+				}
+			}
+			base.Dispose(disposing);
 		}
 
 
@@ -116,16 +129,29 @@ namespace River.OneMoreAddIn.UI
 
 			using var brush = new SolidBrush(color);
 
-			g.DrawString(Text, Font, brush,
-				new Rectangle(boxSize + Spacing,
-					(pevent.ClipRectangle.Height - Size.Height) / 2,
+			var bounds = new Rectangle(boxSize + Spacing,
+					(pevent.ClipRectangle.Height - Size.Height) / 2 + 2,
 					pevent.ClipRectangle.Width - (boxSize + Spacing),
-					Size.Height),
+					Size.Height);
+
+			g.DrawString(Text, Font, brush, bounds,
 				new StringFormat
 				{
 					Trimming = StringTrimming.None,
 					FormatFlags = StringFormatFlags.NoWrap
 				});
+
+			if (Focused)
+			{
+				using var focusPen = new Pen(manager.GetColor("GrayText"))
+				{
+					DashStyle = DashStyle.Dash
+				};
+
+				bounds.Offset(-1, -1);
+				bounds.Inflate(-2, -2);
+				g.DrawRectangle(focusPen, bounds);
+			}
 		}
 
 

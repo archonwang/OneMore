@@ -1,0 +1,148 @@
+﻿//************************************************************************************************
+// Copyright © 2020 Steven M Cohn. All rights reserved.
+//************************************************************************************************
+
+namespace River.OneMoreAddIn.Commands.Favorites
+{
+	using River.OneMoreAddIn.Commands.Workspaces;
+	using System.Collections.Generic;
+
+
+	/// <summary>
+	/// A single Favorite
+	/// </summary>
+	internal sealed class Favorite : ITargetReference
+	{
+		/// <summary>
+		/// Database ID of this favorite, used for updates and deletes.
+		/// </summary>
+		public int ID { get; set; }
+
+		/// <summary>
+		/// Database ID of the folder that contains this favorite, or 0 if this favorite is not 
+		/// in a folder - it's in the root
+		/// </summary>
+		public int FolderID { get; set; }
+
+		/// <summary>
+		/// The name of the target, either a section, section group, or page name.
+		/// </summary>
+		public string Name { get; set; }
+
+		/// <summary>
+		/// User supplied friendly name or alias of the favorite, or null if the user has
+		/// not overridden the name. Callers that display this value should fall back to
+		/// Name, e.g. "favorite.Alias ?? favorite.Name".
+		/// </summary>
+		public string Alias { get; set; }
+
+		/// <summary>
+		/// The hierarchy path of the favorite including notebook, section groups and sections.
+		/// </summary>
+		public string Location { get; set; }
+
+		/// <summary>
+		/// The onenote:// URL of the favorite, which may be used as a hyperlink or for 
+		/// verification. This is the raw URL as stored in the database and may not be valid 
+		/// if the favorite is no longer reachable at that URL.
+		/// </summary>
+		public string Uri { get; set; }
+
+		/// <summary>
+		/// The ID of the notebook that contains the target.
+		/// </summary>
+		public string NotebookID { get; set; }
+
+		/// <summary>
+		/// The ID of the section or section group that contains the target or the target itself.
+		/// </summary>
+		public string SectionID { get; set; }
+
+		/// <summary>
+		/// The ID of the page that is the target of the favorite.
+		/// </summary>
+		public string PageID { get; set; }
+
+		/// <summary>
+		/// Distinguishes the kind of target this favorite points to when PageID is not set:
+		/// null or "section" for a section (including legacy rows predating this field),
+		/// "sectiongroup" for a section group, or "notebook" for a notebook. Used only to
+		/// pick an icon in the Favorites menu.
+		/// </summary>
+		public string Kind { get; set; }
+
+		/// <summary>
+		/// The custom sort order of the favorite. Default sort order is alphabetic by alias.
+		/// </summary>
+		public int SortOrder { get; set; }
+
+		// runtime only properties
+
+		/// <summary>
+		/// The Verified status of the favorite.
+		/// </summary>
+		[Newtonsoft.Json.JsonIgnore]
+		public TargetStatus Status { get; set; }
+	}
+
+
+	internal interface IFavoritesFolder
+	{
+		List<Favorite> Items { get; }
+	}
+
+
+	/// <summary>
+	/// A single folder of favorites representing a second level of organization for favorites.
+	/// </summary>
+	internal sealed class FavoritesFolder : IFavoritesFolder
+	{
+		public FavoritesFolder()
+		{
+			Items = new();
+		}
+
+		/// <summary>
+		/// The folder ID, auto-assigned by the DB
+		/// </summary>
+		public int FolderID { get; set; }
+
+		/// <summary>
+		/// The user-supplied name of the folder.
+		/// </summary>
+		public string Name { get; set; }
+
+		/// <summary>
+		/// The list of favorites within this folder.
+		/// </summary>
+		public List<Favorite> Items { get; set; }
+	}
+
+
+	/// <summary>
+	/// The Favorites ribbon drop-down menu with second level folders and top-level favorites.
+	/// </summary>
+	internal sealed class FavoritesCollection : IFavoritesFolder
+	{
+		public FavoritesCollection()
+		{
+			Folders = new();
+			Items = new();
+		}
+
+		/// <summary>
+		/// Version of this data model schema. Used for upgrade paths in the future.
+		/// </summary>
+		public int SchemaVersion { get; set; } = 1;
+
+		/// <summary>
+		/// The folder on the Favorites menu.
+		/// </summary>
+		public List<FavoritesFolder> Folders { get; set; }
+
+		/// <summary>
+		/// Uncategorized favorites (in the implied "root" folder) on the Favorites menu.
+		/// </summary>
+		public List<Favorite> Items { get; set; }
+	}
+}

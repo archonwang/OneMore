@@ -21,15 +21,15 @@ namespace River.OneMoreAddIn.Commands
 
 
 	/// <summary>
-	/// Import Word (.docx), PowerPoint (.pptx), Markdown (.md), OneNote (.one), or XML (.xml) by
-	/// either appending content to the current page or creating a new page. Additionally, for
-	/// PowerPoint, each slide can be imported into its own page so you could use OneNote as a
-	/// PowerPoint presenter by entering full screen mode and using Ctrl-PgDn to move to the
-	/// next slide.
+	/// Import Word (.docx), PowerPoint (.pptx), Markdown (.md), OneNote (.one), Text (.txt), or
+	/// XML (.xml) by either appending content to the current page or creating a new page.
+	/// Additionally, for PowerPoint, each slide can be imported into its own page so you could
+	/// use OneNote as a PowerPoint presenter by entering full screen mode and using Ctrl-PgDn to
+	/// move to the next slide.
 	/// </summary>
 	/// <remarks>
-	/// You can import multiple Word, PowerPoint, or Markdown files by using a wildcard in the
-	/// name, for example C:\docs\January*.md.Each file will be imported as a separate page;
+	/// You can import multiple Word, PowerPoint, Markdown, or Text files by using a wildcard in
+	/// the name, for example C:\docs\January*.md.Each file will be imported as a separate page;
 	/// the Append option is not available when importing using wildcards.
 	/// </remarks>
 	internal class ImportCommand : Command
@@ -65,15 +65,27 @@ namespace River.OneMoreAddIn.Commands
 					break;
 
 				case ImportDialog.Formats.Xml:
-					await ImportXml(dialog.FilePath);
+					if (!await ImportXml(dialog.FilePath))
+					{
+						MoreMessageBox.ShowErrorWithLogLink(
+							owner, "Could not import. See log file for details");
+					}
 					break;
 
 				case ImportDialog.Formats.OneNote:
-					await ImportOneNote(dialog.FilePath);
+					if (!await ImportOneNote(dialog.FilePath))
+					{
+						MoreMessageBox.ShowErrorWithLogLink(
+							owner, "Could not import. See log file for details");
+					}
 					break;
 
 				case ImportDialog.Formats.Markdown:
 					await ImportMarkdown(dialog.FilePath);
+					break;
+
+				case ImportDialog.Formats.Text:
+					await ImportText(dialog.FilePath);
 					break;
 
 				case ImportDialog.Formats.Pdf:
@@ -91,7 +103,7 @@ namespace River.OneMoreAddIn.Commands
 		/// <param name="path">The file path to action</param>
 		/// <param name="action">The action to execute</param>
 		/// <returns></returns>
-		private bool RunWithProgress(int timeout, string path, Func<CancellationToken, Task<bool>> action)
+		internal bool RunWithProgress(int timeout, string path, Func<CancellationToken, Task<bool>> action)
 		{
 			using (progress = new ProgressDialog(timeout))
 			{
@@ -174,9 +186,10 @@ namespace River.OneMoreAddIn.Commands
 		}
 
 
-		private async Task<bool> ImportWordFile(string filepath, bool append, CancellationToken token)
+		internal async Task<bool> ImportWordFile(
+			string filepath, bool append, CancellationToken token, string sectionId = null)
 		{
-			progress.SetMessage($"Importing {filepath}...");
+			progress?.SetMessage($"Importing {filepath}...");
 
 			string html;
 
@@ -219,7 +232,7 @@ namespace River.OneMoreAddIn.Commands
 				try
 				{
 					await using var one = new OneNote();
-					one.CreatePage(one.CurrentSectionId, out var pageId);
+					one.CreatePage(sectionId ?? one.CurrentSectionId, out var pageId);
 					var page = await one.GetPage(pageId);
 
 					page.Title = Path.GetFileName(filepath);
@@ -294,13 +307,20 @@ namespace River.OneMoreAddIn.Commands
 		}
 
 
-		private async Task<bool> ImportPowerPointFile(
-			string filepath, bool append, bool split, CancellationToken token)
+		internal async Task<bool> ImportPowerPointFile(
+			string filepath, bool append, bool split, CancellationToken token, string sectionId = null)
 		{
-			progress.SetMessage($"Importing {filepath}...");
+			progress?.SetMessage($"Importing {filepath}...");
 
-			using var powerpoint = new PowerPoint();
-			var outpath = powerpoint.ConvertFileToImages(filepath);
+			// PowerPoint is opened with WithWindow=msoFalse (windowless automation). If its
+			// using-scope extends across the OneNote awaits below, the Application RCW can
+			// detach before Dispose runs and power.Quit() throws InvalidComObjectException.
+			// Scope it tightly so PowerPoint quits before any async work begins.
+			string outpath;
+			using (var powerpoint = new PowerPoint())
+			{
+				outpath = powerpoint.ConvertFileToImages(filepath);
+			}
 
 			if (outpath == null)
 			{
@@ -320,15 +340,15 @@ namespace River.OneMoreAddIn.Commands
 				{
 					await using var one = new OneNote();
 					var section = await one.CreateSection(Path.GetFileNameWithoutExtension(filepath));
-					var sectionId = section.Attribute("ID").Value;
+					var newSectionId = section.Attribute("ID").Value;
 					var ns = one.GetNamespace(section);
 
-					await one.NavigateTo(sectionId);
+					await one.NavigateTo(newSectionId);
 
 					int i = 1;
 					foreach (var file in Directory.GetFiles(outpath, "*.jpg"))
 					{
-						one.CreatePage(sectionId, out var pageId);
+						one.CreatePage(newSectionId, out var pageId);
 						var page = await one.GetPage(pageId);
 						page.Title = $"Slide {i}";
 						var container = page.EnsureContentContainer();
@@ -360,7 +380,7 @@ namespace River.OneMoreAddIn.Commands
 					}
 					else
 					{
-						one.CreatePage(one.CurrentSectionId, out var pageId);
+						one.CreatePage(sectionId ?? one.CurrentSectionId, out var pageId);
 						page = await one.GetPage(pageId);
 						page.Title = Path.GetFileName(filepath);
 					}
@@ -475,9 +495,10 @@ namespace River.OneMoreAddIn.Commands
 		}
 
 
-		private async Task<bool> ImportPdfFile(string filepath, bool append, CancellationToken token)
+		internal async Task<bool> ImportPdfFile(
+			string filepath, bool append, CancellationToken token, string sectionId = null)
 		{
-			progress.SetMessage($"Importing {filepath}...");
+			progress?.SetMessage($"Importing {filepath}...");
 
 			Page page;
 
@@ -490,7 +511,7 @@ namespace River.OneMoreAddIn.Commands
 				}
 				else
 				{
-					one.CreatePage(one.CurrentSectionId, out var pageId);
+					one.CreatePage(sectionId ?? one.CurrentSectionId, out var pageId);
 					page = await one.GetPage(pageId);
 					page.Title = Path.GetFileName(filepath);
 				}
@@ -521,12 +542,19 @@ namespace River.OneMoreAddIn.Commands
 					Scaling.GetScalingFactors().Item1)
 			};
 
+			if (token.IsCancellationRequested)
+			{
+				await using var one = new OneNote();
+				one.DeleteHierarchy(page.PageId);
+				return false;
+			}
+
 			try
 			{
 				for (int i = 0; i < doc.PageCount; i++)
 				{
-					progress.SetMessage($"Rasterizing image {i} of {doc.PageCount}");
-					progress.Increment();
+					progress?.SetMessage($"Rasterizing image {i} of {doc.PageCount}");
+					progress?.Increment();
 
 					//logger.WriteLine($"rasterizing page {i}");
 					var pdfpage = doc.GetPage((uint)i);
@@ -555,6 +583,13 @@ namespace River.OneMoreAddIn.Commands
 			catch (Exception exc)
 			{
 				logger.WriteLine($"error rasterizing pdf {filepath}", exc);
+				return false;
+			}
+
+			if (token.IsCancellationRequested)
+			{
+				await using var one = new OneNote();
+				one.DeleteHierarchy(page.PageId);
 				return false;
 			}
 
@@ -621,7 +656,8 @@ namespace River.OneMoreAddIn.Commands
 		}
 
 
-		private async Task<bool> ImportMarkdownFile(string filepath, CancellationToken token)
+		internal async Task<bool> ImportMarkdownFile(
+			string filepath, CancellationToken token, string sectionId = null)
 		{
 			try
 			{
@@ -645,7 +681,7 @@ namespace River.OneMoreAddIn.Commands
 				if (!string.IsNullOrEmpty(body))
 				{
 					await using var one = new OneNote();
-					one.CreatePage(one.CurrentSectionId, out var pageId);
+					one.CreatePage(sectionId ?? one.CurrentSectionId, out var pageId);
 
 					var page = await one.GetPage(pageId, OneNote.PageDetail.Basic);
 					var ns = page.Namespace;
@@ -663,8 +699,8 @@ namespace River.OneMoreAddIn.Commands
 					var converter = new MarkdownConverter(page);
 					converter.RewriteHeadings();
 
-					logger.WriteLine($"saving...");
-					logger.WriteLine(page.Root);
+					//logger.WriteLine($"saving...");
+					//logger.WriteLine(page.Root);
 
 					await one.Update(page);
 
@@ -675,9 +711,12 @@ namespace River.OneMoreAddIn.Commands
 
 					converter = new MarkdownConverter(page);
 					converter.RewriteHeadings();
+					converter.RewriteTodo();
+					converter.RewriteCode();
+					converter.RewriteInlineCode();
 
-					logger.WriteLine($"updating...");
-					logger.WriteLine(page.Root);
+					//logger.WriteLine($"updating...");
+					//logger.WriteLine(page.Root);
 
 					await one.Update(page);
 
@@ -695,9 +734,105 @@ namespace River.OneMoreAddIn.Commands
 
 
 		// = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+		// Text...
+
+		private async Task ImportText(string filepath)
+		{
+			logger.StartClock();
+
+			if (!PathHelper.HasWildFileName(filepath))
+			{
+				await ImportTextFile(filepath, default);
+				logger.WriteTime("text file imported");
+				return;
+			}
+
+			var files = Directory.GetFiles(Path.GetDirectoryName(filepath), Path.GetFileName(filepath));
+			var timeout = 10 + (files.Length * 3);
+
+			var good = 0;
+
+			var completed = RunWithProgress(timeout, filepath, async (token) =>
+			{
+				foreach (var file in files)
+				{
+					if (token.IsCancellationRequested)
+					{
+						break;
+					}
+
+					if (await ImportTextFile(file, token))
+					{
+						good++;
+					}
+				}
+
+				return !token.IsCancellationRequested;
+			});
+
+			if (completed)
+			{
+				logger.WriteTime($"imported {good} of {files.Length} text file(s)");
+			}
+			else
+			{
+				logger.WriteTime($"importing text files cancelled; {good} of {files.Length} completed");
+			}
+		}
+
+
+		internal async Task<bool> ImportTextFile(
+			string filepath, CancellationToken token, string sectionId = null)
+		{
+			try
+			{
+				progress?.SetMessage($"Importing {filepath}...");
+
+				logger.WriteLine($"importing text {filepath}");
+				var lines = File.ReadAllLines(filepath);
+
+				if (token != default && token.IsCancellationRequested)
+				{
+					logger.WriteLine("import text cancelled");
+					return false;
+				}
+
+				await using var one = new OneNote();
+				one.CreatePage(sectionId ?? one.CurrentSectionId, out var pageId);
+
+				var page = await one.GetPage(pageId, OneNote.PageDetail.Basic);
+				var ns = page.Namespace;
+
+				page.Title = Path.GetFileNameWithoutExtension(filepath);
+
+				var container = page.EnsureContentContainer();
+
+				foreach (var line in lines)
+				{
+					// escape XML-significant characters so verbatim text such as "<tag>" or
+					// "A & B" is displayed literally rather than being interpreted as markup
+					// when OneNote parses the T element's CDATA content as HTML
+					var text = System.Web.HttpUtility.HtmlEncode(line.StripInvalidXmlChars());
+					container.Add(new Paragraph(ns, text));
+				}
+
+				await one.Update(page);
+				await one.NavigateTo(pageId);
+			}
+			catch (Exception exc)
+			{
+				logger.WriteLine($"error importing {filepath}", exc);
+				return false;
+			}
+
+			return true;
+		}
+
+
+		// = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 		// XML...
 
-		private async Task ImportXml(string filepath)
+		internal async Task<bool> ImportXml(string filepath, string sectionId = null)
 		{
 			try
 			{
@@ -705,7 +840,7 @@ namespace River.OneMoreAddIn.Commands
 				var template = new Page(XElement.Load(filepath));
 
 				await using var one = new OneNote();
-				one.CreatePage(one.CurrentSectionId, out var pageId);
+				one.CreatePage(sectionId ?? one.CurrentSectionId, out var pageId);
 
 				// remove any objectID values and let OneNote generate new IDs
 				template.Root.Descendants().Attributes("objectID").Remove();
@@ -720,12 +855,12 @@ namespace River.OneMoreAddIn.Commands
 
 				await one.Update(template);
 				await one.NavigateTo(pageId);
+				return true;
 			}
 			catch (Exception exc)
 			{
 				logger.WriteLine(exc);
-				MoreMessageBox.ShowErrorWithLogLink(
-					owner, "Could not import. See log file for details");
+				return false;
 			}
 		}
 
@@ -733,23 +868,25 @@ namespace River.OneMoreAddIn.Commands
 		// = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 		// OneNote...
 
-		private async Task ImportOneNote(string filepath)
+		internal async Task<bool> ImportOneNote(string filepath, string sectionId = null)
 		{
 			try
 			{
 				await using var one = new OneNote();
-				var pageId = await one.Import(filepath);
+				var pageId = await one.Import(filepath, sectionId);
 
 				if (!string.IsNullOrEmpty(pageId))
 				{
 					await one.NavigateTo(pageId);
+					return true;
 				}
+
+				return false;
 			}
 			catch (Exception exc)
 			{
 				logger.WriteLine(exc);
-				MoreMessageBox.ShowErrorWithLogLink(
-					owner, "Could not import. See log file for details");
+				return false;
 			}
 		}
 	}

@@ -5,6 +5,7 @@
 namespace River.OneMoreAddIn
 {
 	using System;
+	using System.Collections.Generic;
 	using System.IO;
 	using System.Text.RegularExpressions;
 
@@ -17,10 +18,14 @@ namespace River.OneMoreAddIn
 	/// </remarks>
 	internal static class PathHelper
 	{
+		// unique qualifier appended to filename: " (123)"
+		public const int COUNTER_WIDTH = 6;
+
 		// in Windows this should be 260 but OneNote.Export further restricts it to 239
-		public const int MAX_PATH = 239;
-		// shortest filename, allowing 3 chars plus counter " (123)"
-		public const int MIN_NAME = 9;
+		public const int MAX_PATH = 239 - COUNTER_WIDTH;
+
+		// shortest filename, allowing 3 chars plus counter
+		public const int MIN_NAME = 3 + COUNTER_WIDTH;
 
 		//private const string LongKey = @"SYSTEM\CurrentControlSet\Control\FileSystem\LongPathsEnabled";
 
@@ -47,6 +52,28 @@ namespace River.OneMoreAddIn
 
 
 		/// <summary>
+		/// Builds the folder path for a section based on its position in the notebook
+		/// hierarchy: each ancestor section group becomes a "[name]" folder and the section
+		/// itself becomes a "(name)" folder, nested beneath the given root.
+		/// </summary>
+		/// <param name="root">The root export folder</param>
+		/// <param name="sectionGroups">Ancestor section group names, outermost first</param>
+		/// <param name="sectionName">The name of the section</param>
+		/// <returns>The full nested folder path</returns>
+		public static string BuildSectionFolderPath(
+			string root, IEnumerable<string> sectionGroups, string sectionName)
+		{
+			var path = root;
+			foreach (var group in sectionGroups)
+			{
+				path = Path.Combine(path, $"[{CleanFileName(group)}]");
+			}
+
+			return Path.Combine(path, $"({CleanFileName(sectionName)})");
+		}
+
+
+		/// <summary>
 		/// Gets a path to the OneMore data folder
 		/// </summary>
 		/// <returns></returns>
@@ -54,6 +81,21 @@ namespace River.OneMoreAddIn
 		{
 			return Path.Combine(
 				Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+				AssemblyInfo.Product);
+		}
+
+
+		/// <summary>
+		/// Gets a path to the OneMore local (non-roaming) data folder. Unlike
+		/// GetAppDataPath, this folder is never relocated by Windows Folder Redirection
+		/// or roaming profiles, so it is safe for files like SQLite databases that
+		/// require reliable local file locking.
+		/// </summary>
+		/// <returns></returns>
+		public static string GetLocalAppDataPath()
+		{
+			return Path.Combine(
+				Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
 				AssemblyInfo.Product);
 		}
 
@@ -69,8 +111,7 @@ namespace River.OneMoreAddIn
 		/// <param name="name"></param>
 		/// <param name="ext"></param>
 		/// <returns></returns>
-		public static string GetUniqueQualifiedFileName(
-			string path, ref string name, string ext)
+		public static string GetUniqueQualifiedFileName(string path, string name, string ext)
 		{
 			// max length of FileNameWithoutExt is half the width of MAX_PATH minus the length
 			// of the root path (+1 for path separator). Half because the name is used again
@@ -108,8 +149,50 @@ namespace River.OneMoreAddIn
 				full = Path.Combine(path, $"{nameCounter}{ext}");
 			}
 
-			name = nameCounter;
 			return full;
+		}
+
+
+		/// <summary>
+		/// Checks that the given path is syntactically valid, i.e. contains no illegal
+		/// characters and can be resolved by Path.GetFullPath.
+		/// </summary>
+		/// <param name="path">The path to validate</param>
+		/// <param name="errorMessage">
+		/// On failure, a human-readable description of the problem; otherwise null
+		/// </param>
+		/// <returns>True if the path is valid</returns>
+		public static bool IsValidPath(string path, out string errorMessage)
+		{
+			if (string.IsNullOrWhiteSpace(path))
+			{
+				errorMessage = "Path must not be empty.";
+				return false;
+			}
+
+			var invalid = path.IndexOfAny(Path.GetInvalidPathChars());
+			if (invalid >= 0)
+			{
+				errorMessage =
+					$"'{path}' is not a valid path; it contains an illegal '{path[invalid]}' " +
+					"character. If this path was quoted on the command line, make sure it " +
+					"doesn't end with a trailing backslash before the closing quote " +
+					"(use \"C:\\folder\" rather than \"C:\\folder\\\").";
+				return false;
+			}
+
+			try
+			{
+				Path.GetFullPath(path);
+			}
+			catch (Exception exc)
+			{
+				errorMessage = $"'{path}' is not a valid path: {exc.Message}";
+				return false;
+			}
+
+			errorMessage = null;
+			return true;
 		}
 
 

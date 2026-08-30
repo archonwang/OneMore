@@ -23,6 +23,8 @@ namespace River.OneMoreAddIn.Commands
 					"notebooksRadio=phrase_AllNotebooks",
 					"notebookRadio=phrase_AllSectionInTheCurrentNotebook",
 					"sectionRadio=phrase_TheCurrentSection",
+					"groupByNotebookBox",
+					"assigneeFilterLabel=phrase_AssigneeContains",
 					"okButton=word_OK",
 					"cancelButton=word_Cancel"
 				});
@@ -31,6 +33,12 @@ namespace River.OneMoreAddIn.Commands
 
 
 		public bool IncludeCompleted => showCompletedBox.Checked;
+
+
+		public bool GroupByNotebook => groupByNotebookBox.Checked;
+
+
+		public string AssigneeFilter => assigneeFilterBox.Text.Trim();
 
 
 		public OneNote.Scope Scope

@@ -32,10 +32,10 @@ namespace River.OneMoreAddIn.Commands
 		{
 			System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(EditTableThemesDialog));
 			this.cancelButton = new River.OneMoreAddIn.UI.MoreButton();
-			this.combo = new System.Windows.Forms.ComboBox();
-			this.nameLabel = new System.Windows.Forms.Label();
+			this.combo = new UI.MoreComboBox();
+			this.nameLabel = new UI.MoreLabel();
 			this.elementsGroup = new River.OneMoreAddIn.UI.MoreGroupBox();
-			this.elementsBox = new River.OneMoreAddIn.UI.MoreListView();
+			this.elementsBox = new River.OneMoreAddIn.UI.MoreListViewEx();
 			this.resetButtonPanel = new System.Windows.Forms.Panel();
 			this.resetButton = new River.OneMoreAddIn.UI.MoreButton();
 			this.previewGroup = new River.OneMoreAddIn.UI.MoreGroupBox();
@@ -54,7 +54,7 @@ namespace River.OneMoreAddIn.Commands
 			this.fontsGroup = new River.OneMoreAddIn.UI.MoreGroupBox();
 			this.applyFontButton = new River.OneMoreAddIn.UI.MoreButton();
 			this.familyBox = new River.OneMoreAddIn.UI.FontComboBox();
-			this.sizeBox = new System.Windows.Forms.ComboBox();
+			this.sizeBox = new UI.MoreComboBox();
 			this.fontToolstrip = new River.OneMoreAddIn.UI.MoreToolStrip();
 			this.boldButton = new River.OneMoreAddIn.UI.MoreMenuItem();
 			this.italicButton = new River.OneMoreAddIn.UI.MoreMenuItem();
@@ -63,9 +63,9 @@ namespace River.OneMoreAddIn.Commands
 			this.defaultBlackToolStripMenuItem = new River.OneMoreAddIn.UI.MoreMenuItem();
 			this.fontElementsGroup = new River.OneMoreAddIn.UI.MoreGroupBox();
 			this.defaultFontButton = new River.OneMoreAddIn.UI.MoreButton();
-			this.selectedFontLabel = new System.Windows.Forms.Label();
+			this.selectedFontLabel = new UI.MoreLabel();
 			this.resetFontButton = new River.OneMoreAddIn.UI.MoreButton();
-			this.colorFontsBox = new River.OneMoreAddIn.UI.MoreListView();
+			this.colorFontsBox = new River.OneMoreAddIn.UI.MoreListViewEx();
 			this.bottomPanel = new System.Windows.Forms.Panel();
 			this.button1 = new River.OneMoreAddIn.UI.MoreButton();
 			this.elementsGroup.SuspendLayout();
@@ -649,10 +649,10 @@ namespace River.OneMoreAddIn.Commands
 		#endregion
 
 		private UI.MoreButton cancelButton;
-		private System.Windows.Forms.ComboBox combo;
-		private System.Windows.Forms.Label nameLabel;
+		private UI.MoreComboBox combo;
+		private UI.MoreLabel nameLabel;
 		private UI.MoreGroupBox elementsGroup;
-		private River.OneMoreAddIn.UI.MoreListView elementsBox;
+		private River.OneMoreAddIn.UI.MoreListViewEx elementsBox;
 		private UI.MoreGroupBox previewGroup;
 		private River.OneMoreAddIn.UI.MoreToolStrip toolstrip;
 		private UI.MoreMenuItem deleteButton;
@@ -668,7 +668,7 @@ namespace River.OneMoreAddIn.Commands
 		private System.Windows.Forms.TabPage fontsTab;
 		private System.Windows.Forms.Panel bottomPanel;
 		private UI.FontComboBox familyBox;
-		private System.Windows.Forms.ComboBox sizeBox;
+		private UI.MoreComboBox sizeBox;
 		private UI.MoreToolStrip fontToolstrip;
 		private UI.MoreMenuItem boldButton;
 		private UI.MoreMenuItem italicButton;
@@ -676,13 +676,13 @@ namespace River.OneMoreAddIn.Commands
 		private UI.MoreSplitButton colorButton;
 		private UI.MoreMenuItem defaultBlackToolStripMenuItem;
 		private UI.MoreButton resetFontButton;
-		private UI.MoreListView colorFontsBox;
+		private UI.MoreListViewEx colorFontsBox;
 		private UI.MoreGroupBox fontsGroup;
 		private UI.MoreButton button1;
 		private UI.MoreGroupBox fontElementsGroup;
 		private UI.MoreButton applyFontButton;
 		private UI.MoreButton defaultFontButton;
-		private System.Windows.Forms.Label selectedFontLabel;
+		private UI.MoreLabel selectedFontLabel;
 		private System.Windows.Forms.Panel previewDockPanel;
 		private System.Windows.Forms.Panel resetButtonPanel;
 	}

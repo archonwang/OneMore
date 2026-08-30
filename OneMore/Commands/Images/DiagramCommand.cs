@@ -56,9 +56,9 @@ namespace River.OneMoreAddIn.Commands
 	/// </summary>
 	internal abstract class DiagramCommand : Command
 	{
-		private string keyword;
-		private string errorMessage;
-		private IDiagramProvider provider;
+		protected string keyword;
+		protected string errorMessage;
+		protected IDiagramProvider provider;
 
 
 		protected DiagramCommand(string keyword)
@@ -338,9 +338,11 @@ namespace River.OneMoreAddIn.Commands
 		}
 
 
-		private byte[] RenderDiagram(string text)
+		protected virtual byte[] RenderDiagram(string text)
 		{
 			text = Regex.Replace(text, @"<br>([\n\r]+)", "$1");
+			text = Regex.Replace(text, @"<a\b[^>]*>(.*?)</a>", "$1");
+
 
 			provider = DiagramProviderFactory.MakeProvider(keyword);
 
@@ -391,7 +393,17 @@ namespace River.OneMoreAddIn.Commands
 					}
 				});
 
-			return result == DialogResult.OK ? bytes : new byte[0];
+			if (result != DialogResult.OK || bytes is null || bytes.Length == 0)
+			{
+				if (string.IsNullOrWhiteSpace(errorMessage))
+				{
+					errorMessage = Resx.DiagramCommand_Cancelled;
+				}
+
+				return new byte[0];
+			}
+
+			return bytes;
 		}
 
 

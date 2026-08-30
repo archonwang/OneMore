@@ -1,10 +1,12 @@
-﻿//************************************************************************************************
+//************************************************************************************************
 // Copyright © 2020 Steven M Cohn.  All rights reserved.
 //************************************************************************************************
 
 namespace River.OneMoreAddIn.Commands
 {
+	using River.OneMoreAddIn.Cli;
 	using River.OneMoreAddIn.Models;
+	using System;
 	using System.Linq;
 	using System.Threading.Tasks;
 	using System.Windows.Forms;
@@ -15,16 +17,49 @@ namespace River.OneMoreAddIn.Commands
 	/// Toggles the page date and time stamps under the title on the current page or all
 	/// pages in the current section
 	/// </summary>
-	internal class ToggleDttmCommand : Command
+	internal class ToggleDttmCommand : Command, ICliPageCommand
 	{
-
 		public ToggleDttmCommand()
 		{
 		}
 
 
+		#region CLI Implementation
+
+		public string CommandName => "ToggleDttm";
+
+		public string Description => "Show or hide date/time stamps on a page";
+
+		public CliParameterDefinition DefineParameters() =>
+			new CliParameterDefinition()
+			.AddString("notebook", "Name of notebook", required: true)
+			.AddString("section", "Path of section", required: false)
+			.AddString("page", "Name of page", required: false)
+			.AddEnum("visibility", "Show or hide timestamps",
+				new[] { "show", "hide" }, required: true);
+
+		#endregion CLI Implementation
+
+
 		public override async Task Execute(params object[] args)
 		{
+			var cliParams = args.Length > 0 ? args[0] as CliParameterSet : null;
+			if (cliParams != null)
+			{
+				cliParams.TryGet("pageId", out string pageId);
+				if (string.IsNullOrWhiteSpace(pageId)) { return; }
+				cliParams.TryGet("visibility", out string visibility);
+				var show = "show".Equals(visibility, StringComparison.OrdinalIgnoreCase);
+
+				await using var one = new OneNote();
+				var page = await one.GetPage(pageId, OneNote.PageDetail.Basic);
+				await SetTimestampVisibility(one, page, show);
+				return;
+			}
+
+			using var guard = EnterOnce();
+			if (guard is null) { return; }
+
 			using var dialog = new ToggleDttmDialog();
 			if (dialog.ShowDialog(owner) == DialogResult.OK)
 			{
@@ -112,4 +147,3 @@ namespace River.OneMoreAddIn.Commands
 		}
 	}
 }
-

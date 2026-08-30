@@ -1,15 +1,18 @@
 ﻿//************************************************************************************************
-// Copyright © 2016 Steven M Cohn.  All rights reserved.
+// Copyright © 2016 Steven M Cohn. All rights reserved.
 //************************************************************************************************
 
 namespace River.OneMoreAddIn
 {
 	using Microsoft.Office.Core;
+	using River.OneMoreAddIn.Cli;
 	using River.OneMoreAddIn.UI;
 	using System;
 	using System.Collections.Generic;
 	using System.Linq;
 	using System.Reflection;
+	using System.Text;
+	using System.Threading;
 	using System.Threading.Tasks;
 	using Resx = Properties.Resources;
 
@@ -22,6 +25,7 @@ namespace River.OneMoreAddIn
 		private readonly ILogger logger;
 		private readonly IRibbonUI ribbon;
 		private readonly List<IDisposable> trash;
+		private readonly bool runningFromCli;
 
 
 		/// <summary>
@@ -36,6 +40,14 @@ namespace River.OneMoreAddIn
 			this.logger = logger;
 			this.ribbon = ribbon;
 			this.trash = trash;
+		}
+
+
+		public CommandFactory(
+			ILogger logger, IRibbonUI ribbon, List<IDisposable> trash, bool runningFromCli)
+			: this(logger, ribbon, trash)
+		{
+			this.runningFromCli = runningFromCli;
 		}
 
 
@@ -74,7 +86,62 @@ namespace River.OneMoreAddIn
 		/// <returns>Task</returns>
 		public async Task<Command> Run<T>(params object[] args) where T : Command, new()
 		{
-			var command = new T();
+			return await Run(typeof(T), args);
+		}
+
+
+		public async Task<Command> Run(Type commandType, params object[] args)
+		{
+			var command = (Command)Activator.CreateInstance(commandType);
+			return await RunCore(command, args);
+		}
+
+
+		/// <summary>
+		/// Instantiates and executes the specified command, making the given cancellation token
+		/// available to it via <see cref="Command.Cancellation"/>. Used by CommandService to
+		/// support cancelling a batched CLI page-iteration between pages/sections.
+		/// </summary>
+		/// <param name="commandType">The command type</param>
+		/// <param name="token">The cancellation token to inject into the command instance</param>
+		/// <param name="args">The argument list</param>
+		/// <returns>Task</returns>
+		public async Task<Command> Run(Type commandType, CancellationToken token, params object[] args)
+		{
+			var command = (Command)Activator.CreateInstance(commandType);
+			command.SetCancellation(token);
+			return await RunCore(command, args);
+		}
+
+
+		/// <summary>
+		/// Instantiates and executes the specified command, making the given cancellation token
+		/// and progress reporter available to it via <see cref="Command.Cancellation"/> and
+		/// <see cref="Command.ReportProgress"/>. Used by CommandService to support a single-shot
+		/// CLI command that reports incremental progress mid-<c>Execute</c>.
+		/// </summary>
+		/// <param name="commandType">The command type</param>
+		/// <param name="token">The cancellation token to inject into the command instance</param>
+		/// <param name="progressReporter">Callback invoked for each progress message</param>
+		/// <param name="args">The argument list</param>
+		/// <returns>Task</returns>
+		public async Task<Command> Run(
+			Type commandType, CancellationToken token,
+			Func<string, Task> progressReporter, params object[] args)
+		{
+			var command = (Command)Activator.CreateInstance(commandType);
+			command.SetCancellation(token);
+			command.SetProgressReporter(progressReporter);
+			return await RunCore(command, args);
+		}
+
+
+		private async Task<Command> RunCore(Command command, object[] args)
+		{
+			if (runningFromCli)
+			{
+				command.RunFromCli();
+			}
 
 			// this extra Task.Run was added to "fix" a problem where batched File/Import was not
 			// working correctly, although it worked fine from the command palette and Replay...
@@ -84,7 +151,10 @@ namespace River.OneMoreAddIn
 			{
 				await Run("Running", command, args);
 
-				if (!command.IsCancelled)
+				// CLI commands have no command-palette/replay UI surface, and may pass a
+				// shared OneNote connection through args for batched page operations; that
+				// can't round-trip through SaveToMRU's string-based serialization
+				if (!runningFromCli && !command.IsCancelled)
 				{
 					new CommandProvider().SaveToMRU(command, args);
 				}
@@ -97,38 +167,117 @@ namespace River.OneMoreAddIn
 		private async Task Run(string note, Command command, params object[] args)
 		{
 			var type = command.GetType();
-			logger.Start($"{note} command {type.Name}");
+			using var indent = logger.Indent($"{note} command {type.Name}");
 
-			// need to rediscover active OneNote window for each command instantiation
-			// otherwise closing the primary or last-used active window will leave owner
-			// set to an invalid window handle
-			await using var one = new OneNote();
-			var owner = one.OwnerWindow;
+			if (logger.IsVerbose)
+			{
+				var ws = System.Diagnostics.Process.GetCurrentProcess().WorkingSet64 / 1_048_576;
+				var heap = GC.GetTotalMemory(false) / 1_048_576;
+				logger.Verbose($"workingSet {ws}MB, managedHeap {heap}MB");
+			}
+
+			// CLI commands never show UI, so there's no owner window to discover; skip the
+			// throwaway OneNote() activation that exists solely to read OwnerWindow. This
+			// avoids unnecessary COM churn during batched CLI page operations.
+			System.Windows.Forms.IWin32Window owner = null;
+			if (!runningFromCli)
+			{
+				// need to rediscover active OneNote window for each command instantiation
+				// otherwise closing the primary or last-used active window will leave owner
+				// set to an invalid window handle
+				await using var one = new OneNote();
+				owner = one.OwnerWindow;
+			}
+
+			StringBuilder cliBuffer = null;
+			CliLogger cliLog = null;
+			if (runningFromCli)
+			{
+				cliBuffer = new StringBuilder();
+				cliLog = new CliLogger(cliBuffer);
+				Logger.SetMirror(cliLog);
+			}
 
 			command.SetFactory(this)
 				.SetLogger(logger)
+				.SetCliLogger(cliLog)
 				.SetRibbon(ribbon)
 				.SetOwner(owner)
 				.SetTrash(trash);
 
+			var eventName = type.Name;
+			if (runningFromCli)
+			{
+				eventName = eventName.EndsWith("Command")
+					? $"{eventName.Replace("Command", "CLI")}"
+					: $"{eventName}CLI";
+			}
+
 			try
 			{
+				// run synchronously; see comment below
+				var telemetryTask = AddIn.Telemetry
+					? TelemetryClient.LogEvent(eventName, string.Empty)
+					: null;
+
 				await command.Execute(args);
 
+				// In the add-in path the process is long-lived so fire-and-forget is fine.
+				// In the CLI path the process exits immediately after Execute returns, so we
+				// must ensure telemetry completes before unwinding.
+				if (runningFromCli && telemetryTask is not null)
+				{
+					try { await telemetryTask; }
+					catch (Exception tex) { logger.WriteLine($"telemetry error: {tex.Message}"); }
+				}
+			}
+			catch (OperationCanceledException)
+			{
 				logger.End();
+				logger.WriteLine($"command {type.Name} cancelled by user");
+				throw;
 			}
 			catch (Exception exc)
 			{
 				// catch-all exception hander
 
-				var msg = string.Format(Resx.Command_Error, type.Name);
+				var msg = $"error running command {type.Name}";
+
+				if (AddIn.Telemetry)
+				{
+					var telemetryTask = TelemetryClient.LogException(eventName, msg, exc);
+					if (runningFromCli)
+					{
+						try { await telemetryTask; }
+						catch (Exception tex) { logger.WriteLine($"telemetry error: {tex.Message}"); }
+					}
+				}
+
 				logger.End();
-				logger.WriteLine(msg);
-				logger.WriteLine(exc);
+				logger.WriteLine(msg, exc);
 				logger.WriteLine();
 
-				MoreMessageBox.ShowErrorWithLogLink(
-					owner, string.Format(Resx.Command_ErrorMsg, msg));
+				if (runningFromCli)
+				{
+					command.CliOutput = $"{msg}{Environment.NewLine}{exc.FormatDetails()}";
+				}
+
+				if (!runningFromCli)
+				{
+					MoreMessageBox.ShowErrorWithLogLink(
+						owner, string.Format(Resx.Command_ErrorMsg, eventName));
+				}
+			}
+			finally
+			{
+				Logger.SetMirror(null);
+			}
+
+			// if running from CLI and the command didn't set CliOutput itself (e.g. exception
+			// path), harvest anything written to the cliLogger buffer
+			if (cliLog != null && string.IsNullOrEmpty(command.CliOutput) && cliBuffer.Length > 0)
+			{
+				command.CliOutput = cliBuffer.ToString();
 			}
 		}
 

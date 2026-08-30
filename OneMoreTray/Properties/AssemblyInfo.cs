@@ -19,6 +19,7 @@ using System.Runtime.InteropServices;
 
 [assembly: AssemblyVersion(OneMoreService.AssemblyInfo.Version)]
 [assembly: AssemblyFileVersion(OneMoreService.AssemblyInfo.Version)]
+[assembly: AssemblyInformationalVersion(OneMoreService.AssemblyInfo.Version + OneMoreService.AssemblyInfo.BuildTag)]
 
 // To use, open LINQPad and set Preferences/Advanced "Allows LINPAad to access internals"...
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("LINQPadQuery")]
@@ -27,6 +28,14 @@ namespace OneMoreService
 {
 	internal static class AssemblyInfo
 	{
-		public const string Version = "6.7.7";
+		public const string Version = "7.4.0";
+
+		public const string BuildTag =
+#if BETA
+		" Beta"
+#else
+		""
+#endif
+		;
 	}
 }

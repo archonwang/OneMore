@@ -14,6 +14,9 @@ namespace River.OneMoreAddIn.Models
 		// data storage analysis report
 		public static readonly string AnalysisReport = "omAnalysisReport";
 
+		// stable identity key of the Evernote note this page was imported from, for dedup
+		public static readonly string EvernoteGuid = "omEvernoteGuid";
+
 		// keep track of rotating highlighter index
 		public static readonly string HighlightIndex = "omHighlightIndex";
 
@@ -28,6 +31,10 @@ namespace River.OneMoreAddIn.Models
 
 		// serialized reminder store for current page
 		public static readonly string Reminder = "omReminder";
+
+		// per-OE anchor GUID nested in a tagged paragraph, owned by OneMore, used to
+		// stably identify a reminder's paragraph across machines
+		public static readonly string ReminderAnchor = "omReminderAnchor";
 
 		// page is a reminder summary report, content is scope
 		public static readonly string ReminderReport = "omReminderReport";
@@ -44,6 +51,9 @@ namespace River.OneMoreAddIn.Models
 
 		// page is a hashtag index page
 		public static readonly string TagIndex = "omTagIndex";
+
+		// page is a search results index page
+		public static readonly string SearchIndex = "omSearchIndex";
 
 		// word count report for section or notebook
 		public static readonly string WordCount = "omWordCounts";

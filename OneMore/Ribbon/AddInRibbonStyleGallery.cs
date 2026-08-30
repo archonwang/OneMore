@@ -54,7 +54,7 @@ namespace River.OneMoreAddIn
 
 					// ribbon handlers apparently cannot be async so we need to do this
 					var section = await one.GetSection();
-					if (section.Attribute("locked") == null)
+					if (section is not null && section.Attribute("locked") == null)
 					{
 						// ribbon handlers apparently cannot be async so we need to do this
 						var page = Task.Run(async () =>
@@ -103,6 +103,19 @@ namespace River.OneMoreAddIn
 		{
 			//logger.WriteLine($"GetStyleGalleryItemImage({control.Id}, {itemIndex})");
 			return TileFactory.MakeStyleTile(galleryTheme.GetStyle(itemIndex), galleryBack);
+		}
+
+
+		/// <summary>
+		/// Called by ribbon getItemImage for the Styles context menu gallery, for each
+		/// item only after invalidation
+		/// </summary>
+		/// <param name="control"></param>
+		/// <param name="itemIndex"></param>
+		/// <returns></returns>
+		public IStream GetStyleMenuItemImage(IRibbonControl control, int itemIndex)
+		{
+			return TileFactory.MakeStyleMenuItem(galleryTheme.GetStyle(itemIndex), galleryBack);
 		}
 
 

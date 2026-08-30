@@ -14,7 +14,6 @@ namespace River.OneMoreAddIn.Commands
 	/// </summary>
 	internal class EditTableThemesCommand : Command
 	{
-
 		public EditTableThemesCommand()
 		{
 		}
@@ -22,6 +21,9 @@ namespace River.OneMoreAddIn.Commands
 
 		public override async Task Execute(params object[] args)
 		{
+			using var guard = EnterOnce();
+			if (guard is null) { return; }
+
 			var provider = new TableThemeProvider();
 			var themes = provider.GetUserThemes();
 

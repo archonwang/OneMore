@@ -23,6 +23,9 @@
 				}
 
 				trash.Clear();
+
+				headingFont?.Dispose();
+				headingBoldFont?.Dispose();
 			}
 			base.Dispose(disposing);
 		}
@@ -42,20 +45,29 @@
 			this.mainContainer = new System.Windows.Forms.SplitContainer();
 			this.pageBox = new River.OneMoreAddIn.UI.MoreFlowLayoutPanel();
 			this.pageHeadPanel = new River.OneMoreAddIn.UI.MorePanel();
+			this.pageTwistButton = new River.OneMoreAddIn.UI.MoreButton();
+			this.pageFilterCloseButton = new River.OneMoreAddIn.UI.MoreButton();
+			this.pageFilterBox = new River.OneMoreAddIn.UI.MoreTextBox();
+			this.pageFilterButton = new River.OneMoreAddIn.UI.MoreButton();
 			this.refreshButton = new River.OneMoreAddIn.UI.MoreButton();
 			this.pageHeadLabel = new River.OneMoreAddIn.UI.MoreLabel();
 			this.subContainer = new System.Windows.Forms.SplitContainer();
-			this.pinnedBox = new River.OneMoreAddIn.UI.MoreListView();
+			this.pinnedBox = new River.OneMoreAddIn.UI.MoreListViewEx();
 			this.pinnedHeadPanel = new River.OneMoreAddIn.UI.MorePanel();
+			this.pinnedTwistButton = new River.OneMoreAddIn.UI.MoreButton();
 			this.pinnedToolPanel = new System.Windows.Forms.Panel();
 			this.copyPinnedButton = new River.OneMoreAddIn.UI.MoreButton();
 			this.upButton = new River.OneMoreAddIn.UI.MoreButton();
 			this.unpinButton = new River.OneMoreAddIn.UI.MoreButton();
 			this.downButton = new River.OneMoreAddIn.UI.MoreButton();
 			this.pinnedHeadLabel = new River.OneMoreAddIn.UI.MoreLabel();
-			this.historyBox = new River.OneMoreAddIn.UI.MoreListView();
+			this.historyBox = new River.OneMoreAddIn.UI.MoreListViewEx();
 			this.historyHeadPanel = new River.OneMoreAddIn.UI.MorePanel();
+			this.historyTwistButton = new River.OneMoreAddIn.UI.MoreButton();
+			this.historyFilterCloseButton = new River.OneMoreAddIn.UI.MoreButton();
+			this.historyFilterBox = new River.OneMoreAddIn.UI.MoreTextBox();
 			this.historyToolPanel = new System.Windows.Forms.Panel();
+			this.historyFilterButton = new River.OneMoreAddIn.UI.MoreButton();
 			this.deleteHistoryButton = new River.OneMoreAddIn.UI.MoreButton();
 			this.pinButton = new River.OneMoreAddIn.UI.MoreButton();
 			this.copyHistoryButton = new River.OneMoreAddIn.UI.MoreButton();
@@ -149,6 +161,10 @@
 			this.pageHeadPanel.BackColor = System.Drawing.SystemColors.ControlDarkDark;
 			this.pageHeadPanel.BottomBorderColor = System.Drawing.SystemColors.ActiveBorder;
 			this.pageHeadPanel.BottomBorderSize = 0;
+			this.pageHeadPanel.Controls.Add(this.pageTwistButton);
+			this.pageHeadPanel.Controls.Add(this.pageFilterCloseButton);
+			this.pageHeadPanel.Controls.Add(this.pageFilterBox);
+			this.pageHeadPanel.Controls.Add(this.pageFilterButton);
 			this.pageHeadPanel.Controls.Add(this.refreshButton);
 			this.pageHeadPanel.Controls.Add(this.pageHeadLabel);
 			this.pageHeadPanel.Dock = System.Windows.Forms.DockStyle.Top;
@@ -163,9 +179,97 @@
 			this.pageHeadPanel.TopBorderColor = System.Drawing.SystemColors.Control;
 			this.pageHeadPanel.TopBorderSize = 0;
 			this.pageHeadPanel.Click += new System.EventHandler(this.PanelFocusOnClick);
-			// 
+			//
+			// pageTwistButton
+			//
+			this.pageTwistButton.BackColor = System.Drawing.SystemColors.ControlDarkDark;
+			this.pageTwistButton.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Center;
+			this.pageTwistButton.FlatAppearance.BorderSize = 0;
+			this.pageTwistButton.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+			this.pageTwistButton.Font = new System.Drawing.Font("Segoe UI Symbol", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+			this.pageTwistButton.ForeColor = System.Drawing.SystemColors.ControlText;
+			this.pageTwistButton.ImageOver = null;
+			this.pageTwistButton.Location = new System.Drawing.Point(2, 10);
+			this.pageTwistButton.Name = "pageTwistButton";
+			this.pageTwistButton.ShowBorder = false;
+			this.pageTwistButton.Size = new System.Drawing.Size(20, 20);
+			this.pageTwistButton.StylizeImage = false;
+			this.pageTwistButton.TabIndex = 2;
+			this.pageTwistButton.Text = "▼";
+			this.pageTwistButton.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+			this.pageTwistButton.ThemedBack = "ControlDarkDark";
+			this.pageTwistButton.ThemedFore = "DarkText";
+			this.tooltip.SetToolTip(this.pageTwistButton, "Expand or collapse this section");
+			this.pageTwistButton.UseVisualStyleBackColor = false;
+			this.pageTwistButton.Click += new System.EventHandler(this.ToggleSectionOnClick);
+			//
+			// pageFilterBox
+			//
+			this.pageFilterBox.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left)
+	            | System.Windows.Forms.AnchorStyles.Right)));
+			this.pageFilterBox.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+			this.pageFilterBox.Location = new System.Drawing.Point(2, 7);
+			this.pageFilterBox.Name = "pageFilterBox";
+			this.pageFilterBox.ProcessEnterKey = true;
+			this.pageFilterBox.Size = new System.Drawing.Size(476, 26);
+			this.pageFilterBox.TabIndex = 3;
+			this.pageFilterBox.ThemedBack = null;
+			this.pageFilterBox.ThemedFore = null;
+			this.pageFilterBox.Visible = false;
+			this.pageFilterBox.TextChanged += new System.EventHandler(this.FilterPageHeadings);
+			this.pageFilterBox.PressedEnter += new System.EventHandler(this.SuppressFilterBoxEnter);
+			this.pageFilterBox.KeyDown += new System.Windows.Forms.KeyEventHandler(this.CloseFilterOnEscape);
+			//
+			// pageFilterButton
+			//
+			this.pageFilterButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+			this.pageFilterButton.BackColor = System.Drawing.SystemColors.ButtonFace;
+			this.pageFilterButton.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Center;
+			this.pageFilterButton.FlatAppearance.BorderSize = 0;
+			this.pageFilterButton.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+			this.pageFilterButton.Font = new System.Drawing.Font("Segoe UI Symbol", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+			this.pageFilterButton.ForeColor = System.Drawing.SystemColors.ControlText;
+			this.pageFilterButton.ImageOver = null;
+			this.pageFilterButton.Location = new System.Drawing.Point(452, 5);
+			this.pageFilterButton.Name = "pageFilterButton";
+			this.pageFilterButton.ShowBorder = true;
+			this.pageFilterButton.Size = new System.Drawing.Size(32, 32);
+			this.pageFilterButton.StylizeImage = false;
+			this.pageFilterButton.TabIndex = 1;
+			this.pageFilterButton.Text = "🔍";
+			this.pageFilterButton.TextAlign = System.Drawing.ContentAlignment.TopCenter;
+			this.pageFilterButton.ThemedBack = null;
+			this.pageFilterButton.ThemedFore = null;
+			this.tooltip.SetToolTip(this.pageFilterButton, "Filter this list");
+			this.pageFilterButton.UseVisualStyleBackColor = false;
+			this.pageFilterButton.Click += new System.EventHandler(this.ToggleTocFilterOnClick);
+			//
+			// pageFilterCloseButton
+			//
+			this.pageFilterCloseButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+			this.pageFilterCloseButton.BackColor = System.Drawing.SystemColors.ButtonFace;
+			this.pageFilterCloseButton.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Center;
+			this.pageFilterCloseButton.FlatAppearance.BorderSize = 0;
+			this.pageFilterCloseButton.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+			this.pageFilterCloseButton.Font = new System.Drawing.Font("Segoe UI Symbol", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+			this.pageFilterCloseButton.ForeColor = System.Drawing.SystemColors.ControlText;
+			this.pageFilterCloseButton.ImageOver = null;
+			this.pageFilterCloseButton.Location = new System.Drawing.Point(488, 5);
+			this.pageFilterCloseButton.Name = "pageFilterCloseButton";
+			this.pageFilterCloseButton.ShowBorder = true;
+			this.pageFilterCloseButton.Size = new System.Drawing.Size(32, 32);
+			this.pageFilterCloseButton.StylizeImage = false;
+			this.pageFilterCloseButton.TabIndex = 2;
+			this.pageFilterCloseButton.Text = "✕";
+			this.pageFilterCloseButton.ThemedBack = null;
+			this.pageFilterCloseButton.ThemedFore = null;
+			this.tooltip.SetToolTip(this.pageFilterCloseButton, "Close filter and show all items");
+			this.pageFilterCloseButton.UseVisualStyleBackColor = false;
+			this.pageFilterCloseButton.Visible = false;
+			this.pageFilterCloseButton.Click += new System.EventHandler(this.CloseTocFilterOnClick);
+			//
 			// refreshButton
-			// 
+			//
 			this.refreshButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
 			this.refreshButton.BackColor = System.Drawing.SystemColors.ButtonFace;
 			this.refreshButton.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Center;
@@ -192,7 +296,7 @@
 			// 
 			this.pageHeadLabel.AutoSize = true;
 			this.pageHeadLabel.Font = new System.Drawing.Font("Tahoma", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-			this.pageHeadLabel.Location = new System.Drawing.Point(12, 9);
+			this.pageHeadLabel.Location = new System.Drawing.Point(36, 9);
 			this.pageHeadLabel.Name = "pageHeadLabel";
 			this.pageHeadLabel.Size = new System.Drawing.Size(216, 22);
 			this.pageHeadLabel.TabIndex = 0;
@@ -239,7 +343,6 @@
 			this.pinnedBox.HighlightForeground = System.Drawing.SystemColors.HighlightText;
 			this.pinnedBox.Location = new System.Drawing.Point(0, 41);
 			this.pinnedBox.Name = "pinnedBox";
-			this.pinnedBox.RowHeight = 29;
 			this.pinnedBox.Size = new System.Drawing.Size(528, 212);
 			this.pinnedBox.SortedBackground = System.Drawing.SystemColors.Window;
 			this.pinnedBox.TabIndex = 0;
@@ -251,6 +354,7 @@
 			this.pinnedHeadPanel.BackColor = System.Drawing.SystemColors.ControlDarkDark;
 			this.pinnedHeadPanel.BottomBorderColor = System.Drawing.SystemColors.ActiveBorder;
 			this.pinnedHeadPanel.BottomBorderSize = 0;
+			this.pinnedHeadPanel.Controls.Add(this.pinnedTwistButton);
 			this.pinnedHeadPanel.Controls.Add(this.pinnedToolPanel);
 			this.pinnedHeadPanel.Controls.Add(this.pinnedHeadLabel);
 			this.pinnedHeadPanel.Dock = System.Windows.Forms.DockStyle.Top;
@@ -265,6 +369,29 @@
 			this.pinnedHeadPanel.TopBorderColor = System.Drawing.SystemColors.Control;
 			this.pinnedHeadPanel.TopBorderSize = 0;
 			this.pinnedHeadPanel.Click += new System.EventHandler(this.PanelFocusOnClick);
+			//
+			// pinnedTwistButton
+			//
+			this.pinnedTwistButton.BackColor = System.Drawing.SystemColors.ControlDarkDark;
+			this.pinnedTwistButton.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Center;
+			this.pinnedTwistButton.FlatAppearance.BorderSize = 0;
+			this.pinnedTwistButton.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+			this.pinnedTwistButton.Font = new System.Drawing.Font("Segoe UI Symbol", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+			this.pinnedTwistButton.ForeColor = System.Drawing.SystemColors.ControlText;
+			this.pinnedTwistButton.ImageOver = null;
+			this.pinnedTwistButton.Location = new System.Drawing.Point(2, 10);
+			this.pinnedTwistButton.Name = "pinnedTwistButton";
+			this.pinnedTwistButton.ShowBorder = false;
+			this.pinnedTwistButton.Size = new System.Drawing.Size(20, 20);
+			this.pinnedTwistButton.StylizeImage = false;
+			this.pinnedTwistButton.TabIndex = 2;
+			this.pinnedTwistButton.Text = "▼";
+			this.pinnedTwistButton.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+			this.pinnedTwistButton.ThemedBack = "ControlDarkDark";
+			this.pinnedTwistButton.ThemedFore = "DarkText";
+			this.tooltip.SetToolTip(this.pinnedTwistButton, "Expand or collapse this section");
+			this.pinnedTwistButton.UseVisualStyleBackColor = false;
+			this.pinnedTwistButton.Click += new System.EventHandler(this.ToggleSectionOnClick);
 			// 
 			// pinnedToolPanel
 			// 
@@ -377,7 +504,7 @@
 			// 
 			this.pinnedHeadLabel.AutoSize = true;
 			this.pinnedHeadLabel.Font = new System.Drawing.Font("Tahoma", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-			this.pinnedHeadLabel.Location = new System.Drawing.Point(12, 12);
+			this.pinnedHeadLabel.Location = new System.Drawing.Point(36, 12);
 			this.pinnedHeadLabel.Name = "pinnedHeadLabel";
 			this.pinnedHeadLabel.Size = new System.Drawing.Size(151, 22);
 			this.pinnedHeadLabel.TabIndex = 1;
@@ -399,7 +526,6 @@
 			this.historyBox.HighlightForeground = System.Drawing.SystemColors.HighlightText;
 			this.historyBox.Location = new System.Drawing.Point(0, 41);
 			this.historyBox.Name = "historyBox";
-			this.historyBox.RowHeight = 29;
 			this.historyBox.Size = new System.Drawing.Size(528, 287);
 			this.historyBox.SortedBackground = System.Drawing.SystemColors.Window;
 			this.historyBox.TabIndex = 0;
@@ -412,13 +538,15 @@
 			this.historyHeadPanel.BackColor = System.Drawing.SystemColors.ControlDarkDark;
 			this.historyHeadPanel.BottomBorderColor = System.Drawing.SystemColors.ActiveBorder;
 			this.historyHeadPanel.BottomBorderSize = 0;
+			this.historyHeadPanel.Controls.Add(this.historyTwistButton);
+			this.historyHeadPanel.Controls.Add(this.historyFilterCloseButton);
+			this.historyHeadPanel.Controls.Add(this.historyFilterBox);
 			this.historyHeadPanel.Controls.Add(this.historyToolPanel);
 			this.historyHeadPanel.Controls.Add(this.historyHeadLabel);
 			this.historyHeadPanel.Dock = System.Windows.Forms.DockStyle.Top;
 			this.historyHeadPanel.Location = new System.Drawing.Point(0, 0);
 			this.historyHeadPanel.Margin = new System.Windows.Forms.Padding(0);
 			this.historyHeadPanel.Name = "historyHeadPanel";
-			this.historyHeadPanel.Padding = new System.Windows.Forms.Padding(5, 2, 5, 2);
 			this.historyHeadPanel.Size = new System.Drawing.Size(528, 41);
 			this.historyHeadPanel.TabIndex = 1;
 			this.historyHeadPanel.ThemedBack = "ControlDarkDark";
@@ -426,18 +554,108 @@
 			this.historyHeadPanel.TopBorderColor = System.Drawing.SystemColors.Control;
 			this.historyHeadPanel.TopBorderSize = 0;
 			this.historyHeadPanel.Click += new System.EventHandler(this.PanelFocusOnClick);
-			// 
+			this.historyHeadPanel.Resize += new System.EventHandler(this.ResizeHistoryHeadPanel);
+			//
+			// historyTwistButton
+			//
+			this.historyTwistButton.BackColor = System.Drawing.SystemColors.ControlDarkDark;
+			this.historyTwistButton.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Center;
+			this.historyTwistButton.FlatAppearance.BorderSize = 0;
+			this.historyTwistButton.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+			this.historyTwistButton.Font = new System.Drawing.Font("Segoe UI Symbol", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+			this.historyTwistButton.ForeColor = System.Drawing.SystemColors.ControlText;
+			this.historyTwistButton.ImageOver = null;
+			this.historyTwistButton.Location = new System.Drawing.Point(2, 10);
+			this.historyTwistButton.Name = "historyTwistButton";
+			this.historyTwistButton.ShowBorder = false;
+			this.historyTwistButton.Size = new System.Drawing.Size(20, 20);
+			this.historyTwistButton.StylizeImage = false;
+			this.historyTwistButton.TabIndex = 2;
+			this.historyTwistButton.Text = "▼";
+			this.historyTwistButton.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+			this.historyTwistButton.ThemedBack = "ControlDarkDark";
+			this.historyTwistButton.ThemedFore = "DarkText";
+			this.tooltip.SetToolTip(this.historyTwistButton, "Expand or collapse this section");
+			this.historyTwistButton.UseVisualStyleBackColor = false;
+			this.historyTwistButton.Click += new System.EventHandler(this.ToggleSectionOnClick);
+			//
+			// historyFilterBox
+			//
+			this.historyFilterBox.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left)));
+			this.historyFilterBox.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+			this.historyFilterBox.Location = new System.Drawing.Point(2, 7);
+			this.historyFilterBox.Name = "historyFilterBox";
+			this.historyFilterBox.ProcessEnterKey = true;
+			this.historyFilterBox.Size = new System.Drawing.Size(476, 26);
+			this.historyFilterBox.TabIndex = 3;
+			this.historyFilterBox.ThemedBack = null;
+			this.historyFilterBox.ThemedFore = null;
+			this.historyFilterBox.Visible = false;
+			this.historyFilterBox.TextChanged += new System.EventHandler(this.FilterHistoryRecords);
+			this.historyFilterBox.PressedEnter += new System.EventHandler(this.SuppressFilterBoxEnter);
+			this.historyFilterBox.KeyDown += new System.Windows.Forms.KeyEventHandler(this.CloseFilterOnEscape);
+			//
+			// historyFilterCloseButton
+			//
+			this.historyFilterCloseButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left)));
+			this.historyFilterCloseButton.BackColor = System.Drawing.SystemColors.ButtonFace;
+			this.historyFilterCloseButton.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Center;
+			this.historyFilterCloseButton.FlatAppearance.BorderSize = 0;
+			this.historyFilterCloseButton.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+			this.historyFilterCloseButton.Font = new System.Drawing.Font("Segoe UI Symbol", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+			this.historyFilterCloseButton.ForeColor = System.Drawing.SystemColors.ControlText;
+			this.historyFilterCloseButton.ImageOver = null;
+			this.historyFilterCloseButton.Location = new System.Drawing.Point(488, 5);
+			this.historyFilterCloseButton.Name = "historyFilterCloseButton";
+			this.historyFilterCloseButton.ShowBorder = true;
+			this.historyFilterCloseButton.Size = new System.Drawing.Size(32, 32);
+			this.historyFilterCloseButton.StylizeImage = false;
+			this.historyFilterCloseButton.TabIndex = 3;
+			this.historyFilterCloseButton.Text = "✕";
+			this.historyFilterCloseButton.ThemedBack = null;
+			this.historyFilterCloseButton.ThemedFore = null;
+			this.tooltip.SetToolTip(this.historyFilterCloseButton, "Close filter and show all items");
+			this.historyFilterCloseButton.UseVisualStyleBackColor = false;
+			this.historyFilterCloseButton.Visible = false;
+			this.historyFilterCloseButton.Click += new System.EventHandler(this.CloseHistoryFilterOnClick);
+			//
 			// historyToolPanel
-			// 
+			//
+			this.historyToolPanel.Controls.Add(this.historyFilterButton);
 			this.historyToolPanel.Controls.Add(this.deleteHistoryButton);
 			this.historyToolPanel.Controls.Add(this.pinButton);
 			this.historyToolPanel.Controls.Add(this.copyHistoryButton);
 			this.historyToolPanel.Dock = System.Windows.Forms.DockStyle.Right;
 			this.historyToolPanel.Location = new System.Drawing.Point(335, 2);
+			this.historyToolPanel.Margin = new System.Windows.Forms.Padding(0, 2, 5, 2);
 			this.historyToolPanel.Name = "historyToolPanel";
 			this.historyToolPanel.Size = new System.Drawing.Size(188, 37);
 			this.historyToolPanel.TabIndex = 2;
-			// 
+			//
+			// historyFilterButton
+			//
+			this.historyFilterButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+			this.historyFilterButton.BackColor = System.Drawing.SystemColors.ButtonFace;
+			this.historyFilterButton.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Center;
+			this.historyFilterButton.FlatAppearance.BorderSize = 0;
+			this.historyFilterButton.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+			this.historyFilterButton.Font = new System.Drawing.Font("Segoe UI Symbol", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+			this.historyFilterButton.ForeColor = System.Drawing.SystemColors.ControlText;
+			this.historyFilterButton.ImageOver = null;
+			this.historyFilterButton.Location = new System.Drawing.Point(26, 3);
+			this.historyFilterButton.Name = "historyFilterButton";
+			this.historyFilterButton.ShowBorder = true;
+			this.historyFilterButton.Size = new System.Drawing.Size(32, 32);
+			this.historyFilterButton.StylizeImage = false;
+			this.historyFilterButton.TabIndex = 2;
+			this.historyFilterButton.Text = "🔍";
+			this.historyFilterButton.TextAlign = System.Drawing.ContentAlignment.TopCenter;
+			this.historyFilterButton.ThemedBack = null;
+			this.historyFilterButton.ThemedFore = null;
+			this.tooltip.SetToolTip(this.historyFilterButton, "Filter this list");
+			this.historyFilterButton.UseVisualStyleBackColor = false;
+			this.historyFilterButton.Click += new System.EventHandler(this.ToggleHistoryFilterOnClick);
+			//
 			// deleteHistoryButton
 			// 
 			this.deleteHistoryButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
@@ -511,7 +729,7 @@
 			// 
 			this.historyHeadLabel.AutoSize = true;
 			this.historyHeadLabel.Font = new System.Drawing.Font("Tahoma", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-			this.historyHeadLabel.Location = new System.Drawing.Point(17, 12);
+			this.historyHeadLabel.Location = new System.Drawing.Point(36, 12);
 			this.historyHeadLabel.Name = "historyHeadLabel";
 			this.historyHeadLabel.Size = new System.Drawing.Size(74, 22);
 			this.historyHeadLabel.TabIndex = 1;
@@ -580,8 +798,8 @@
 		private River.OneMoreAddIn.UI.MoreLabel pageHeadLabel;
 		private River.OneMoreAddIn.UI.MoreLabel pinnedHeadLabel;
 		private River.OneMoreAddIn.UI.MoreLabel historyHeadLabel;
-		private River.OneMoreAddIn.UI.MoreListView pinnedBox;
-		private River.OneMoreAddIn.UI.MoreListView historyBox;
+		private River.OneMoreAddIn.UI.MoreListViewEx pinnedBox;
+		private River.OneMoreAddIn.UI.MoreListViewEx historyBox;
 		private River.OneMoreAddIn.UI.MoreFlowLayoutPanel pageBox;
 		private River.OneMoreAddIn.UI.MoreButton pinButton;
 		private River.OneMoreAddIn.UI.MoreButton unpinButton;
@@ -594,5 +812,14 @@
 		private System.Windows.Forms.Panel historyToolPanel;
 		private System.Windows.Forms.Panel pinnedToolPanel;
 		private UI.MoreButton deleteHistoryButton;
+		private UI.MoreButton pageTwistButton;
+		private UI.MoreButton pinnedTwistButton;
+		private UI.MoreButton historyTwistButton;
+		private UI.MoreButton pageFilterButton;
+		private UI.MoreButton pageFilterCloseButton;
+		private UI.MoreTextBox pageFilterBox;
+		private UI.MoreButton historyFilterButton;
+		private UI.MoreButton historyFilterCloseButton;
+		private UI.MoreTextBox historyFilterBox;
 	}
 }

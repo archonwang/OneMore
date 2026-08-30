@@ -1,16 +1,16 @@
 ﻿//************************************************************************************************
-// Copyright © 2021 Steven M Cohn.  All rights reserved.
+// Copyright © 2021 Steven M Cohn. All rights reserved.
 //************************************************************************************************
 
 namespace River.OneMoreAddIn.Helpers.Office
 {
-	using Microsoft.Office.Interop.Outlook;
 	using System;
 	using System.Collections.Generic;
-	using System.Diagnostics;
 	using System.Globalization;
 	using System.Linq;
+	using System.Reflection;
 	using System.Runtime.InteropServices;
+	using Microsoft.Office.Interop.Outlook;
 
 
 	/// <summary>
@@ -32,38 +32,66 @@ namespace River.OneMoreAddIn.Helpers.Office
 		/// </summary>
 		public Outlook()
 		{
-			outlook = new Application();
+			var logger = Logger.Current;
+			var retries = 0;
+
+			while (true)
+			{
+				try
+				{
+					outlook = new Application();
+
+					// NameSpace.Logon is a safe no-op when a session is already active (the
+					// common case where Outlook is already running and signed in), but when
+					// this is a cold start - e.g. classic Outlook isn't normally running
+					// because "New Outlook" is the user's default client - it blocks until
+					// the MAPI session is actually attached. Without this, the very first
+					// Session-dependent property access after a cold start can throw an
+					// obscure COMException because no session is established yet.
+					outlook.Session.Logon(Missing.Value, Missing.Value, true, true);
+
+					if (retries > 0)
+					{
+						logger.WriteLine($"Outlook logon completed successfully after {retries} retries");
+					}
+
+					return;
+				}
+				catch (COMException exc) when (retries < 5)
+				{
+					retries++;
+					var ms = 1000 * retries;
+
+					logger.WriteLine($"Outlook not ready, retrying logon in {ms}ms", exc);
+
+					if (outlook is not null)
+					{
+						Marshal.ReleaseComObject(outlook);
+						outlook = null;
+					}
+
+					System.Threading.Thread.Sleep(ms);
+				}
+			}
 		}
 
 
 		protected virtual void Dispose(bool disposing)
 		{
-			if (!disposed)
+			if (disposed || outlook == null)
 			{
-				// this automation class will create a process with the -Embedding cmdline
-				// switch but a user-started Outlook will not so look for a user process
-				// and skip disposing so we don't interrupt the user's interactive session
-				if (!Process.GetProcessesByName("OUTLOOK")
-					.Any(p =>
-					{
-						var cmd = p.GetCommandLine();
-						return cmd != null && !cmd.Contains("-Embedding");
-					}))
-				{
-					// unfortunately, the above assumptions are not true; if an embedded instance
-					// is running and Outlook UI is then started, the embedded instance will
-					// take over so we still have an -Embedding processing serving UI!
-					//outlook.Quit();
-					Marshal.ReleaseComObject(outlook);
-					disposed = true;
-				}
+				return;
 			}
 
-			if (outlook != null)
-			{
-				Marshal.ReleaseComObject(outlook);
-				outlook = null;
-			}
+			// this automation class will create a process with the -Embedding cmdline
+			// switch but a user-started Outlook will not so look for a user process
+			// and skip disposing so we don't interrupt the user's interactive session
+			// (note: an embedded instance can be taken over by a later UI launch, so the
+			// check is best-effort; we always release our RCW regardless)
+			//outlook.Quit();
+			Marshal.ReleaseComObject(outlook);
+			outlook = null;
+			disposed = true;
 		}
 
 
@@ -71,6 +99,161 @@ namespace River.OneMoreAddIn.Helpers.Office
 		{
 			Dispose(disposing: true);
 			GC.SuppressFinalize(this);
+		}
+
+
+		/// <summary>
+		/// Returns a list of all categories defined in the current Outlook session.
+		/// </summary>
+		/// <returns>An enumerable collection of OutlookCategory instances</returns>
+		public IEnumerable<OutlookCategory> GetCategories()
+		{
+			var categories = outlook.Session.Categories;
+			try
+			{
+				foreach (Category cat in categories)
+				{
+					yield return new OutlookCategory
+					{
+						Name = cat.Name,
+
+						// color is a string of the form olCategoryColor<name>
+						// so strip the "olCategoryColor" prefix to get the actual color name
+						ColorName = cat.Color.ToString().Substring(15)
+					};
+
+					Marshal.ReleaseComObject(cat);
+				}
+			}
+			finally
+			{
+				Marshal.ReleaseComObject(categories);
+			}
+		}
+
+
+		/// <summary>
+		/// Returns a list of all contact folders defined in the current Outlook session.
+		/// </summary>
+		/// <returns>An enumerable collection of OutlookFolder instances</returns>
+		public IEnumerable<OutlookFolder> GetContactFolders()
+		{
+			var ns = outlook.GetNamespace("MAPI");
+			//Logger.Current.WriteLine($"default store: {ns.DefaultStore.DisplayName}");
+
+			// deleted Items folder path (language‑safe)
+			var deletedFolder = ns.GetDefaultFolder(OlDefaultFolders.olFolderDeletedItems);
+			var deletedFolderPath = deletedFolder.FolderPath;
+			Marshal.ReleaseComObject(deletedFolder);
+
+			foreach (Store store in ns.Stores)
+			{
+				if (store.GetRootFolder() is Folder root)
+				{
+					foreach (var folder in EnumerateFolders(root))
+					{
+						yield return new OutlookFolder(folder);
+					}
+				}
+
+				Marshal.ReleaseComObject(store);
+			}
+
+			IEnumerable<Folder> EnumerateFolders(Folder folder)
+			{
+				// skip Deleted Items subtree
+				if (folder.FolderPath.StartsWith(deletedFolderPath, StringComparison.OrdinalIgnoreCase))
+				{
+					Marshal.ReleaseComObject(folder);
+					yield break;
+				}
+
+				// skip hidden folders
+				if (IsHidden(folder))
+				{
+					Marshal.ReleaseComObject(folder);
+					yield break;
+				}
+
+				// only real contact folders
+				var isContactFolder =
+					folder.DefaultItemType == OlItemType.olContactItem &&
+					folder.DefaultMessageClass == "IPM.Contact";
+
+				if (isContactFolder)
+				{
+					// ownership transfers to the wrapping OutlookFolder; released when that's disposed
+					yield return folder;
+				}
+
+				// recurse
+				foreach (Folder sub in folder.Folders)
+				{
+					foreach (var f in EnumerateFolders(sub))
+					{
+						yield return f;
+					}
+				}
+
+				if (!isContactFolder)
+				{
+					Marshal.ReleaseComObject(folder);
+				}
+			}
+
+			bool IsHidden(Folder folder)
+			{
+				const string PR_ATTR_HIDDEN = "http://schemas.microsoft.com/mapi/proptag/0x10F4000B";
+
+				var pa = folder.PropertyAccessor;
+				try
+				{
+					var value = pa.GetProperty(PR_ATTR_HIDDEN);
+					return value is bool b && b;
+				}
+				catch
+				{
+					return false; // property not present → treat as visible
+				}
+				finally
+				{
+					Marshal.ReleaseComObject(pa);
+				}
+			}
+		}
+
+
+		/// <summary>
+		/// Load on specific contact by ID
+		/// </summary>
+		/// <param name="contactID"></param>
+		/// <returns></returns>
+		public OutlookContact LoadContact(string contactID)
+		{
+			if (outlook.Session.GetItemFromID(contactID) is ContactItem item)
+			{
+				return new OutlookContact(item);
+			}
+
+			return null;
+		}
+
+
+		/// <summary>
+		/// Loads specific contacts by their Outlook EntryID, used to refresh a previously
+		/// generated contacts report without re-enumerating every contact folder.
+		/// </summary>
+		/// <param name="contactIDs">The EntryIDs of the contacts to load</param>
+		/// <returns>An enumerable collection of OutlookContact instances</returns>
+		public IEnumerable<OutlookContact> LoadContactsByID(IEnumerable<string> contactIDs)
+		{
+			foreach (var id in contactIDs)
+			{
+				if (outlook.Session.GetItemFromID(id) is ContactItem item)
+				{
+					yield return new OutlookContact(item);
+				}
+			}
 		}
 
 
@@ -109,6 +292,7 @@ namespace River.OneMoreAddIn.Helpers.Office
 				{
 					Subject = item.Subject,
 					EntryID = item.EntryID,
+					Categories = item.Categories,
 					Complete = item.Complete,
 					CreationTime = item.CreationTime,
 					DateCompleted = item.DateCompleted,

@@ -42,12 +42,13 @@ namespace River.OneMoreAddIn.Commands
 
 			if (NeedsLocalizing())
 			{
-				Text = Resx.HashtagDialog_Title;
+				Text = Resx.word_Hashtags;
 
 				Localize(new string[]
 				{
 					"introLabel",
 					"scopeBox",
+					"allTagsBox",
 					"checkAllLink",
 					"uncheckAllLink",
 					"scanButton",
@@ -101,6 +102,8 @@ namespace River.OneMoreAddIn.Commands
 				.Get("showOffline", true);
 
 			tooltip.SetToolTip(sensitiveBox, Resx.HashtagDialog_sensitiveTip);
+
+			ElevatedWithOneNote = true;
 		}
 
 
@@ -141,7 +144,7 @@ namespace River.OneMoreAddIn.Commands
 					.Where(e => e.Attribute("isRecycleBin") is null)
 					.Select(e => e.Attribute("ID").Value);
 
-				var provider = new HashtagProvider();
+				using var provider = new HashtagProvider();
 				var known = provider.ReadKnownNotebooks();
 
 				if (bookIDs.Any(e => !known.Contains(e)))
@@ -155,7 +158,8 @@ namespace River.OneMoreAddIn.Commands
 
 		private void ShowScanTimes()
 		{
-			var scan = new HashtagProvider().ReadScanTime();
+			using var provider = new HashtagProvider();
+			var scan = provider.ReadScanTime();
 			var lastScanTime = DateTime.Parse(scan, CultureInfo.InvariantCulture);
 			var lastScan = lastScanTime.ToShortTimeString();
 
@@ -178,7 +182,7 @@ namespace River.OneMoreAddIn.Commands
 		private async Task PopulateTags(object sender, EventArgs e)
 		{
 			await using var one = new OneNote();
-			var provider = new HashtagProvider();
+			using var provider = new HashtagProvider();
 
 			var names = scopeBox.SelectedIndex switch
 			{
@@ -243,16 +247,17 @@ namespace River.OneMoreAddIn.Commands
 			var loadedBookIDs = (await one.GetNotebooks()).Elements()
 				.Select(e => e.Attribute("ID").Value).ToList();
 
-			var provider = new HashtagProvider();
+			using var provider = new HashtagProvider();
 			string parsed;
 			var cs = sensitiveBox.Checked;
 
+			var allTags = allTagsBox.Checked;
 			var tags = scopeBox.SelectedIndex switch
 			{
-				1 => provider.SearchTags(where, cs, out parsed, notebookID: one.CurrentNotebookId),
-				2 => provider.SearchTags(where, cs, out parsed, sectionID: one.CurrentSectionId),
-				3 => provider.SearchTags(where, cs, out parsed, moreID: moreID),
-				_ => provider.SearchTags(where, cs, out parsed)
+				1 => provider.SearchTags(where, cs, allTags, out parsed, notebookID: one.CurrentNotebookId),
+				2 => provider.SearchTags(where, cs, allTags, out parsed, sectionID: one.CurrentSectionId),
+				3 => provider.SearchTags(where, cs, allTags, out parsed, moreID: moreID),
+				_ => provider.SearchTags(where, cs, allTags, out parsed)
 			};
 
 			if (!ShowOfflineNotebooks)
@@ -274,6 +279,21 @@ namespace River.OneMoreAddIn.Commands
 			{
 				var items = CollateTags(tags, loadedBookIDs);
 				tags.Clear();
+
+				var colorCache = new Dictionary<string, Color>();
+				foreach (var item in items)
+				{
+					if (item.SectionID is null) continue;
+					if (!colorCache.TryGetValue(item.SectionID, out var color))
+					{
+						var info = await one.GetSectionInfo(item.SectionID);
+						color = info?.Color is not null
+							? ColorHelper.FromHtml(info.Color)
+							: Color.Empty;
+						colorCache[item.SectionID] = color;
+					}
+					item.SectionColor = color;
+				}
 
 				var controls = new HashtagContextControl[items.Count];
 
@@ -297,7 +317,7 @@ namespace River.OneMoreAddIn.Commands
 			}
 			else
 			{
-				var control = new HashtagErrorControl(
+				var control = new SearchErrorControl(
 					Resx.HashtagDialog_noResults, experimental ? parsed : null)
 				{
 					Width = width
@@ -470,7 +490,8 @@ namespace River.OneMoreAddIn.Commands
 
 		private void ShowMenu(object sender, EventArgs e)
 		{
-			var scanTime = new HashtagProvider().ReadScanTime();
+			using var provider = new HashtagProvider();
+			var scanTime = provider.ReadScanTime();
 
 			if (scanTime.CompareTo(T0) > 0)
 			{

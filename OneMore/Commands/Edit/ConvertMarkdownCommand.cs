@@ -5,6 +5,7 @@
 namespace River.OneMoreAddIn.Commands
 {
 	using River.OneMoreAddIn.Models;
+	using River.OneMoreAddIn.Settings;
 	using System.IO;
 	using System.Linq;
 	using System.Text.RegularExpressions;
@@ -25,6 +26,11 @@ namespace River.OneMoreAddIn.Commands
 		public override async Task Execute(params object[] args)
 		{
 			using var one = new OneNote(out var page, out var ns);
+			if (!page.IsValid)
+			{
+				return;
+			}
+
 			var range = new SelectionRange(page);
 			var selectedRuns = range.GetSelections(true);
 
@@ -32,7 +38,20 @@ namespace River.OneMoreAddIn.Commands
 				range.Scope == SelectionScope.TextCursor ||
 				range.Scope == SelectionScope.SpecialCursor;
 
+			if (range.Scope == SelectionScope.TextCursor)
+			{
+				// a plain caret with no highlighted text splits its paragraph's text run
+				// into two runs around an empty CDATA[] marking the cursor position; undo
+				// that split so the paragraph isn't corrupted during extraction below
+				range.Deselect();
+			}
+
 			var editor = new PageEditor(page) { AllContent = allContent };
+
+			var markdownSettings = new SettingsProvider().GetCollection(nameof(MarkdownSheet));
+			var gfmLineBreaks = markdownSettings.Get("gfmLineBreaks", false);
+			var singleSpacing = markdownSettings.Get("singleSpacing", false);
+			var blankBeforeHeadings = markdownSettings.Get("blankBeforeHeadings", false);
 
 			var outlines = allContent
 				? page.BodyOutlines
@@ -67,9 +86,10 @@ namespace River.OneMoreAddIn.Commands
 				var filepath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
 
 				var text = reader.ReadTextFrom(paragraphs, allContent);
-				text = Regex.Replace(text, @"<br>([\n\r]+)", "$1");
+				text = Regex.Replace(text, @"<br>([\n\r]+|$)", "$1");
 
-				var body = OneMoreDig.ConvertMarkdownToHtml(filepath, text);
+				var body = OneMoreDig.ConvertMarkdownToHtml(
+					filepath, text, gfmLineBreaks, singleSpacing, blankBeforeHeadings);
 
 				editor.InsertAtAnchor(new XElement(ns + "HTMLBlock",
 					new XElement(ns + "Data",
@@ -96,11 +116,16 @@ namespace River.OneMoreAddIn.Commands
 				var converter = new MarkdownConverter(page);
 
 				converter
-					.RewriteHeadings(touched)
+					.RewriteHeadings(touched, blankBeforeHeadings)
+					.RewriteBlankLines(touched)
 					.RewriteTodo(touched)
-					.SpaceOutParagraphs(touched, 12);
+					.RewriteCode(touched)
+					.RewriteInlineCode(touched)
+					.SpaceOutParagraphs(touched, singleSpacing ? 0f : 12f);
 
-				await one.Update(page);
+				// force a full update: OptimizeForSave's omHash-based "unchanged, skip
+				// it" shortcut must not be allowed to discard these targeted edits
+				await one.Update(page, force: true);
 			}
 		}
 	}

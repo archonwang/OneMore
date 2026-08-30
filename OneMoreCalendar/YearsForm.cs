@@ -49,6 +49,10 @@ namespace OneMoreCalendar
 		/// <param name="e"></param>
 		protected override async void OnLoad(EventArgs e)
 		{
+			// ClientSize was set in the Designer at a logical (96 DPI) baseline; scale it here,
+			// before calling base.OnLoad, so RoundedForm's rounded region uses the final size
+			ClientSize = new Size(this.Scaled(ClientSize.Width), this.Scaled(ClientSize.Height));
+
 			// call RoundForm.base to draw background
 			base.OnLoad(e);
 
@@ -125,28 +129,34 @@ namespace OneMoreCalendar
 			// unhighlight old
 
 			int index;
-			if (hoveredItem != null)
+			if (hoveredItem is not null)
 			{
 				var oldItem = hoveredItem;
 				hoveredItem = null;
 
 				index = listView.Items.IndexOf(oldItem);
 
-				DrawItem(sender, new DrawListViewItemEventArgs(
-					listView.CreateGraphics(), oldItem,
-					listView.GetItemRect(index), index, ListViewItemStates.Default));
+				using (var g = listView.CreateGraphics())
+				{
+					DrawItem(sender, new DrawListViewItemEventArgs(
+						g, oldItem,
+						listView.GetItemRect(index), index, ListViewItemStates.Default));
+				}
 			}
 
 			// highlight new
 
 			hoveredItem = item;
-			if (hoveredItem != null)
+			if (hoveredItem is not null)
 			{
 				index = listView.Items.IndexOf(hoveredItem);
 
-				DrawItem(sender, new DrawListViewItemEventArgs(
-					listView.CreateGraphics(), hoveredItem,
-					listView.GetItemRect(index), index, ListViewItemStates.Hot));
+				using (var g = listView.CreateGraphics())
+				{
+					DrawItem(sender, new DrawListViewItemEventArgs(
+						g, hoveredItem,
+						listView.GetItemRect(index), index, ListViewItemStates.Hot));
+				}
 			}
 		}
 
@@ -154,7 +164,7 @@ namespace OneMoreCalendar
 		private void ChooseYear(object sender, MouseEventArgs e)
 		{
 			var item = listView.GetItemAt(e.X, e.Y);
-			if (item != null)
+			if (item is not null)
 			{
 				Year = int.Parse(item.Text);
 				DialogResult = DialogResult.OK;

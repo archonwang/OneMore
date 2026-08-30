@@ -9,6 +9,7 @@ namespace River.OneMoreAddIn
 {
 	using System;
 	using System.Collections.Generic;
+	using System.Diagnostics;
 	using System.Linq;
 	using System.Runtime.InteropServices;
 	using System.Threading;
@@ -46,6 +47,7 @@ namespace River.OneMoreAddIn
 		private static GCHandle mroot;                  // rooted handle to message window
 
 		private static uint oneNotePID;                 // onenote process ID
+		private static uint selfPID;                    // this add-in's own (dllhost) process ID
 
 		private static bool registered = false;
 
@@ -63,6 +65,7 @@ namespace River.OneMoreAddIn
 		{
 			await using var one = new OneNote();
 			Native.GetWindowThreadProcessId(one.WindowHandle, out oneNotePID);
+			selfPID = (uint)Process.GetCurrentProcess().Id;
 
 			var mthread = new Thread(delegate () { Application.Run(new MessageWindow()); })
 			{
@@ -71,6 +74,24 @@ namespace River.OneMoreAddIn
 			};
 
 			mthread.Start();
+		}
+
+
+		/// <summary>
+		/// Marshals the given action onto this manager's own persistent message-pump
+		/// thread, which keeps an Application.Run loop alive for the lifetime of the
+		/// process. Commands normally run inside CommandFactory.RunCore's Task.Run, i.e.
+		/// on a throwaway threadpool thread with no message loop of its own, which forces
+		/// MoreForm.RunModeless into a comparatively slow/blocking nested Application.Run
+		/// every single time it shows a form. Invoking the show step through here instead
+		/// lets RunModeless see an existing, already-running message loop and take its
+		/// lightweight, non-blocking Show() path.
+		/// </summary>
+		/// <param name="action">The action to run on the message-pump thread</param>
+		public static void InvokeOnMessageThread(Action action)
+		{
+			resetEvent.WaitOne();
+			mwindow.Invoke(action);
 		}
 
 
@@ -182,20 +203,40 @@ namespace River.OneMoreAddIn
 				IntPtr hWinEventHook, uint eventType, IntPtr hwnd,
 				int idObject, int idChild, uint dwEventThread, uint dwmsEventTime)
 			{
-				Native.GetWindowThreadProcessId(Native.GetForegroundWindow(), out var pid);
-				//Logger.Current.WriteLine($"hotkey event:{eventType} pid:{pid} thread:{dwEventThread}");
+				//Logger.Current.WriteLine($"hotkey event:{eventType} hwnd:{hwnd} thread:{dwEventThread}");
+
+				if (eventType == Native.EVENT_SYSTEM_MINIMIZESTART)
+				{
+					// hwnd is the window being minimized; unregister if it belongs to OneNote
+					Native.GetWindowThreadProcessId(hwnd, out var hwndPid);
+					if (hwndPid == oneNotePID && registered && registeredKeys.Count > 0)
+					{
+						//Logger.Current.WriteLine("hotkey unregistering (minimize)");
+						registeredKeys.ForEach(k => Native.UnregisterHotKey(mhandle, k.Id));
+						registered = false;
+					}
+
+					return;
+				}
 
 				if (eventType == Native.EVENT_SYSTEM_FOREGROUND ||
-					eventType == Native.EVENT_SYSTEM_MINIMIZESTART ||
 					eventType == Native.EVENT_SYSTEM_MINIMIZEEND)
 				{
-					// threadId is the OneNote.exe process main UI thread
-					// msgThreadId is the dllhost.exe process thread hosting this MessageWindow
-					// Both are needed because threadId will be current when switching back to
-					// OneNote.exe from another app; while msgThreadId will be current when
-					// opening a OneMore dialog such as "Search and Replace"
+					// Use hwnd rather than GetForegroundWindow() to avoid a TOCTOU race:
+					// WINEVENT_OUTOFCONTEXT posts the callback asynchronously, so by the time
+					// we run, GetForegroundWindow() may no longer match the window that fired
+					// the event. hwnd carries the state at event-generation time.
+					// - FOREGROUND: hwnd is the window gaining focus
+					// - MINIMIZEEND: hwnd is the window being restored (OneNote)
+					Native.GetWindowThreadProcessId(hwnd, out var pid);
 
-					if (pid == oneNotePID)
+					// OneMore's own modeless popups (e.g. CompleteHashtagDialog) run in this
+					// same dllhost process and can legitimately become the foreground window;
+					// treat that the same as OneNote itself so hotkeys stay registered while
+					// they're shown, rather than unregistering and racing to re-register them
+					// only after the popup closes - a race that made rapid close/reopen cycles
+					// (e.g. repeated Alt+G) intermittently do nothing
+					if (pid == oneNotePID || pid == selfPID)
 					{
 						if (!registered && registeredKeys.Count > 0)
 						{
@@ -210,7 +251,7 @@ namespace River.OneMoreAddIn
 					{
 						if (registered && registeredKeys.Count > 0)
 						{
-							//Logger.Current.WriteLine("hotkey uregistering");
+							//Logger.Current.WriteLine("hotkey unregistering");
 							registeredKeys.ForEach(k =>
 								Native.UnregisterHotKey(mhandle, k.Id));
 
@@ -225,9 +266,14 @@ namespace River.OneMoreAddIn
 			{
 				if (m.Msg == Native.WM_HOTKEY)
 				{
-					// check if this is the main OneNote.exe thread and not a dllhost.exe thread
+					// accept the keypress if the foreground window belongs to OneNote or to
+					// this add-in's own dllhost.exe process; mirrors the same pid check in
+					// WinEventProc above, which keeps hotkeys registered while one of OneMore's
+					// own modeless popups (Navigator, Search, Command Palette, etc.) has focus -
+					// without this, those windows stayed "registered" but every keypress while
+					// they were focused was silently dropped right here
 					Native.GetWindowThreadProcessId(Native.GetForegroundWindow(), out var pid);
-					if (pid == oneNotePID)
+					if (pid == oneNotePID || pid == selfPID)
 					{
 						OnHotKeyPressed(new HotkeyEventArgs(m.LParam));
 					}

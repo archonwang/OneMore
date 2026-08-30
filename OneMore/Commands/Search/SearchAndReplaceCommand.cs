@@ -19,6 +19,7 @@ namespace River.OneMoreAddIn.Commands
 	{
 		private Page currentPage;
 		private OneNote.Scope scope;
+		private bool stepwiseMode;
 		private SearchAndReplaceEditor editor;
 
 
@@ -29,17 +30,28 @@ namespace River.OneMoreAddIn.Commands
 
 		public override async Task Execute(params object[] args)
 		{
+			using var guard = EnterOnce();
+			if (guard is null) { return; }
+
 			editor = await MakeEditor();
 			if (editor is null)
 			{
 				return;
 			}
 
-			var found = scope == OneNote.Scope.Self
-				? await SearchPage()
-				: await SearchHierarchy();
+			bool found;
+			if (scope == OneNote.Scope.Self)
+			{
+				found = stepwiseMode
+					? await SearchPageStepwise()
+					: await SearchPage();
+			}
+			else
+			{
+				found = await SearchHierarchy();
+			}
 
-			if (found)
+			if (found && !stepwiseMode)
 			{
 				SaveSettings();
 			}
@@ -58,12 +70,14 @@ namespace River.OneMoreAddIn.Commands
 				dialog.WhatText = text;
 			}
 
-			if (dialog.ShowDialog(owner) != DialogResult.OK)
+			var result = dialog.ShowDialog(owner);
+			if (result != DialogResult.OK && result != DialogResult.Yes)
 			{
 				return null;
 			}
 
 			scope = dialog.Scope;
+			stepwiseMode = dialog.StepwiseMode;
 
 			if (dialog.RawXml is null)
 			{
@@ -90,7 +104,11 @@ namespace River.OneMoreAddIn.Commands
 		private async Task<bool> SearchPage()
 		{
 			var count = editor.SearchAndReplace(currentPage);
-			logger.WriteLine($"found {count} matches on {currentPage.Title}");
+
+			if (count > 0)
+			{
+				logger.WriteLine($"found {count} matches on {currentPage.Title}");
+			}
 
 			if (count > 0)
 			{
@@ -100,6 +118,30 @@ namespace River.OneMoreAddIn.Commands
 			}
 
 			return false;
+		}
+
+
+		private async Task<bool> SearchPageStepwise()
+		{
+			var matches = editor.FindAllMatches(currentPage);
+			logger.WriteLine($"found {matches.Count} stepwise matches on {currentPage.Title}");
+
+			if (matches.Count == 0)
+			{
+				ShowInfo(Resx.SearchAndReplaceCommand_NoMatches);
+				return false;
+			}
+
+			await using var one = new OneNote();
+			await one.NavigateTo(currentPage.PageId, matches[0].ParagraphObjectId);
+
+			var sessionDialog = new SearchAndReplaceSessionDialog(
+				currentPage, matches, editor, currentPage.PageId);
+
+			sessionDialog.RunModeless();
+
+			SaveSettings();
+			return true;
 		}
 
 

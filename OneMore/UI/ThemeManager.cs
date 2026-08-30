@@ -67,6 +67,20 @@ namespace River.OneMoreAddIn.UI
 		public static ThemeManager Instance => instance ??= new ThemeManager();
 
 
+		/// <summary>
+		/// Gets a value indicating whether code is currently running inside the VS designer.
+		/// Use this to skip explicit BackColor/ForeColor assignments at design time instead of
+		/// relying on ShouldSerializeXxx/ResetXxx overrides - confirmed (via a standalone
+		/// TypeDescriptor test against .NET Framework) that those conventions are NOT honored
+		/// for Control.BackColor/ForeColor on a subclass, regardless of accessibility, so an
+		/// explicit assignment always gets baked into the consumer's InitializeComponent the
+		/// next time its Designer.cs is opened and saved, no matter how it's guarded.
+		/// </summary>
+		public static bool IsDesignTime =>
+			LicenseManager.UsageMode == LicenseUsageMode.Designtime ||
+			System.Diagnostics.Process.GetCurrentProcess().ProcessName == "devenv";
+
+
 		[JsonIgnore]
 		public Color ButtonBack => Colors[nameof(ButtonBack)];
 		[JsonIgnore]
@@ -82,12 +96,48 @@ namespace River.OneMoreAddIn.UI
 		private const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
 		private const int DWMWA_MICA_EFFECT = 1029;
 
+		private static bool appModePreferred;
+
 		[DllImport("dwmapi.dll", PreserveSig = true)]
 		private static extern int DwmSetWindowAttribute(
 			IntPtr hwnd, int attr, ref bool attrValue, int attrSize);
 
 		[DllImport("uxtheme.dll", CharSet = CharSet.Unicode)]
 		public static extern int SetWindowTheme(IntPtr hWnd, String pszSubAppName, String pszSubIdList);
+
+		// undocumented, ordinal-only exports (stable since Windows 10 1809) that opt a window
+		// into dark comctl32 chrome (list view headers, group banners, etc.); without these,
+		// SetWindowTheme(..., "DarkMode_Explorer", ...) alone only partially dark-themes native
+		// controls, leaving things like ListView column/group headers rendered in light colors
+		[DllImport("uxtheme.dll", EntryPoint = "#135")]
+		private static extern int SetPreferredAppMode(int preferredAppMode);
+
+		[DllImport("uxtheme.dll", EntryPoint = "#133")]
+		private static extern bool AllowDarkModeForWindow(IntPtr hWnd, bool allow);
+
+		/// <summary>
+		/// Best-effort opt-in to native dark comctl32 rendering. These are unsupported ordinal
+		/// exports that can vary or be missing across Windows builds, so failures are swallowed
+		/// and theming falls back to whatever SetWindowTheme alone achieves.
+		/// </summary>
+		private static void TryAllowDarkModeForWindow(IntPtr hwnd, bool allow)
+		{
+			try
+			{
+				if (!appModePreferred)
+				{
+					// 1 = AllowDark
+					SetPreferredAppMode(1);
+					appModePreferred = true;
+				}
+
+				AllowDarkModeForWindow(hwnd, allow);
+			}
+			catch
+			{
+				// ordinal not available on this Windows build; ignore
+			}
+		}
 		#endregion Native
 
 
@@ -157,15 +207,11 @@ namespace River.OneMoreAddIn.UI
 				}
 			}
 
-			var designMode =
-				LicenseManager.UsageMode == LicenseUsageMode.Designtime ||
-				System.Diagnostics.Process.GetCurrentProcess().ProcessName == "devenv";
-
 			var mode = modeIndex >= 0
 				? (ThemeMode)modeIndex
 				: new SettingsProvider().Theme;
 
-			DarkMode = !designMode &&
+			DarkMode = !IsDesignTime &&
 				(mode == ThemeMode.Dark ||
 				(mode == ThemeMode.System && Office.IsBlackThemeEnabled(true)));
 
@@ -191,8 +237,44 @@ namespace River.OneMoreAddIn.UI
 
 			bool trueValue = DarkMode;
 
-			// DarkMode_Explorer sets radios, checkboxes, scrollbars to dark mode Explorer 
-			SetWindowTheme(control.Handle, "DarkMode_Explorer", null);
+			TryAllowDarkModeForWindow(control.Handle, trueValue);
+
+			if (control is ListView)
+			{
+				// Rows/selection are fully owner-drawn by MoreListView/MoreListViewEx
+				// (WM_DRAWITEM), so native "ItemsView" row theming isn't needed here.
+				// "DarkMode_Explorer" is what actually carries dark-themed native
+				// scrollbars, which "ItemsView" alone omits.
+				SetWindowTheme(control.Handle, "DarkMode_Explorer", null);
+
+				// the column header is a separate native child window (SysHeader32) that
+				// needs the same explicit opt-in to pick up dark colors; "ItemsView" is
+				// kept here for screens that rely on the header's own native rendering
+				// rather than custom-drawing it (HeaderBackColor/HeaderForeColor unset)
+				var header = Native.SendMessage(control.Handle, Native.LVM_GETHEADER, IntPtr.Zero, IntPtr.Zero);
+				if (header != IntPtr.Zero)
+				{
+					TryAllowDarkModeForWindow(header, trueValue);
+					SetWindowTheme(header, "ItemsView", null);
+				}
+			}
+			else
+			{
+				// DarkMode_Explorer sets radios, checkboxes, scrollbars to dark mode Explorer
+				SetWindowTheme(control.Handle, "DarkMode_Explorer", null);
+
+				if (control is ComboBox)
+				{
+					// the drop-down list is a separate native popup window (not part of
+					// Controls), so it needs its own explicit opt-in for its scrollbar
+					var info = new Native.COMBOBOXINFO { cbSize = Marshal.SizeOf<Native.COMBOBOXINFO>() };
+					if (Native.GetComboBoxInfo(control.Handle, ref info) && info.hwndList != IntPtr.Zero)
+					{
+						TryAllowDarkModeForWindow(info.hwndList, trueValue);
+						SetWindowTheme(info.hwndList, "DarkMode_Explorer", null);
+					}
+				}
+			}
 
 			DwmSetWindowAttribute(control.Handle,
 				DWMWA_USE_IMMERSIVE_DARK_MODE, ref trueValue, Marshal.SizeOf(typeof(bool)));
@@ -222,6 +304,13 @@ namespace River.OneMoreAddIn.UI
 
 		private void Colorize(Control control)
 		{
+			if (IsDesignTime)
+			{
+				// never explicitly assign BackColor/ForeColor at design time, otherwise the
+				// VS designer bakes the (always-light) snapshot into InitializeComponent
+				return;
+			}
+
 			if (control is ListView ||
 				control is MenuStrip ||
 				(control is ToolStrip && control is not StatusStrip))

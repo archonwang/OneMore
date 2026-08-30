@@ -443,8 +443,10 @@ namespace River.OneMoreAddIn.Models
 			range.GetSelections(true);
 
 			var allText =
-				range.Scope == SelectionScope.TextCursor ||
-				range.Scope == SelectionScope.SpecialCursor;
+				range.Scope == SelectionScope.TextCursor; 
+				// do not include SpecialCursor here because it would copy the entire page
+				// if the cursor is only positioned over a URL; that's too aggresive!
+				/* || range.Scope == SelectionScope.SpecialCursor; */
 
 			// Allow Title selection as well as body selections.
 			// Only grab the top level objects; we'll recurse in BuildText
@@ -575,8 +577,15 @@ namespace River.OneMoreAddIn.Models
 			// the entire line, plus the beginning of the next line. This is better than always
 			// adding a newline if the whole line is selected because it's the lesser of two evils
 			// when pasting into Excel, for example.
-			var match = true;
 			var newline = Environment.NewLine;
+
+			// selection covered only non-text content (images, ink, etc.) so nothing was appended
+			if (builder.Length < newline.Length)
+			{
+				return builder.ToString();
+			}
+
+			var match = true;
 			for (var i = 0; i < newline.Length; i++)
 			{
 				if (builder[builder.Length - (newline.Length - i)] != newline[i])
@@ -638,6 +647,12 @@ namespace River.OneMoreAddIn.Models
 						builder.Append($"{indent}{text}");
 					}
 				}
+			}
+			else if (ParagraphDivider is not null)
+			{
+				// preserve blank paragraphs as empty lines so markdown section separators
+				// (e.g. "---" thematic breaks, code fences) parse correctly
+				builder.AppendLine();
 			}
 
 			var children = paragraph

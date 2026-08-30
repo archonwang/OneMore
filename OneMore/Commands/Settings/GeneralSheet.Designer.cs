@@ -32,14 +32,15 @@ namespace River.OneMoreAddIn.Settings
 			this.introBox = new River.OneMoreAddIn.UI.MoreMultilineLabel();
 			this.layoutPanel = new System.Windows.Forms.Panel();
 			this.sequentialBox = new River.OneMoreAddIn.UI.MoreCheckBox();
-			this.themeBox = new System.Windows.Forms.ComboBox();
-			this.themeLabel = new System.Windows.Forms.Label();
+			this.themeBox = new UI.MoreComboBox();
+			this.themeLabel = new UI.MoreLabel();
 			this.advancedGroup = new River.OneMoreAddIn.UI.MoreGroupBox();
 			this.experimentalBox = new River.OneMoreAddIn.UI.MoreCheckBox();
 			this.verboseBox = new River.OneMoreAddIn.UI.MoreCheckBox();
-			this.langBox = new System.Windows.Forms.ComboBox();
-			this.langLabel = new System.Windows.Forms.Label();
+			this.langBox = new UI.MoreComboBox();
+			this.langLabel = new UI.MoreLabel();
 			this.checkUpdatesBox = new River.OneMoreAddIn.UI.MoreCheckBox();
+			this.telemetryBox = new River.OneMoreAddIn.UI.MoreCheckBox();
 			this.layoutPanel.SuspendLayout();
 			this.advancedGroup.SuspendLayout();
 			this.SuspendLayout();
@@ -84,7 +85,7 @@ namespace River.OneMoreAddIn.Settings
 			this.sequentialBox.Name = "sequentialBox";
 			this.sequentialBox.Size = new System.Drawing.Size(461, 25);
 			this.sequentialBox.StylizeImage = false;
-			this.sequentialBox.TabIndex = 7;
+			this.sequentialBox.TabIndex = 2;
 			this.sequentialBox.Text = "Allow nonsequential name matching in Command Palettes";
 			this.sequentialBox.ThemedBack = null;
 			this.sequentialBox.ThemedFore = null;
@@ -101,7 +102,7 @@ namespace River.OneMoreAddIn.Settings
 			this.themeBox.Location = new System.Drawing.Point(186, 20);
 			this.themeBox.Name = "themeBox";
 			this.themeBox.Size = new System.Drawing.Size(300, 28);
-			this.themeBox.TabIndex = 6;
+			this.themeBox.TabIndex = 0;
 			// 
 			// themeLabel
 			// 
@@ -118,14 +119,15 @@ namespace River.OneMoreAddIn.Settings
 			this.advancedGroup.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
 			this.advancedGroup.BorderThickness = 3;
+			this.advancedGroup.Controls.Add(this.telemetryBox);
 			this.advancedGroup.Controls.Add(this.experimentalBox);
 			this.advancedGroup.Controls.Add(this.verboseBox);
 			this.advancedGroup.ForeColor = System.Drawing.SystemColors.ControlText;
-			this.advancedGroup.Location = new System.Drawing.Point(7, 289);
+			this.advancedGroup.Location = new System.Drawing.Point(7, 266);
 			this.advancedGroup.Name = "advancedGroup";
 			this.advancedGroup.Padding = new System.Windows.Forms.Padding(15, 10, 10, 10);
 			this.advancedGroup.ShowOnlyTopEdge = true;
-			this.advancedGroup.Size = new System.Drawing.Size(762, 124);
+			this.advancedGroup.Size = new System.Drawing.Size(762, 147);
 			this.advancedGroup.TabIndex = 4;
 			this.advancedGroup.TabStop = false;
 			this.advancedGroup.Text = "Advanced Options";
@@ -137,7 +139,7 @@ namespace River.OneMoreAddIn.Settings
 			this.experimentalBox.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(240)))), ((int)(((byte)(240)))), ((int)(((byte)(240)))));
 			this.experimentalBox.Cursor = System.Windows.Forms.Cursors.Hand;
 			this.experimentalBox.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(0)))), ((int)(((byte)(0)))));
-			this.experimentalBox.Location = new System.Drawing.Point(18, 62);
+			this.experimentalBox.Location = new System.Drawing.Point(18, 94);
 			this.experimentalBox.Name = "experimentalBox";
 			this.experimentalBox.Size = new System.Drawing.Size(250, 25);
 			this.experimentalBox.StylizeImage = false;
@@ -152,7 +154,7 @@ namespace River.OneMoreAddIn.Settings
 			this.verboseBox.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(240)))), ((int)(((byte)(240)))), ((int)(((byte)(240)))));
 			this.verboseBox.Cursor = System.Windows.Forms.Cursors.Hand;
 			this.verboseBox.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(0)))), ((int)(((byte)(0)))));
-			this.verboseBox.Location = new System.Drawing.Point(18, 32);
+			this.verboseBox.Location = new System.Drawing.Point(18, 63);
 			this.verboseBox.Name = "verboseBox";
 			this.verboseBox.Size = new System.Drawing.Size(208, 25);
 			this.verboseBox.StylizeImage = false;
@@ -169,7 +171,7 @@ namespace River.OneMoreAddIn.Settings
 			this.langBox.Location = new System.Drawing.Point(186, 83);
 			this.langBox.Name = "langBox";
 			this.langBox.Size = new System.Drawing.Size(300, 28);
-			this.langBox.TabIndex = 3;
+			this.langBox.TabIndex = 1;
 			// 
 			// langLabel
 			// 
@@ -193,11 +195,26 @@ namespace River.OneMoreAddIn.Settings
 			this.checkUpdatesBox.Name = "checkUpdatesBox";
 			this.checkUpdatesBox.Size = new System.Drawing.Size(456, 25);
 			this.checkUpdatesBox.StylizeImage = false;
-			this.checkUpdatesBox.TabIndex = 1;
+			this.checkUpdatesBox.TabIndex = 3;
 			this.checkUpdatesBox.Text = "Check for new versions of OneMore when OneNote starts";
 			this.checkUpdatesBox.ThemedBack = null;
 			this.checkUpdatesBox.ThemedFore = null;
 			this.checkUpdatesBox.UseVisualStyleBackColor = true;
+			// 
+			// telemetryBox
+			// 
+			this.telemetryBox.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(240)))), ((int)(((byte)(240)))), ((int)(((byte)(240)))));
+			this.telemetryBox.Cursor = System.Windows.Forms.Cursors.Hand;
+			this.telemetryBox.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(0)))), ((int)(((byte)(0)))));
+			this.telemetryBox.Location = new System.Drawing.Point(18, 32);
+			this.telemetryBox.Name = "telemetryBox";
+			this.telemetryBox.Size = new System.Drawing.Size(250, 25);
+			this.telemetryBox.StylizeImage = false;
+			this.telemetryBox.TabIndex = 2;
+			this.telemetryBox.Text = "Enable anonymous telemetry";
+			this.telemetryBox.ThemedBack = null;
+			this.telemetryBox.ThemedFore = null;
+			this.telemetryBox.UseVisualStyleBackColor = true;
 			// 
 			// GeneralSheet
 			// 
@@ -222,13 +239,14 @@ namespace River.OneMoreAddIn.Settings
 		private UI.MoreMultilineLabel introBox;
 		private System.Windows.Forms.Panel layoutPanel;
 		private UI.MoreCheckBox checkUpdatesBox;
-		private System.Windows.Forms.ComboBox langBox;
-		private System.Windows.Forms.Label langLabel;
+		private UI.MoreComboBox langBox;
+		private UI.MoreLabel langLabel;
 		private UI.MoreGroupBox advancedGroup;
 		private UI.MoreCheckBox verboseBox;
 		private UI.MoreCheckBox experimentalBox;
-		private System.Windows.Forms.ComboBox themeBox;
-		private System.Windows.Forms.Label themeLabel;
+		private UI.MoreComboBox themeBox;
+		private UI.MoreLabel themeLabel;
 		private UI.MoreCheckBox sequentialBox;
+		private UI.MoreCheckBox telemetryBox;
 	}
 }

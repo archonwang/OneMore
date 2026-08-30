@@ -31,6 +31,9 @@ namespace River.OneMoreAddIn.Commands
 
 		public override async Task Execute(params object[] args)
 		{
+			using var guard = EnterOnce();
+			if (guard is null) { return; }
+
 			Color color;
 			Page page;
 			await using (var one = new OneNote(out page, out _))

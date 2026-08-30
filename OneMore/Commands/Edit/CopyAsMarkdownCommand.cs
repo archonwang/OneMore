@@ -22,8 +22,7 @@ namespace River.OneMoreAddIn.Commands
 
 		public override async Task Execute(params object[] args)
 		{
-			#region WriteMarkdown(PageEditor editor, MarkdownWriter writer, XElement start)
-			async void WriteMarkdown(PageEditor editor, MarkdownWriter writer, XElement start)
+			async void WriteMarkdown(PageEditor editor, MarkdownWriter writer, XElement start, bool includeTitle)
 			{
 				var content = editor.ExtractSelectedContent(start);
 
@@ -31,17 +30,20 @@ namespace River.OneMoreAddIn.Commands
 				logger.Debug(content);
 				logger.Debug("- - -");
 
-				await writer.Copy(content);
+				await writer.Copy(content, includeTitle);
 			}
-			#endregion WriteMarkdown
+
+			// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 			await using var one = new OneNote(out var page, out var _);
 
 			var writer = new MarkdownWriter(page, false);
 
-			// discover selection scope
+			// discover selection scope; allowNonEmpty lets a within-paragraph Run selection
+			// through — without it GetSelection() resets Run scope to None and the command
+			// returns early without writing anything to the clipboard
 			var range = new SelectionRange(page);
-			range.GetSelection();
+			range.GetSelection(allowNonEmpty: true);
 
 			if (range.Scope == SelectionScope.None)
 			{
@@ -52,8 +54,7 @@ namespace River.OneMoreAddIn.Commands
 			{
 				var editor = new PageEditor(page);
 
-				if (range.Scope == SelectionScope.TextCursor ||
-					range.Scope == SelectionScope.SpecialCursor)
+				if (range.Scope == SelectionScope.TextCursor)
 				{
 					editor.AllContent = true;
 					range.Deselect();
@@ -62,12 +63,12 @@ namespace River.OneMoreAddIn.Commands
 
 					foreach (var outline in page.BodyOutlines)
 					{
-						WriteMarkdown(editor, writer, outline);
+						WriteMarkdown(editor, writer, outline, true);
 					}
 				}
 				else
 				{
-					WriteMarkdown(editor, writer, null);
+					WriteMarkdown(editor, writer, null, false);
 				}
 			}
 			catch (Exception exc)

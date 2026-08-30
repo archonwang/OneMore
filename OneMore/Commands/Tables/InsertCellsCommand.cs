@@ -1,5 +1,5 @@
 ﻿//************************************************************************************************
-// Copyright © 2020 Steven M Cohn.  All rights reserved.
+// Copyright © 2020 Steven M Cohn. All rights reserved.
 //************************************************************************************************
 
 namespace River.OneMoreAddIn.Commands
@@ -23,7 +23,6 @@ namespace River.OneMoreAddIn.Commands
 	/// </summary>
 	internal class InsertCellsCommand : Command
 	{
-
 		public InsertCellsCommand()
 		{
 		}
@@ -31,6 +30,9 @@ namespace River.OneMoreAddIn.Commands
 
 		public override async Task Execute(params object[] args)
 		{
+			using var guard = EnterOnce();
+			if (guard is null) { return; }
+
 			await using var one = new OneNote(out var page, out var ns);
 
 			// Find first selected cell as anchor point to locate table ; By filtering on

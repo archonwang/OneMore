@@ -7,9 +7,9 @@ namespace River.OneMoreAddIn.Commands
 	using River.OneMoreAddIn.UI;
 	using System;
 	using System.Drawing;
+	using System.Drawing.Drawing2D;
 	using System.Windows.Forms;
 	using HierarchyInfo = OneNote.HierarchyInfo;
-	using Resx = Properties.Resources;
 
 
 	/// <summary>
@@ -17,18 +17,53 @@ namespace River.OneMoreAddIn.Commands
 	/// </summary>
 	internal class HistoryControl : UserControl, IChameleon, IThemedControl
 	{
-		private readonly PictureBox picture;
+		private static readonly Font LinkFont = new Font("Segoe UI", 8.5f, FontStyle.Regular, GraphicsUnit.Point);
+
+		/// <summary>
+		/// A thin self-drawn vertical bar indicating the section color, matching the
+		/// treatment used by SearchResultsCardView instead of a color-shifted PNG mask.
+		/// For paragraph references, draws diagonal stripes instead of solid color.
+		/// </summary>
+		private sealed class ColorBar : Panel
+		{
+			public Color BarColor { get; set; }
+			public bool IsStriped { get; set; }
+
+			protected override void OnPaint(PaintEventArgs e)
+			{
+				if (BarColor == Color.Empty || BarColor == Color.Transparent)
+				{
+					return;
+				}
+
+				if (IsStriped)
+				{
+					using var brush = new HatchBrush(HatchStyle.BackwardDiagonal, BarColor, Color.Transparent);
+					e.Graphics.FillRectangle(brush, ClientRectangle);
+				}
+				else
+				{
+					using var brush = new SolidBrush(BarColor);
+					e.Graphics.FillRectangle(brush, ClientRectangle);
+				}
+			}
+		}
+
+
+		private readonly ColorBar bar;
 		private readonly MoreLinkLabel link;
+		private EventHandler backColorChangedHandler;
+		private ToolTip tip;
 
 
 		public HistoryControl(HierarchyInfo info)
 		{
-			picture = new PictureBox
+			bar = new ColorBar
 			{
-				Image = Resx.SectionMask.MapColor(Color.Black, ColorHelper.FromHtml(info.Color)),
 				Dock = DockStyle.Left,
-				Padding = new(5, 0, 0, 0),
-				Width = 30
+				Width = 8,
+				BarColor = ColorHelper.FromHtml(info.Color),
+				IsStriped = !string.IsNullOrEmpty(info.ObjectId)
 			};
 
 			link = new MoreLinkLabel
@@ -36,8 +71,8 @@ namespace River.OneMoreAddIn.Commands
 				Dock = DockStyle.Fill,
 				Text = info.Name,
 				Tag = info,
-				Font = new("Segoe UI", 8.5f, FontStyle.Regular, GraphicsUnit.Point),
-				Padding = new(0),
+				Font = LinkFont,
+				Padding = new(4, 0, 0, 0),
 				Margin = new(4, 0, 0, 0)
 			};
 
@@ -59,7 +94,7 @@ namespace River.OneMoreAddIn.Commands
 			// history items should have a Visited value but pinned items would not
 			if (info.Visited > 0)
 			{
-				var tip = new ToolTip();
+				tip = new ToolTip();
 				var visited = DateTimeHelper.FromTicksSeconds(info.Visited).ToFriendlyString();
 				tip.SetToolTip(link, $"{info.Path}\n{visited}");
 			}
@@ -69,18 +104,45 @@ namespace River.OneMoreAddIn.Commands
 			Height = 24;
 			Margin = new Padding(0, 2, 0, 2);
 
-			BackColorChanged += new EventHandler((s, e) =>
+			backColorChangedHandler = (s, e) =>
 			{
-				picture.BackColor = ((Control)s).BackColor;
 				link.BackColor = ((Control)s).BackColor;
-			});
+			};
+			BackColorChanged += backColorChangedHandler;
 
 			Controls.Add(link);
-			Controls.Add(picture);
+			Controls.Add(bar);
+		}
+
+
+		protected override void Dispose(bool disposing)
+		{
+			if (disposing)
+			{
+				tip?.Dispose();
+				bar?.Dispose();
+				link?.Dispose();
+				BackColorChanged -= backColorChangedHandler;
+			}
+
+			base.Dispose(disposing);
 		}
 
 
 		public override string Text { get => link.Text; set => link.Text = value; }
+
+
+		/// <summary>
+		/// Calculate the preferred row height for HistoryControl rows based on the current DPI.
+		/// </summary>
+		public static int GetPreferredRowHeight(Graphics graphics)
+		{
+			var textSize = TextRenderer.MeasureText(graphics, "Xy", LinkFont);
+			var lineHeight = textSize.Height;
+			var verticalMargin = 4; // top and bottom margin combined (2px each)
+			var comfortPadding = 2; // small fixed padding to match visual proportions
+			return lineHeight + verticalMargin + comfortPadding;
+		}
 
 
 		public string ThemedBack { get; set; }
@@ -98,15 +160,7 @@ namespace River.OneMoreAddIn.Commands
 
 		public void ApplyTheme(ThemeManager manager)
 		{
-			picture.BackColor = BackColor;
-			link.BackColor = BackColor;
-
-			var color = manager.GetColor("LinkColor");
-			link.ForeColor = color;
-			link.LinkColor = color;
-			link.VisitedLinkColor = color;
-
-			link.HoverColor = manager.GetColor("HoverColor");
+			((ILoadControl)link).OnLoad();
 		}
 
 

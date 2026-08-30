@@ -8,14 +8,15 @@
     content="OneMore is an add-in for OneNote with simple and powerful features that make OneNote a better OneNote">
   <meta name="author" content="Steven M Cohn">
   <meta name="generator" content="OneMore">
-  <title>OneMore - a OneNote add-in</title>
+  <title>OneMore: Smoke Tests</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha2/dist/css/bootstrap.min.css" rel="stylesheet"
     integrity="sha384-aFq/bzH65dt+w6FI2ooMVUpc+21e0SRygnTpmBvdBgSdnuTN7QbdgL+OapgHtvPp" crossorigin="anonymous">
   <link href="/nav.css" rel="stylesheet">
   <link href="/toc.css" rel="stylesheet">
+  <link href="/pagefind/pagefind-ui.css" rel="stylesheet">
 </head>
 
-<body>
+<body class="sidebar-layout">
   <svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
     <symbol id="book-half" viewBox="0 0 16 16">
       <path fill="currentColor" fill-rule="evenodd"
@@ -83,6 +84,7 @@
           <a class="nav-link" href="/context-menus/index.html" id="context-menus-section">Context Menus</a>
           <a class="nav-link" href="/developers/index.html" id="developers-section">Developers</a>
         </div>
+        <div id="search" class="d-flex flex-grow-1 mx-lg-3"></div>
         <div class="d-flex">
           <a class="nav-link nav-glyph py-2 px-lg-2" href="https://facebook.com/OneMoreAddIn" target="_blank" rel="noopener">
             <svg width="22px" height="22px" viewBox="0 0 512 512" id="fbglyph" xmlns="http://www.w3.org/2000/svg"
@@ -134,18 +136,27 @@
 <li><a id="how-to-add-a-settings-sheet" href="How to Add A Settings Sheet.htm">How to Add A Settings Sheet</a></li>
 <li><a id="language-translations" href="Language Translations.htm">Language Translations</a></li>
 <li><a id="logging-options" href="Logging Options.htm">Logging Options</a></li>
+<li><a id="nuget-dependencies" href="Nuget Dependencies.htm">Nuget Dependencies</a></li>
 <li><a id="scripts" href="Scripts.htm">Scripts</a></li>
 <li><a id="smoke-tests" href="Smoke Tests.htm">Smoke Tests</a></li>
 <li><a id="references" href="References.htm">References</a></li>
 <li><a id="design---command-framework" href="Design - Command Framework.htm">Design - Command Framework</a></li>
 <li><a id="design---command-service" href="Design - Command Service.htm">Design - Command Service</a></li>
+<li><a id="design---com-layer" href="Design - COM Layer.htm">Design - COM Layer</a></li>
+<li><a id="design---favorites" href="Design - Favorites.htm">Design - Favorites</a></li>
 <li><a id="design---hashtags" href="Design - Hashtags.htm">Design - Hashtags</a></li>
+<li><a id="design---telemetry" href="Design - Telemetry.htm">Design - Telemetry</a></li>
+<li><a id="design---theming" href="Design - Theming.htm">Design - Theming</a></li>
+<li><a id="design---ui-layer" href="Design - UI Layer.htm">Design - UI Layer</a></li>
+<li><a id="design---window-layouts" href="Design - Window Layouts.htm">Design - Window Layouts</a></li>
 <li><a id="technote---colors" href="TechNote - Colors.htm">TechNote - Colors</a></li>
 <li><a id="technote---com-registration" href="TechNote - COM Registration.htm">TechNote - COM Registration</a></li>
 <li><a id="technote---com-surrogate" href="TechNote - COM Surrogate.htm">TechNote - COM Surrogate</a></li>
 <li><a id="technote---editing-text" href="TechNote - Editing Text.htm">TechNote - Editing Text</a></li>
+<li><a id="technote---hyperlinks" href="TechNote - Hyperlinks.htm">TechNote - Hyperlinks</a></li>
 <li><a id="technote---interop" href="TechNote - Interop.htm">TechNote - Interop</a></li>
 <li><a id="technote---styles" href="TechNote - Styles.htm">TechNote - Styles</a></li>
+<li><a id="technote---window-focus" href="TechNote - Window Focus.htm">TechNote - Window Focus</a></li>
 <li><a id="onenote-defects" href="OneNote Defects.htm">OneNote Defects</a></li>
           </ul>
         </div>
@@ -153,14 +164,14 @@
     </nav>
 
     <!-- Page Content -->
-    <div id="content" style="margin-left: 30px; margin-top:100px;">
+    <div id="content">
       <DIV style="DIRECTION: ltr">
 <DIV style="WIDTH: 8.535in; MARGIN-TOP: 0in; DIRECTION: ltr; MARGIN-LEFT: 0in">
 <DIV style="WIDTH: 1.925in; MARGIN-TOP: 0in; DIRECTION: ltr; MARGIN-LEFT: 0.075in">
 <P style='FONT-SIZE: 20pt; MARGIN-BOTTOM: 14pt; FONT-FAMILY: "Calibri Light"; MARGIN-TOP: 0pt; COLOR: #464646'>Smoke Tests</P></DIV>
 <DIV style="WIDTH: 2.477in; MARGIN-TOP: 0.042in; DIRECTION: ltr; MARGIN-LEFT: 0.075in">
-<P style="FONT-SIZE: 10pt; FONT-FAMILY: Calibri; COLOR: #767676; MARGIN: 0in">Monday, February 20, 2023</P>
-<P style="FONT-SIZE: 10pt; FONT-FAMILY: Calibri; COLOR: #767676; MARGIN: 0in">8:00 AM</P></DIV>
+<P style="FONT-SIZE: 10pt; FONT-FAMILY: Calibri; COLOR: #767676; MARGIN: 0in">February 20, 2023</P>
+<P style="FONT-SIZE: 10pt; FONT-FAMILY: Calibri; COLOR: #767676; MARGIN: 0in">Last updated on September 15, 2025</P></DIV>
 <DIV style="WIDTH: 8.535in; MARGIN-TOP: 0.427in; DIRECTION: ltr; MARGIN-LEFT: 0in">
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; COLOR: black; MARGIN: 0in">To improve the quality of each release, there is a suite of tests that can be run as a whole or selectively to demonstrate that the changes within a release are working as intended and have not disrupted existing behaviors.</P>
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; COLOR: black; MARGIN: 0in">&nbsp;</P>
@@ -201,6 +212,10 @@
     let pageID = '#' + window.location.pathname.match(/.*\/(.*).htm$/)[1];
     pageID = pageID.toLowerCase().replace(/%20| |\./g,'-')
     if ( $(pageID).length > 0) { $(pageID).addClass('active'); }
+  </script>
+  <script src="/pagefind/pagefind-ui.js"></script>
+  <script>
+    new PagefindUI({ element: "#search", showSubResults: true });
   </script>
 </body>
 

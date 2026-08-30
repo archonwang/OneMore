@@ -8,14 +8,15 @@
     content="OneMore is an add-in for OneNote with simple and powerful features that make OneNote a better OneNote">
   <meta name="author" content="Steven M Cohn">
   <meta name="generator" content="OneMore">
-  <title>OneMore - a OneNote add-in</title>
+  <title>OneMore: How to Add A Settings Sheet</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha2/dist/css/bootstrap.min.css" rel="stylesheet"
     integrity="sha384-aFq/bzH65dt+w6FI2ooMVUpc+21e0SRygnTpmBvdBgSdnuTN7QbdgL+OapgHtvPp" crossorigin="anonymous">
   <link href="/nav.css" rel="stylesheet">
   <link href="/toc.css" rel="stylesheet">
+  <link href="/pagefind/pagefind-ui.css" rel="stylesheet">
 </head>
 
-<body>
+<body class="sidebar-layout">
   <svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
     <symbol id="book-half" viewBox="0 0 16 16">
       <path fill="currentColor" fill-rule="evenodd"
@@ -83,6 +84,7 @@
           <a class="nav-link" href="/context-menus/index.html" id="context-menus-section">Context Menus</a>
           <a class="nav-link" href="/developers/index.html" id="developers-section">Developers</a>
         </div>
+        <div id="search" class="d-flex flex-grow-1 mx-lg-3"></div>
         <div class="d-flex">
           <a class="nav-link nav-glyph py-2 px-lg-2" href="https://facebook.com/OneMoreAddIn" target="_blank" rel="noopener">
             <svg width="22px" height="22px" viewBox="0 0 512 512" id="fbglyph" xmlns="http://www.w3.org/2000/svg"
@@ -134,18 +136,27 @@
 <li><a id="how-to-add-a-settings-sheet" href="How to Add A Settings Sheet.htm">How to Add A Settings Sheet</a></li>
 <li><a id="language-translations" href="Language Translations.htm">Language Translations</a></li>
 <li><a id="logging-options" href="Logging Options.htm">Logging Options</a></li>
+<li><a id="nuget-dependencies" href="Nuget Dependencies.htm">Nuget Dependencies</a></li>
 <li><a id="scripts" href="Scripts.htm">Scripts</a></li>
 <li><a id="smoke-tests" href="Smoke Tests.htm">Smoke Tests</a></li>
 <li><a id="references" href="References.htm">References</a></li>
 <li><a id="design---command-framework" href="Design - Command Framework.htm">Design - Command Framework</a></li>
 <li><a id="design---command-service" href="Design - Command Service.htm">Design - Command Service</a></li>
+<li><a id="design---com-layer" href="Design - COM Layer.htm">Design - COM Layer</a></li>
+<li><a id="design---favorites" href="Design - Favorites.htm">Design - Favorites</a></li>
 <li><a id="design---hashtags" href="Design - Hashtags.htm">Design - Hashtags</a></li>
+<li><a id="design---telemetry" href="Design - Telemetry.htm">Design - Telemetry</a></li>
+<li><a id="design---theming" href="Design - Theming.htm">Design - Theming</a></li>
+<li><a id="design---ui-layer" href="Design - UI Layer.htm">Design - UI Layer</a></li>
+<li><a id="design---window-layouts" href="Design - Window Layouts.htm">Design - Window Layouts</a></li>
 <li><a id="technote---colors" href="TechNote - Colors.htm">TechNote - Colors</a></li>
 <li><a id="technote---com-registration" href="TechNote - COM Registration.htm">TechNote - COM Registration</a></li>
 <li><a id="technote---com-surrogate" href="TechNote - COM Surrogate.htm">TechNote - COM Surrogate</a></li>
 <li><a id="technote---editing-text" href="TechNote - Editing Text.htm">TechNote - Editing Text</a></li>
+<li><a id="technote---hyperlinks" href="TechNote - Hyperlinks.htm">TechNote - Hyperlinks</a></li>
 <li><a id="technote---interop" href="TechNote - Interop.htm">TechNote - Interop</a></li>
 <li><a id="technote---styles" href="TechNote - Styles.htm">TechNote - Styles</a></li>
+<li><a id="technote---window-focus" href="TechNote - Window Focus.htm">TechNote - Window Focus</a></li>
 <li><a id="onenote-defects" href="OneNote Defects.htm">OneNote Defects</a></li>
           </ul>
         </div>
@@ -153,19 +164,19 @@
     </nav>
 
     <!-- Page Content -->
-    <div id="content" style="margin-left: 30px; margin-top:100px;">
+    <div id="content">
       <DIV style="DIRECTION: ltr">
 <DIV style="WIDTH: 8.462in; MARGIN-TOP: 0in; DIRECTION: ltr; MARGIN-LEFT: 0in">
 <DIV style="WIDTH: 3.722in; MARGIN-TOP: 0in; DIRECTION: ltr; MARGIN-LEFT: 0.025in">
 <P lang=yo style='FONT-SIZE: 20pt; MARGIN-BOTTOM: 14pt; FONT-FAMILY: "Calibri Light"; MARGIN-TOP: 0pt; COLOR: #464646'>How to Add A Settings Sheet</P></DIV>
 <DIV style="WIDTH: 2.347in; MARGIN-TOP: 0.042in; DIRECTION: ltr; MARGIN-LEFT: 0.025in">
-<P style="FONT-SIZE: 10pt; FONT-FAMILY: Calibri; COLOR: #767676; MARGIN: 0in">Friday, February 10, 2023</P>
-<P style="FONT-SIZE: 10pt; FONT-FAMILY: Calibri; COLOR: #767676; MARGIN: 0in">5:07 PM</P></DIV>
+<P style="FONT-SIZE: 10pt; FONT-FAMILY: Calibri; COLOR: #767676; MARGIN: 0in">February 10, 2023</P>
+<P style="FONT-SIZE: 10pt; FONT-FAMILY: Calibri; COLOR: #767676; MARGIN: 0in">Last updated on August 23, 2026</P></DIV>
 <DIV style="WIDTH: 8.462in; MARGIN-TOP: 0.427in; DIRECTION: ltr; MARGIN-LEFT: 0in">
 <UL style="MARGIN-BOTTOM: 0in; unicode-bidi: embed; MARGIN-TOP: 0in; DIRECTION: ltr">
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; COLOR: black; MARGIN: 0in">Come up with a name for the functional domain to control with your new settings. Existing domains include General, Images, Keyboard, etc. For the examples below, we'll use the ubiquitous "Foo" category.</P>
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; COLOR: black; MARGIN: 0in">&nbsp;</P>
-<H1 lang=yo style="FONT-SIZE: 16pt; FONT-FAMILY: Calibri; COLOR: #1e4e79; MARGIN: 0in">Create A New FooSheet</H1>
+<H1 lang=yo id=create-a-new-foosheet style="FONT-SIZE: 16pt; FONT-FAMILY: Calibri; COLOR: #1e4e79; MARGIN: 0in">Create A New FooSheet</H1>
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; COLOR: black; MARGIN: 0in">&nbsp;</P>
 <OL style="FONT-SIZE: 11.5pt; MARGIN-BOTTOM: 0in; FONT-FAMILY: Calibri; unicode-bidi: embed; MARGIN-TOP: 0in; FONT-WEIGHT: normal; DIRECTION: ltr; FONT-STYLE: normal" type=1>
 <LI lang=yo style="MARGIN-BOTTOM: 0px; VERTICAL-ALIGN: middle; MARGIN-TOP: 0px; COLOR: black" value=1><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; FONT-WEIGHT: normal; FONT-STYLE: normal">In Visual Studio Solution Explorer, right-click and </SPAN><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; FONT-WEIGHT: normal; FONT-STYLE: italic">Copy</SPAN><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; FONT-WEIGHT: normal; FONT-STYLE: normal"> the Commands\Settings\GeneralSheet.cs main file</SPAN> 
@@ -181,7 +192,7 @@
 <LI lang=yo style="MARGIN-BOTTOM: 0px; VERTICAL-ALIGN: middle; MARGIN-TOP: 0px; COLOR: black"><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri">Add a new resource for the sheet title named Resx.FooSheet_Title</SPAN> 
 <LI lang=yo style="MARGIN-BOTTOM: 0px; VERTICAL-ALIGN: middle; MARGIN-TOP: 0px; COLOR: black"><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri">In the constructor, set the Title property to Resx.FooSheet_Title</SPAN> </LI></OL>
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; COLOR: black; MARGIN: 0in">&nbsp;</P>
-<H1 lang=yo style="FONT-SIZE: 16pt; FONT-FAMILY: Calibri; COLOR: #1e4e79; MARGIN: 0in">Add FooSheet to The SettingsDialog</H1>
+<H1 lang=yo id=add-foosheet-to-the-settingsdialog style="FONT-SIZE: 16pt; FONT-FAMILY: Calibri; COLOR: #1e4e79; MARGIN: 0in">Add FooSheet to The SettingsDialog</H1>
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; COLOR: black; MARGIN: 0in">&nbsp;</P>
 <OL style="FONT-SIZE: 11.5pt; MARGIN-BOTTOM: 0in; FONT-FAMILY: Calibri; unicode-bidi: embed; MARGIN-TOP: 0in; FONT-WEIGHT: normal; DIRECTION: ltr; FONT-STYLE: normal" type=1>
 <LI lang=yo style="MARGIN-BOTTOM: 0px; VERTICAL-ALIGN: middle; MARGIN-TOP: 0px; COLOR: black" value=1><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; FONT-WEIGHT: normal; FONT-STYLE: normal">Double-click SettingsDialog.cs to open the visual designer</SPAN> 
@@ -189,18 +200,18 @@
 <LI lang=yo style="MARGIN-BOTTOM: 0px; VERTICAL-ALIGN: middle; MARGIN-TOP: 0px; COLOR: black"><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri">Create a new root node</SPAN> 
 <LI lang=yo style="MARGIN-BOTTOM: 0px; VERTICAL-ALIGN: middle; MARGIN-TOP: 0px; COLOR: black"><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri">Set the name property to fooNode</SPAN> 
 <LI lang=yo style="MARGIN-BOTTOM: 0px; VERTICAL-ALIGN: middle; MARGIN-TOP: 0px; COLOR: black"><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri">Set the text property to Foo</SPAN> 
-<LI lang=yo style="MARGIN-BOTTOM: 0px; VERTICAL-ALIGN: middle; MARGIN-TOP: 0px; COLOR: black"><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri">Change the order of the nodes to they are sorted alphabetically</SPAN> 
+<LI lang=yo style="MARGIN-BOTTOM: 0px; VERTICAL-ALIGN: middle; MARGIN-TOP: 0px; COLOR: black"><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri">Change the order of the nodes so they are sorted alphabetically</SPAN> 
 <LI lang=yo style="MARGIN-BOTTOM: 0px; VERTICAL-ALIGN: middle; MARGIN-TOP: 0px; COLOR: black"><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri">View code for SettingsDialog.cs</SPAN> 
 <LI lang=yo style="MARGIN-BOTTOM: 0px; VERTICAL-ALIGN: middle; MARGIN-TOP: 0px; COLOR: black"><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri">Add Foo to the Sheets enum</SPAN> 
 <LI lang=yo style="MARGIN-BOTTOM: 0px; VERTICAL-ALIGN: middle; MARGIN-TOP: 0px; COLOR: black"><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri">Create a new Resource called SettingsDialog_fooNode.Text with the value Foo</SPAN> 
 <LI lang=yo style="MARGIN-BOTTOM: 0px; VERTICAL-ALIGN: middle; MARGIN-TOP: 0px; COLOR: black"><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri">In the constructor, set the tree node text to Resx.SettingsDialog_fooNode_Text</SPAN> 
 <LI lang=yo style="MARGIN-BOTTOM: 0px; VERTICAL-ALIGN: middle; MARGIN-TOP: 0px; COLOR: black"><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri">In the Navigate method, add an item to the switch statement for FooSheet; this should match the sequence number set in the tree view for the node</SPAN> </LI></OL>
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; COLOR: black; MARGIN: 0in">&nbsp;</P>
-<H1 lang=yo style="FONT-SIZE: 16pt; FONT-FAMILY: Calibri; COLOR: #1e4e79; MARGIN: 0in">Collect Settings</H1>
+<H1 lang=yo id=collect-settings style="FONT-SIZE: 16pt; FONT-FAMILY: Calibri; COLOR: #1e4e79; MARGIN: 0in">Collect Settings</H1>
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; COLOR: black; MARGIN: 0in">&nbsp;</P>
 <OL style="FONT-SIZE: 11.5pt; MARGIN-BOTTOM: 0in; FONT-FAMILY: Calibri; unicode-bidi: embed; MARGIN-TOP: 0in; FONT-WEIGHT: normal; DIRECTION: ltr; FONT-STYLE: normal" type=1>
 <LI lang=yo style="MARGIN-BOTTOM: 0px; VERTICAL-ALIGN: middle; MARGIN-TOP: 0px; COLOR: black" value=1><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; FONT-WEIGHT: normal; FONT-STYLE: normal">Override the CollectSettings method</SPAN> 
-<LI lang=yo style="MARGIN-BOTTOM: 0px; VERTICAL-ALIGN: middle; MARGIN-TOP: 0px; COLOR: black"><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri">Get the appropriate SettingsCollection, preferrably using the Name property</SPAN> 
+<LI lang=yo style="MARGIN-BOTTOM: 0px; VERTICAL-ALIGN: middle; MARGIN-TOP: 0px; COLOR: black"><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri">Get the appropriate SettingsCollection, preferably using the Name property</SPAN> 
 <LI lang=yo style="MARGIN-BOTTOM: 0px; VERTICAL-ALIGN: middle; MARGIN-TOP: 0px; COLOR: black"><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri">Set all settings for this sheet</SPAN> 
 <LI lang=yo style="MARGIN-BOTTOM: 0px; VERTICAL-ALIGN: middle; MARGIN-TOP: 0px; COLOR: black"><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri">Return true if any of the properties have changed or were added and will require OneNote to restart in order to be recognized; return false otherwise</SPAN> </LI></OL>
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
@@ -221,6 +232,10 @@
     let pageID = '#' + window.location.pathname.match(/.*\/(.*).htm$/)[1];
     pageID = pageID.toLowerCase().replace(/%20| |\./g,'-')
     if ( $(pageID).length > 0) { $(pageID).addClass('active'); }
+  </script>
+  <script src="/pagefind/pagefind-ui.js"></script>
+  <script>
+    new PagefindUI({ element: "#search", showSubResults: true });
   </script>
 </body>
 

@@ -1,5 +1,5 @@
 ﻿//************************************************************************************************
-// Copyright © 2020 Steven M Cohn.  All rights reserved.
+// Copyright © 2020 Steven M Cohn. All rights reserved.
 //************************************************************************************************
 
 namespace River.OneMoreAddIn.Styles
@@ -24,6 +24,27 @@ namespace River.OneMoreAddIn.Styles
 		/// <summary>
 		/// Special type of Paragraph that is included when generated Table of Contents
 		/// </summary>
-		Heading
+		Heading,
+
+		/// <summary>
+		/// Special type of Paragraph that applies to page titles when applying themes
+		/// </summary>
+		PageTitle,
+
+		/// <summary>
+		/// Special type of Paragraph that is included when generating a bibliography
+		/// or works cited list
+		/// </summary>
+		Citation,
+
+		/// <summary>
+		/// Special type of Paragraph that applies to quote text when applying themes
+		/// </summary>
+		Quote,
+
+		/// <summary>
+		/// Special type of Paragraph that applies to code text when applying themes
+		/// </summary>
+		Code
 	}
 }

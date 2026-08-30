@@ -1,0 +1,180 @@
+//************************************************************************************************
+// Copyright © 2026 Steven M Cohn. All rights reserved.
+//************************************************************************************************
+
+namespace River.OneMoreAddIn.Commands
+{
+	using System.Collections.Generic;
+	using System.Text.RegularExpressions;
+
+
+	/// <summary>
+	/// The parsed components of a Search Page Titles query string.
+	/// </summary>
+	internal sealed class TitleQuery
+	{
+		/// <summary>
+		/// True if the query included a ">" token, requesting a most-recently-modified-first
+		/// sort rather than the default alphabetical-by-name sort.
+		/// </summary>
+		public bool SortByModified { get; set; }
+
+
+		/// <summary>
+		/// The notebook name (or partial name) extracted from an "\&lt;name&gt;" token, "*"
+		/// if "\*" was specified, "\\" (a bare backslash with no name) to restrict to the
+		/// current notebook, or null if no "\" token was present (search all notebooks,
+		/// the default).
+		/// </summary>
+		public string NotebookFilter { get; set; }
+
+
+		/// <summary>
+		/// Hashtag tokens (including their leading '#') extracted from the query. Pages must
+		/// match every hashtag in this list (implicit AND) in addition to the TitleText match.
+		/// An "AND", "OR", or "NOT" appearing immediately before a hashtag token is ignored
+		/// rather than treated as title text.
+		/// </summary>
+		public List<string> Hashtags { get; } = new List<string>();
+
+
+		/// <summary>
+		/// Hashtag tokens (including their leading '#') extracted from a "-#hashtag" negation
+		/// in the query. Pages carrying any of these hashtags are excluded from the results,
+		/// even if they otherwise match the TitleText and Hashtags criteria.
+		/// </summary>
+		public List<string> ExcludeHashtags { get; } = new List<string>();
+
+
+		/// <summary>
+		/// Whatever remains of the query after stripping the sort token, "\" notebook token, and
+		/// hashtag tokens. Passed to TextMatchBuilder to match against page names.
+		/// </summary>
+		public string TitleText { get; set; }
+	}
+
+
+	/// <summary>
+	/// Parses the extended query syntax accepted by Search Page Titles: a ">" token, anywhere
+	/// in the query, to sort by most-recently-modified, a "\&lt;name&gt;" token to scope the
+	/// search to matching notebook(s) ("\*" for all notebooks, the default when no "\" token
+	/// is present; "\\" for just the current notebook), and "#hashtag" tokens to additionally
+	/// filter by the hashtag catalog. A "-#hashtag" token excludes pages carrying that hashtag,
+	/// and an "AND", "OR", or "NOT" immediately preceding a hashtag token is ignored rather than
+	/// left as title text. Whatever remains is matched against page titles via TextMatchBuilder.
+	/// </summary>
+	internal static class TitleQueryParser
+	{
+		// matches a "\" only at a word boundary (start of string or preceded by whitespace) so
+		// it can't be mistaken for a literal backslash embedded within title text (e.g. "a\b")
+		private static readonly Regex NotebookPattern = new Regex(
+			@"(?<!\S)\\(?:""(?<quoted>[^""]*)""|(?<bare>\S*))",
+			RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+		// matches a "#hashtag" token at a word boundary, optionally preceded by a no-op "AND",
+		// "OR", or "NOT" (which is discarded rather than left dangling as title text - use the
+		// "-#hashtag" prefix, not "NOT", to actually exclude a hashtag) and optionally prefixed
+		// with "-" to mark it as an exclusion; the leading (?<!\S) anchor covers the whole
+		// optional prefix, so e.g. a hyphen glued to a prior word ("well-#tag") is not mistaken
+		// for negation
+		private static readonly Regex HashtagPattern = new Regex(
+			@"(?<!\S)(?:(?:AND|OR|NOT)\s+)?(?<neg>-)?(?<tag>#\S+)",
+			RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+		// matches a ">" only at a word boundary (start of string or preceded by whitespace) so
+		// it can appear anywhere in the query - ">foo \*" or "\* >foo" - without
+		// mistaking a literal '>' embedded in a word (e.g. "a>b") for the sort flag
+		private static readonly Regex SortPattern = new Regex(
+			@"(?<!\S)>", RegexOptions.Compiled);
+
+		private static readonly Regex NotebookMarker = new Regex(
+			@"(?<!\S)\\", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+		private static readonly Regex Whitespace = new Regex(@"\s+", RegexOptions.Compiled);
+
+
+		/// <summary>
+		/// Parses the given raw query string into its component parts.
+		/// </summary>
+		public static TitleQuery Parse(string query)
+		{
+			var result = new TitleQuery();
+
+			if (string.IsNullOrWhiteSpace(query))
+			{
+				result.TitleText = string.Empty;
+				return result;
+			}
+
+			var text = query.Trim();
+
+			var sortMatch = SortPattern.Match(text);
+			if (sortMatch.Success)
+			{
+				result.SortByModified = true;
+				text = text.Remove(sortMatch.Index, sortMatch.Length);
+			}
+
+			var nbMatch = NotebookPattern.Match(text);
+			if (nbMatch.Success)
+			{
+				result.NotebookFilter = nbMatch.Groups["quoted"].Success
+					? nbMatch.Groups["quoted"].Value
+					: nbMatch.Groups["bare"].Value;
+
+				text = text.Remove(nbMatch.Index, nbMatch.Length);
+			}
+
+			foreach (Match m in HashtagPattern.Matches(text))
+			{
+				if (m.Groups["neg"].Success)
+				{
+					result.ExcludeHashtags.Add(m.Groups["tag"].Value);
+				}
+				else
+				{
+					result.Hashtags.Add(m.Groups["tag"].Value);
+				}
+			}
+
+			if (result.Hashtags.Count > 0 || result.ExcludeHashtags.Count > 0)
+			{
+				text = HashtagPattern.Replace(text, string.Empty);
+			}
+
+			result.TitleText = Whitespace.Replace(text, " ").Trim();
+
+			return result;
+		}
+
+
+		/// <summary>
+		/// Counts the "significant" characters in a raw query string for type-ahead purposes.
+		/// The '#' and '>' characters and the leading "\" notebook marker are considered insignificant;
+		/// every other non-whitespace character counts. Callers should run a live search once
+		/// this count exceeds 3.
+		/// </summary>
+		public static int CountSignificantChars(string query)
+		{
+			if (string.IsNullOrEmpty(query))
+			{
+				return 0;
+			}
+
+			var stripped = NotebookMarker.Replace(query, string.Empty)
+				.Replace(">", string.Empty)
+				.Replace("#", string.Empty);
+
+			var count = 0;
+			foreach (var c in stripped)
+			{
+				if (!char.IsWhiteSpace(c))
+				{
+					count++;
+				}
+			}
+
+			return count;
+		}
+	}
+}

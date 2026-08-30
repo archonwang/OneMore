@@ -5,6 +5,7 @@
 using System;
 using System.Reflection;
 using System.Resources;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 [assembly: AssemblyTitle("OneMore Add-in for OneNote")]
@@ -20,24 +21,31 @@ using System.Runtime.InteropServices;
 
 [assembly: AssemblyVersion(River.OneMoreAddIn.AssemblyInfo.Version)]
 [assembly: AssemblyFileVersion(River.OneMoreAddIn.AssemblyInfo.Version)]
+[assembly: AssemblyInformationalVersion(River.OneMoreAddIn.AssemblyInfo.Version + River.OneMoreAddIn.AssemblyInfo.BuildTag)]
 
 [assembly: NeutralResourcesLanguage("en-US", UltimateResourceFallbackLocation.MainAssembly)]
 
 // To use, open LINQPad and set Preferences/Advanced "Allows LINPAad to access internals"...
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("LINQPadQuery")]
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("OneMoreCalendar")]
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("OneMoreTray")]
+[assembly: InternalsVisibleTo("LINQPadQuery")]
+[assembly: InternalsVisibleTo("OneMoreCalendar")]
+[assembly: InternalsVisibleTo("OneMoreCli")]
+[assembly: InternalsVisibleTo("OneMoreTests")]
+[assembly: InternalsVisibleTo("OneMoreTray")]
 
 
 namespace River.OneMoreAddIn
 {
 	internal static class AssemblyInfo
 	{
-		/*
-		 * NOTE - also update the version in the Setup project
-		 * by clicking on the Setup project node in VS and update its properties
-		 */
-		public const string Version = "6.7.7";
+		public const string Version = "7.4.0";
+
+		public const string BuildTag =
+#if BETA
+		" Beta"
+#else
+		""
+#endif
+		;
 
 		public const string Product = "OneMore";
 

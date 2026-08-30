@@ -1,12 +1,12 @@
 ﻿//************************************************************************************************
-// Copyright © 2021 Steven M Cohn.  All rights reserved.
+// Copyright © 2021 Steven M Cohn. All rights reserved.
 //************************************************************************************************
 
 namespace River.OneMoreAddIn.Commands
 {
 	using System;
 	using System.Windows.Forms;
-	using Resx = River.OneMoreAddIn.Properties.Resources;
+	using Resx = Properties.Resources;
 
 
 	internal partial class RemindDialog : UI.MoreForm
@@ -25,6 +25,7 @@ namespace River.OneMoreAddIn.Commands
 
 				Localize(new string[]
 				{
+					"tagLabel",
 					"subjectLabel",
 					"startDateLabel",
 					"startedLabel=word_Started",
@@ -34,6 +35,7 @@ namespace River.OneMoreAddIn.Commands
 					"statusBox",
 					"priorityLabel",
 					"priorityBox",
+					"assigneeLabel=word_Assignee",
 					"percentLabel=phrase_PctComplete",
 					"optionsBox=word_Options",
 					"silentBox",
@@ -74,6 +76,7 @@ namespace River.OneMoreAddIn.Commands
 
 			statusBox.SelectedIndex = (int)reminder.Status;
 			priorityBox.SelectedIndex = (int)reminder.Priority;
+			assigneeBox.Text = reminder.Assignee;
 			percentBox.Value = reminder.Percent;
 			silentBox.Checked = reminder.Silent;
 
@@ -232,6 +235,7 @@ namespace River.OneMoreAddIn.Commands
 			reminder.Due = dueDateBox.Value.ToUniversalTime();
 			reminder.Status = (ReminderStatus)statusBox.SelectedIndex;
 			reminder.Priority = (ReminderPriority)priorityBox.SelectedIndex;
+			reminder.Assignee = assigneeBox.Text.Trim();
 			reminder.Percent = (int)percentBox.Value;
 			reminder.Silent = silentBox.Checked;
 

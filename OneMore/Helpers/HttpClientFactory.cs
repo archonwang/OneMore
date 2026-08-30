@@ -35,7 +35,8 @@ namespace River.OneMoreAddIn
 		{
 			if (client == null)
 			{
-				ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+				ServicePointManager.SecurityProtocol =
+					SecurityProtocolType.Tls12 | SecurityProtocolType.Tls13;
 
 				var handler = new HttpClientHandler()
 				{
@@ -75,7 +76,16 @@ namespace River.OneMoreAddIn
 						if ((face.NetworkInterfaceType != NetworkInterfaceType.Tunnel) &&
 							(face.NetworkInterfaceType != NetworkInterfaceType.Loopback))
 						{
-							var statistics = face.GetIPv4Statistics();
+							IPv4InterfaceStatistics statistics;
+							try
+							{
+								statistics = face.GetIPv4Statistics();
+							}
+							catch (NetworkInformationException)
+							{
+								// IPv4 not enabled on this interface; skip it
+								continue;
+							}
 
 							// all testing seems to prove that once an interface comes online
 							// it has already accrued statistics for both received and sent...

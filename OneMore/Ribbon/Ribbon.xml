@@ -18,6 +18,19 @@
     </contextMenu>
     <contextMenu idMso="ContextMenuNotebook">
       <button
+        id="ct2AddFavoriteButton"
+        imageMso="AddToFavorites"
+        getLabel="GetRibbonLabel"
+        onAction="AddFavoriteNotebookCmd"
+        insertBeforeMso="ShareThisNotebook"/>
+      <button
+        id="ctxAddTopSectionGroupButton"
+        imageMso="Folder"
+        getLabel="GetRibbonLabel"
+        getScreentip="GetRibbonScreentip"
+        onAction="AddTopSectionGroupCmd"
+        insertBeforeMso="ShareThisNotebook"/>
+      <button
         id="ctxArchiveNotebookButton"
         imageMso="SaveAttachments"
         getLabel="GetRibbonLabel"
@@ -78,6 +91,12 @@
     </contextMenu>
     <contextMenu idMso="ContextMenuPage">
       <button
+        id="ctxAddFavoriteButton"
+        imageMso="AddToFavorites"
+        getLabel="GetRibbonLabel"
+        onAction="AddFavoritePageCmd"
+        insertBeforeMso="RenamePageOneNote"/>
+      <button
         id="ctxDuplicatePageButton"
         imageMso="PasteDuplicate"
         getLabel="GetRibbonLabel"
@@ -118,13 +137,6 @@
         getLabel="GetRibbonLabel"
         getScreentip="GetRibbonScreentip"
         onAction="PageColorCmd"
-        insertBeforeMso="RenamePageOneNote"/>
-      <button
-        id="ctxSplitButton"
-        imageMso="MasterDocumentSplitSubdocuments"
-        getLabel="GetRibbonLabel"
-        getScreentip="GetRibbonScreentip"
-        onAction="SplitCmd"
         insertBeforeMso="RenamePageOneNote"/>
       <button
         id="ctxSortPageButton"
@@ -325,6 +337,12 @@
         insertBeforeMso="SectionInsert"/>
     </contextMenu>
     <contextMenu idMso="ContextMenuSectionGroup">
+      <button
+        id="ctgAddFavoriteButton"
+        imageMso="AddToFavorites"
+        getLabel="GetRibbonLabel"
+        onAction="AddFavoriteSectionGroupCmd"
+        insertBeforeMso="FolderRename"/>
       <button
         id="ctgArchiveSectionGroupButton"
         imageMso="SaveAttachments"

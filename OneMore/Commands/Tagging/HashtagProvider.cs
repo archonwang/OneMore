@@ -2,19 +2,15 @@
 // Copyright © 2023 Steven M Cohn. All rights reserved.
 //************************************************************************************************
 
-#pragma warning disable S1133 // Deprecated code should be removed
-
 namespace River.OneMoreAddIn.Commands
 {
-	using River.OneMoreAddIn.Properties;
 	using System;
 	using System.Collections.Generic;
 	using System.Data;
 	using System.Data.SQLite;
-	using System.IO;
 	using System.Linq;
 	using System.Text;
-	using System.Text.RegularExpressions;
+	using River.OneMoreAddIn.Properties;
 
 
 	/// <summary>
@@ -23,8 +19,6 @@ namespace River.OneMoreAddIn.Commands
 	internal class HashtagProvider : DatabaseProvider
 	{
 		private const int ScannerID = 0;
-
-		private readonly string timestamp;
 
 
 		/// <summary>
@@ -39,193 +33,20 @@ namespace River.OneMoreAddIn.Commands
 			}
 			else
 			{
-				RefreshCatalog();
+				RefreshDataSchema("hashtag", Resources.HashtagsDB);
 			}
-
-			timestamp = DateTime.Now.ToZuluString();
 		}
 
 
 		public static bool CatalogExists()
 		{
-			if (!File.Exists(path))
-			{
-				return false;
-			}
-
-			var con = new SQLiteConnection($"Data source={path}");
-			con.Open();
-
-			using var cmd = con.CreateCommand();
-			cmd.CommandType = CommandType.Text;
-			cmd.CommandText = "SELECT COUNT(1) FROM sqlite_master " +
-				"WHERE type = 'table' AND name = 'hashtag_scanner'";
-
-			var count = 0;
-			try
-			{
-				using var reader = cmd.ExecuteReader();
-				if (reader.Read())
-				{
-					count = reader.GetInt32(0);
-				}
-			}
-			catch (Exception exc)
-			{
-				ReportError("error reading scanner version", cmd, exc);
-				return false;
-			}
-
-			return count > 0;
+			return CatalogExists("hashtag_scanner");
 		}
 
 
 		public bool DropCatalog()
 		{
-			int Drop(string type, IEnumerable<string> names)
-			{
-				using var cmd = con.CreateCommand();
-				cmd.CommandType = CommandType.Text;
-
-				var count = 0;
-
-				foreach (var name in names)
-				{
-					logger.WriteLine($"dropping {type} {name}");
-
-					// Cannot use named parameters here because they would be interpreted as
-					// literal quoted strings rather than direct names like @myview. So use
-					// dynamic SQL. The possibility of SQL injection is quite low because
-					// these names come from an embedded resx in this assembly.
-					cmd.CommandText = $"DROP {type} IF EXISTS {name}";
-
-					try
-					{
-						cmd.ExecuteNonQuery();
-						count++;
-					}
-					catch (Exception exc)
-					{
-						ReportError($"error dropping {type} {name}", cmd, exc);
-					}
-				}
-
-				return count;
-			}
-
-			var path = Path.Combine(
-				PathHelper.GetAppDataPath(), Resources.DatabaseFilename);
-
-			if (!File.Exists(path))
-			{
-				return true;
-			}
-
-			var pattern = new Regex(@"CREATE ([^\s]+) IF NOT EXISTS ([^\s]+)",
-				RegexOptions.Compiled);
-
-			var entities = Regex.Split(Resources.HashtagsDB, @"\r\n|\n\r|\n")
-				.AsEnumerable()
-				.Select(d => pattern.Match(d))
-				.Where(m => m.Success)
-				.Select(m => (m.Groups[1].Value, m.Groups[2].Value));
-
-			if (!entities.Any())
-			{
-				return true;
-			}
-
-			using var transaction = con.BeginTransaction();
-			var count = 0;
-
-			IEnumerable<(string, string)> list;
-			list = entities.Where(e => e.Item1 == "VIEW");
-			if (list.Any())
-			{
-				count += Drop("view", list.Select(e => e.Item2).ToList());
-			}
-
-			list = entities.Where(e => e.Item1 == "INDEX");
-			if (list.Any())
-			{
-				count += Drop("index", list.Select(e => e.Item2).ToList());
-			}
-
-			list = entities.Where(e => e.Item1 == "TABLE");
-			if (list.Any())
-			{
-				// there is one foreign key but tables will be dropped in the right order
-				count += Drop("table", list.Select(e => e.Item2).ToList());
-			}
-
-			if (count != entities.Count())
-			{
-				logger.WriteLine("error dropping hashtag catalog, see errors above");
-				return false;
-			}
-
-			try
-			{
-				transaction.Commit();
-
-				// vacuum must be done outside a transaction
-				using var cmd = con.CreateCommand();
-				cmd.CommandText = "VACUUM";
-				cmd.ExecuteNonQuery();
-
-				logger.WriteLine("hashtag catalog drop done");
-			}
-			catch (Exception exc)
-			{
-				logger.WriteLine("error dropping catalog", exc);
-				transaction.Rollback();
-				return false;
-			}
-
-			return true;
-		}
-
-
-		private void RefreshCatalog()
-		{
-			logger.WriteLine("building hashtag catalog");
-
-			OpenDatabase();
-
-			using var transaction = con.BeginTransaction();
-
-			var ddl = Regex.Split(Resources.HashtagsDB, @"\r\n|\n\r|\n");
-			foreach (var line in ddl)
-			{
-				var sql = line.Trim();
-				if (!string.IsNullOrWhiteSpace(sql) && !sql.StartsWith("--"))
-				{
-					using var cmd = con.CreateCommand();
-
-					try
-					{
-						cmd.CommandText = sql;
-						cmd.CommandType = CommandType.Text;
-						cmd.ExecuteNonQuery();
-					}
-					catch (Exception exc)
-					{
-						ReportError("error building catalog", cmd, exc);
-						throw;
-					}
-				}
-			}
-
-			try
-			{
-				transaction.Commit();
-				logger.WriteLine("hashtag catalog done");
-			}
-			catch (Exception exc)
-			{
-				logger.WriteLine("error building db", exc);
-				throw;
-			}
+			return DropCatalog("hashtag", Resources.HashtagsDB);
 		}
 
 
@@ -271,6 +92,11 @@ namespace River.OneMoreAddIn.Commands
 			{
 				version = Upgrade3to4(con);
 			}
+
+			if (version == 4)
+			{
+				version = Upgrade4to5(con);
+			}
 		}
 
 
@@ -278,7 +104,7 @@ namespace River.OneMoreAddIn.Commands
 		{
 			var version = 2;
 			logger.WriteLine($"upgrading hashtag catalog to version {version}");
-			logger.Start();
+			using var indent = logger.Indent();
 
 			using var cmd = con.CreateCommand();
 			using var transaction = con.BeginTransaction();
@@ -295,7 +121,6 @@ namespace River.OneMoreAddIn.Commands
 			}
 			catch (Exception exc)
 			{
-				logger.End();
 				logger.WriteLine("error creating view hashtag_hashtags", exc);
 				return 0;
 			}
@@ -311,12 +136,10 @@ namespace River.OneMoreAddIn.Commands
 			}
 			catch (Exception exc)
 			{
-				logger.End();
 				logger.WriteLine($"error committing changes for version {version}", exc);
 				return 0;
 			}
 
-			logger.End();
 			return version;
 		}
 
@@ -325,7 +148,7 @@ namespace River.OneMoreAddIn.Commands
 		{
 			var version = 3;
 			logger.WriteLine($"upgrading hashtag catalog to version {version}");
-			logger.Start();
+			using var indent = logger.Indent();
 
 			using var cmd = con.CreateCommand();
 			using var transaction = con.BeginTransaction();
@@ -342,7 +165,6 @@ namespace River.OneMoreAddIn.Commands
 			}
 			catch (Exception exc)
 			{
-				logger.End();
 				logger.WriteLine("error creating table hashtag_notebook", exc);
 				return 0;
 			}
@@ -358,12 +180,10 @@ namespace River.OneMoreAddIn.Commands
 			}
 			catch (Exception exc)
 			{
-				logger.End();
 				logger.WriteLine($"error committing changes for version {version}", exc);
 				return 0;
 			}
 
-			logger.End();
 			return version;
 		}
 
@@ -372,7 +192,7 @@ namespace River.OneMoreAddIn.Commands
 		{
 			int version = 4;
 			logger.WriteLine($"upgrading hashtag catalog to version {version}");
-			logger.Start();
+			using var indent = logger.Indent();
 
 			using var cmd = con.CreateCommand();
 			cmd.CommandType = CommandType.Text;
@@ -403,7 +223,6 @@ namespace River.OneMoreAddIn.Commands
 			catch (Exception exc)
 			{
 				transaction.Rollback();
-				logger.End();
 				logger.WriteLine("error updating table hashtag_notebook", exc);
 				return 0;
 			}
@@ -459,7 +278,6 @@ namespace River.OneMoreAddIn.Commands
 			catch (Exception exc)
 			{
 				transaction.Rollback();
-				logger.End();
 				logger.WriteLine("error updating table hashtag", exc);
 				return 0;
 			}
@@ -475,13 +293,84 @@ namespace River.OneMoreAddIn.Commands
 			}
 			catch (Exception exc)
 			{
-				logger.End();
 				logger.WriteLine($"error committing changes for version {version}", exc);
 				return 0;
 			}
 
-			logger.End();
 			return version;
+		}
+
+
+		private int Upgrade4to5(SQLiteConnection con)
+		{
+			int version = 5;
+			logger.WriteLine($"upgrading hashtag catalog to version {version}");
+			using var indent = logger.Indent();
+
+			using var cmd = con.CreateCommand();
+			cmd.CommandType = CommandType.Text;
+
+			using var transaction = con.BeginTransaction();
+
+			try
+			{
+				if (ColumnExists(con, "hashtag_notebook", "included"))
+				{
+					logger.WriteLine("table hashtag_notebook already has column included");
+				}
+				else
+				{
+					logger.WriteLine("updating table hashtag_notebook");
+
+					cmd.CommandText =
+						"ALTER TABLE hashtag_notebook " +
+						"ADD COLUMN included INTEGER NOT NULL DEFAULT 1 CHECK(included IN(0, 1))";
+
+					cmd.ExecuteNonQuery();
+				}
+			}
+			catch (Exception exc)
+			{
+				transaction.Rollback();
+				logger.WriteLine("error updating table hashtag_notebook", exc);
+				return 0;
+			}
+
+			if (!UpgradeSchemaVersion(cmd, transaction, version))
+			{
+				return 0;
+			}
+
+			try
+			{
+				transaction.Commit();
+			}
+			catch (Exception exc)
+			{
+				logger.WriteLine($"error committing changes for version {version}", exc);
+				return 0;
+			}
+
+			return version;
+		}
+
+
+		private static bool ColumnExists(SQLiteConnection con, string table, string column)
+		{
+			using var cmd = con.CreateCommand();
+			cmd.CommandType = CommandType.Text;
+			cmd.CommandText = $"PRAGMA table_info({table})";
+
+			using var reader = cmd.ExecuteReader();
+			while (reader.Read())
+			{
+				if (string.Equals(reader.GetString(1), column, StringComparison.OrdinalIgnoreCase))
+				{
+					return true;
+				}
+			}
+
+			return false;
 		}
 
 
@@ -516,121 +405,72 @@ namespace River.OneMoreAddIn.Commands
 		/// <param name="knownIDs"></param>
 		public void DeletePhantoms(List<string> knownIDs, string sectionID, string sectionPath)
 		{
+			// HashSet for O(1) membership vs O(n) List.Contains
+			var knownSet = new HashSet<string>(knownIDs, StringComparer.Ordinal);
+
+			// Phase 1: identify phantoms without holding a write transaction
 			using var cmd = con.CreateCommand();
 			cmd.CommandType = CommandType.Text;
 			cmd.CommandText = "SELECT moreID, pageID FROM hashtag_page WHERE sectionID = @sid";
 			cmd.Parameters.AddWithValue("@sid", sectionID);
 
+			var phantomIDs = new List<string>();
+			using (var reader = cmd.ExecuteReader())
+			{
+				while (reader.Read())
+				{
+					var pageID = reader.GetString(1);
+					if (!knownSet.Contains(pageID))
+					{
+						phantomIDs.Add(pageID);
+					}
+				}
+			}
+
+			if (phantomIDs.Count == 0)
+			{
+				return;
+			}
+
+			// Phase 2: two batch DELETEs — 2 round-trips regardless of N
+			var paramNames = string.Join(",",
+				Enumerable.Range(0, phantomIDs.Count).Select(i => $"@p{i}"));
+
 			using var tagcmd = con.CreateCommand();
 			tagcmd.CommandType = CommandType.Text;
 			tagcmd.CommandText =
 				"DELETE FROM hashtag WHERE moreID IN " +
-				"(SELECT DISTINCT moreID FROM hashtag_page WHERE pageID = @pid)";
-			tagcmd.Parameters.Add("@pid", DbType.String);
+				$"(SELECT DISTINCT moreID FROM hashtag_page WHERE pageID IN ({paramNames}))";
 
 			using var pagcmd = con.CreateCommand();
 			pagcmd.CommandType = CommandType.Text;
-			pagcmd.CommandText = "DELETE FROM hashtag_page WHERE pageID = @pid";
-			pagcmd.Parameters.Add("@pid", DbType.String);
+			pagcmd.CommandText = $"DELETE FROM hashtag_page WHERE pageID IN ({paramNames})";
 
+			// SQLite's default SQLITE_MAX_VARIABLE_NUMBER is 32766. Even a pathological section with
+			// "hundreds" of stale pages is well within that limit. No chunking is needed.
+
+			for (var i = 0; i < phantomIDs.Count; i++)
+			{
+				tagcmd.Parameters.AddWithValue($"@p{i}", phantomIDs[i]);
+				pagcmd.Parameters.AddWithValue($"@p{i}", phantomIDs[i]);
+			}
+
+			// PRAGMA foreign_keys is not enabled in DatabaseProvider.cs, so cascade delete does
+			// not fire automatically.Deleting hashtag rows before hashtag_page rows(the current
+			// order) must be preserved.          
+				
 			using var transaction = con.BeginTransaction();
-			var count = 0;
-
 			try
 			{
-				using var reader = cmd.ExecuteReader();
-				while (reader.Read())
-				{
-					var pageID = reader.GetString(1);
-					if (!knownIDs.Contains(pageID))
-					{
-						tagcmd.Parameters["@pid"].Value = pageID;
-						tagcmd.ExecuteNonQuery();
-
-						pagcmd.Parameters["@pid"].Value = pageID;
-						pagcmd.ExecuteNonQuery();
-						count++;
-					}
-				}
-
-				if (count > 0)
-				{
-					transaction.Commit();
-					logger.WriteLine($"deleted {count} phantom pages from {sectionPath}");
-				}
+				tagcmd.ExecuteNonQuery();
+				pagcmd.ExecuteNonQuery();
+				transaction.Commit();
+				logger.WriteLine($"deleted {phantomIDs.Count} phantom pages from {sectionPath}");
 			}
 			catch (Exception exc)
 			{
 				transaction.Rollback();
 				logger.WriteLine("error deleting phantom pages", exc);
-			}
-		}
-
-
-		/// <summary>
-		/// Deletes the specified tags
-		/// </summary>
-		/// <param name="tags">A collection of Hashtags</param>
-		[Obsolete("Was used as part of original tag resolution logic")]
-		public void DeleteTags(Hashtags tags)
-		{
-			using var cmd = con.CreateCommand();
-			cmd.CommandText = "DELETE FROM hashtag WHERE tag = @t AND moreID = @m";
-			cmd.CommandType = CommandType.Text;
-			cmd.Parameters.Add("@t", DbType.String);
-			cmd.Parameters.Add("@m", DbType.String);
-
-			using var transaction = con.BeginTransaction();
-			foreach (var tag in tags)
-			{
-				logger.Verbose($"deleting tag {tag.Tag}");
-
-				cmd.Parameters["@t"].Value = tag.Tag;
-				cmd.Parameters["@m"].Value = tag.MoreID;
-
-				try
-				{
-					cmd.ExecuteNonQuery();
-				}
-				catch (Exception exc)
-				{
-					logger.WriteLine($"error deleting tag {tag.Tag} on {tag.MoreID}", exc);
-				}
-			}
-
-			try
-			{
-				transaction.Commit();
-
-				CleanupPages();
-			}
-			catch (Exception exc)
-			{
-				logger.WriteLine("error deleting tags", exc);
-			}
-		}
-
-
-		private void CleanupPages()
-		{
-			// as tags are deleted from a page, that page may be left dangling in the
-			// hashtag_page table; this cleans up those orphaned records
-
-			using var cmd = con.CreateCommand();
-			cmd.CommandType = CommandType.Text;
-			cmd.CommandText = "DELETE FROM hashtag_page WHERE moreID IN (" +
-				"SELECT P.moreID " +
-				"FROM hashtag_page P " +
-				"LEFT OUTER JOIN hashtag T " +
-				"ON T.moreID = P.moreID WHERE T.tag IS NULL)";
-
-			try
-			{
-				cmd.ExecuteNonQuery();
-			}
-			catch (Exception exc)
-			{
-				ReportError("error cleaning up pages", cmd, exc);
 			}
 		}
 
@@ -672,7 +512,7 @@ namespace River.OneMoreAddIn.Commands
 
 			using var cmd = con.CreateCommand();
 
-			cmd.CommandText = "SELECT notebookID, name, lastModified FROM hashtag_notebook";
+			cmd.CommandText = "SELECT notebookID, name, included, lastModified FROM hashtag_notebook";
 
 			try
 			{
@@ -683,7 +523,8 @@ namespace River.OneMoreAddIn.Commands
 					{
 						NotebookID = reader.GetString(0),
 						Name = reader.GetString(1),
-						LastModified = reader.GetString(2)
+						Included = reader.GetInt32(2) == 1,
+						LastModified = reader.GetString(3)
 					});
 				}
 			}
@@ -817,7 +658,8 @@ namespace River.OneMoreAddIn.Commands
 				cmd.Parameters.AddWithValue("@nid", notebookID);
 			}
 
-			sql = $"{sql} ORDER BY 1";
+			// Note, no need to ORDER BY here because we're going to .OrderBy() below...
+
 			cmd.CommandText = sql;
 
 			try
@@ -843,7 +685,7 @@ namespace River.OneMoreAddIn.Commands
 		/// <param name="criteria">The user-entered search criteria, optional wildcards</param>
 		/// <returns>A collection of Hashtags</returns>
 		public Hashtags SearchTags(
-			string criteria, bool caseSensitive,
+			string criteria, bool caseSensitive, bool allTags,
 			out string parsed,
 			string notebookID = null, string sectionID = null, string moreID = null)
 		{
@@ -872,9 +714,17 @@ namespace River.OneMoreAddIn.Commands
 				parameters.Add(new("nid", notebookID));
 			}
 
-			builder.Append("JOIN page_hashtags g ON g.moreID = p.moreID ");
+			HashtagQueryBuilder query;
+			if (allTags)
+			{
+				builder.Append("JOIN page_hashtags g ON g.moreID = p.moreID ");
+				query = new HashtagQueryBuilder("g.tags", caseSensitive);
+			}
+			else
+			{
+				query = new HashtagQueryBuilder("t.tag", caseSensitive);
+			}
 
-			var query = new HashtagQueryBuilder("g.tags", caseSensitive);
 			var where = query.BuildFormattedWhereClause(criteria, out parsed);
 			builder.Append(where);
 
@@ -883,7 +733,7 @@ namespace River.OneMoreAddIn.Commands
 
 			logger.Verbose(sql);
 
-			var tags = ReadTags(sql, parameters.ToArray());
+			var tags = ReadTags(sql, parameters.ToArray(), includeSnippetCols: true);
 
 			// don't highlight everything, otherwise there's no use!
 			if (criteria != "*" && criteria != "%")
@@ -900,7 +750,8 @@ namespace River.OneMoreAddIn.Commands
 		}
 
 
-		private Hashtags ReadTags(string sql, SQLiteParameter[] parameters = null)
+		private Hashtags ReadTags(
+			string sql, SQLiteParameter[] parameters = null, bool includeSnippetCols = false)
 		{
 			var tags = new Hashtags();
 			using var cmd = con.CreateCommand();
@@ -928,7 +779,7 @@ namespace River.OneMoreAddIn.Commands
 						LastModified = reader.GetString(7)
 					};
 
-					if (reader.FieldCount > 7 && sql.Contains("snippet"))
+					if (includeSnippetCols)
 					{
 						tag.Snippet = reader[8] is DBNull ? null : reader.GetString(8);
 						tag.DocumentOrder = reader[9] is DBNull ? 0 : reader.GetInt32(9);
@@ -1029,6 +880,7 @@ namespace River.OneMoreAddIn.Commands
 			}
 			catch (Exception exc)
 			{
+				transaction.Rollback();
 				ReportError("error updating snippets", cmd, exc);
 			}
 		}
@@ -1059,8 +911,10 @@ namespace River.OneMoreAddIn.Commands
 					}
 				}
 
-				cmd.CommandText = "REPLACE INTO hashtag_notebook " +
-					"(notebookID, name, lastModified) VALUES (@nid, @nam, @mod)";
+				cmd.CommandText =
+					"INSERT INTO hashtag_notebook (notebookID, name, included, lastModified) " +
+					"VALUES (@nid, @nam, 1, @mod) " +
+					"ON CONFLICT(notebookID) DO UPDATE SET name = @nam, lastModified = @mod";
 
 				cmd.Parameters.Clear();
 				cmd.Parameters.AddWithValue("@nid", notebookID);
@@ -1072,6 +926,33 @@ namespace River.OneMoreAddIn.Commands
 			catch (Exception exc)
 			{
 				ReportError("error writing notebook", cmd, exc);
+			}
+		}
+
+
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="notebookID"></param>
+		/// <param name="included"></param>
+		public void WriteNotebookInclusion(string notebookID, string name, bool included)
+		{
+			using var cmd = con.CreateCommand();
+			cmd.CommandText =
+				"INSERT INTO hashtag_notebook (notebookID, name, included, lastModified) " +
+				"VALUES (@nid, @nam, @inc, '') " +
+				"ON CONFLICT(notebookID) DO UPDATE SET included = @inc";
+			cmd.Parameters.AddWithValue("@nid", notebookID);
+			cmd.Parameters.AddWithValue("@nam", name);
+			cmd.Parameters.AddWithValue("@inc", included ? 1 : 0);
+
+			try
+			{
+				cmd.ExecuteNonQuery();
+			}
+			catch (Exception exc)
+			{
+				ReportError("error updating notebook", cmd, exc);
 			}
 		}
 
@@ -1115,10 +996,12 @@ namespace River.OneMoreAddIn.Commands
 
 
 		/// <summary>
-		/// Records the timestamp value that was initialized at construction of this class
-		/// instance
+		/// Records the given timestamp as the time of the most recently completed scan
 		/// </summary>
-		public void WriteScanTime()
+		/// <param name="timestamp">
+		/// The Zulu-formatted timestamp captured at the start of the scan cycle
+		/// </param>
+		public void WriteScanTime(string timestamp)
 		{
 			using var cmd = con.CreateCommand();
 			cmd.CommandText = "UPDATE hashtag_scanner SET scanTime = @d WHERE scannerID = 0";
@@ -1139,7 +1022,7 @@ namespace River.OneMoreAddIn.Commands
 		/// Records the given tags.
 		/// </summary>
 		/// <param name="tags">A collection of Hashtags</param>
-		public void WriteTags(string pageID, Hashtags tags)
+		public bool WriteTags(string pageID, Hashtags tags)
 		{
 			using var transaction = con.BeginTransaction();
 
@@ -1161,7 +1044,7 @@ namespace River.OneMoreAddIn.Commands
 			{
 				transaction.Rollback();
 				logger.WriteLine($"error deleting tags {pageID}", exc);
-				return;
+				return false;
 			}
 
 			// now add (re-add) newly discovered tags for page, reestablishing doc order...
@@ -1203,11 +1086,11 @@ namespace River.OneMoreAddIn.Commands
 						logger.WriteLine($"error Snippet=[{tag.Snippet}]");
 						logger.WriteLine($"error lastModified=[{tag.LastModified}]");
 						logger.WriteLine(exc);
+						transaction.Rollback();
+						return false;
 					}
 				}
 			}
-
-			CleanupPages();
 
 			try
 			{
@@ -1215,7 +1098,36 @@ namespace River.OneMoreAddIn.Commands
 			}
 			catch (Exception exc)
 			{
+				transaction.Rollback();
 				ReportError("error writing tags", cmd, exc);
+				return false;
+			}
+
+			CleanupPages();
+			return true;
+		}
+
+
+		private void CleanupPages()
+		{
+			// as tags are deleted from a page, that page may be left dangling in the
+			// hashtag_page table; this cleans up those orphaned records
+
+			using var cmd = con.CreateCommand();
+			cmd.CommandType = CommandType.Text;
+			cmd.CommandText = "DELETE FROM hashtag_page WHERE moreID IN (" +
+				"SELECT P.moreID " +
+				"FROM hashtag_page P " +
+				"LEFT OUTER JOIN hashtag T " +
+				"ON T.moreID = P.moreID WHERE T.tag IS NULL)";
+
+			try
+			{
+				cmd.ExecuteNonQuery();
+			}
+			catch (Exception exc)
+			{
+				ReportError("error cleaning up pages", cmd, exc);
 			}
 		}
 	}

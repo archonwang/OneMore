@@ -4,6 +4,7 @@
 
 namespace River.OneMoreAddIn.Settings
 {
+	using Microsoft.Office.Core;
 	using River.OneMoreAddIn.Commands;
 	using Resx = Properties.Resources;
 
@@ -12,9 +13,13 @@ namespace River.OneMoreAddIn.Settings
 	{
 		private const decimal Millisecond = 1000M;
 
+		private readonly IRibbonUI ribbon;
 
-		public NavigatorSheet(SettingsProvider provider) : base(provider)
+
+		public NavigatorSheet(SettingsProvider provider, IRibbonUI ribbon) : base(provider)
 		{
+			this.ribbon = ribbon;
+
 			InitializeComponent();
 
 			Name = nameof(NavigatorSheet);
@@ -31,6 +36,7 @@ namespace River.OneMoreAddIn.Settings
 					"hidePinnedBox",
 					"quickBox",
 					"corrallBox",
+					"elevateBox",
 					"advancedGroup=phrase_AdvancedOptions",
 					"disabledBox"
 				});
@@ -57,6 +63,7 @@ namespace River.OneMoreAddIn.Settings
 			corrallBox.Checked = settings.Get("corralled", false);
 			//}
 
+			elevateBox.Checked = settings.Get("elevated", false);
 			disabledBox.Checked = settings.Get("disabled", false);
 		}
 
@@ -83,6 +90,10 @@ namespace River.OneMoreAddIn.Settings
 				? settings.Add("corralled", true) || updated
 				: settings.Remove("corralled") || updated;
 
+			updated = elevateBox.Checked
+				? settings.Add("elevated", true) || updated
+				: settings.Remove("elevated") || updated;
+
 			updated = disabledBox.Checked
 				? settings.Add("disabled", true) || updated
 				: settings.Remove("disabled") || updated;
@@ -90,6 +101,10 @@ namespace River.OneMoreAddIn.Settings
 			if (updated)
 			{
 				provider.SetCollection(settings);
+
+				// disabled controls whether the dropdown includes the history section;
+				// getContent results are cached until explicitly invalidated
+				ribbon.InvalidateControl("ribNavigatorButton");
 			}
 
 			return updated;

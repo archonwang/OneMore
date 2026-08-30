@@ -117,7 +117,6 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
   <data name="AboutDialog.Text" xml:space="preserve">
     <value>OneMore الوظيفة الإضافية المدخن</value>
     <comment>dialog title bar</comment>
@@ -158,12 +157,36 @@
     <value>الصورة لديها بالفعل تسمية توضيحية</value>
     <comment>info message</comment>
   </data>
+  <data name="AddFavoriteCommand_duplicate" xml:space="preserve">
+    <value>هذه المفضلة موجودة بالفعل</value>
+    <comment>error message</comment>
+  </data>
+  <data name="AddFavoriteCommand_error" xml:space="preserve">
+    <value>لا يمكن حفظ المفضلة</value>
+    <comment>error message</comment>
+  </data>
   <data name="AddFormulaCommand_Calculated" xml:space="preserve">
     <value>محسوب</value>
     <comment>tag name</comment>
   </data>
   <data name="AddInTitle" xml:space="preserve">
     <value>OneMoreAddIn</value>
+  </data>
+  <data name="AddTopSectionGroupCommand_DefaultName" xml:space="preserve">
+    <value>مجموعة الأقسام الجديدة</value>
+    <comment>default section group name</comment>
+  </data>
+  <data name="AddTopSectionGroupCommand_Error" xml:space="preserve">
+    <value>حدث خطأ أثناء إضافة مجموعة الأقسام الجديدة. راجع السجل للحصول على التفاصيل.</value>
+    <comment>error message</comment>
+  </data>
+  <data name="AddTopSectionGroupCommand_Saving" xml:space="preserve">
+    <value>جارٍ حفظ مجموعة الأقسام...</value>
+    <comment>progress message</comment>
+  </data>
+  <data name="AddTopSectionGroupDialog_Text" xml:space="preserve">
+    <value>إضافة مجموعة أقسام ذات المستوى الأعلى</value>
+    <comment>dialog title</comment>
   </data>
   <data name="AdjustImagesDialog.Text" xml:space="preserve">
     <value>تغيير حجم وتعديل الصورة</value>
@@ -265,6 +288,42 @@
     <value>قيادة الأسماء المستعارة</value>
     <comment>sheet</comment>
   </data>
+  <data name="AlignContainersDialog.Text" xml:space="preserve">
+    <value>محاذاة الحاويات</value>
+    <comment>dialog title</comment>
+  </data>
+  <data name="AlignContainersDialog_alignGroup.Text" xml:space="preserve">
+    <value>تنسيق</value>
+    <comment>group box title</comment>
+  </data>
+  <data name="AlignContainersDialog_allButton.Text" xml:space="preserve">
+    <value>ينطبق على جميع الحاويات</value>
+    <comment>radio</comment>
+  </data>
+  <data name="AlignContainersDialog_allLabel.Text" xml:space="preserve">
+    <value>ينطبق على جميع الحاويات</value>
+    <comment>label</comment>
+  </data>
+  <data name="AlignContainersDialog_leftButton.Text" xml:space="preserve">
+    <value>غادر</value>
+    <comment>radio</comment>
+  </data>
+  <data name="AlignContainersDialog_overlapCheckBox.Text" xml:space="preserve">
+    <value>منع التداخلات</value>
+    <comment>checkbox</comment>
+  </data>
+  <data name="AlignContainersDialog_rightButton.Text" xml:space="preserve">
+    <value>يمين</value>
+    <comment>radio</comment>
+  </data>
+  <data name="AlignContainersDialog_selectedButton.Text" xml:space="preserve">
+    <value>ينطبق على {0} حاوية محددة</value>
+    <comment>radio</comment>
+  </data>
+  <data name="AlignContainersDialog_topButton.Text" xml:space="preserve">
+    <value>قمة</value>
+    <comment>radio</comment>
+  </data>
   <data name="AnalyzeCommand_CacheSummary" xml:space="preserve">
     <value>ذاكرة التخزين المؤقت عبارة عن دليل داخلي يديره OneNote لتحسين أدائه. </value>
     <comment>summary text</comment>
@@ -281,17 +340,9 @@
     <value>&amp;lt;span style = 'font-style: italic'&amp;gt; لم يتم العثور على ذاكرة التخزين المؤقت ؛ </value>
     <comment>status</comment>
   </data>
-  <data name="AnalyzeCommand_NoOrphans" xml:space="preserve">
-    <value>&amp;lt;span style = 'font-style: italic'&amp;gt; لم يتم اكتشاف أدلة احتياطية معزولة &amp;lt;/ span&amp;gt;</value>
-    <comment>status</comment>
-  </data>
   <data name="AnalyzeCommand_OpenSections" xml:space="preserve">
     <value>الأقسام المفتوحة</value>
     <comment>SKIP notebook name</comment>
-  </data>
-  <data name="AnalyzeCommand_OrphanSummary" xml:space="preserve">
-    <value>الأيتام عبارة عن مجلدات نسخ احتياطي لدفاتر الملاحظات التي لم تعد مفتوحة في OneNote. </value>
-    <comment>summary text</comment>
   </data>
   <data name="AnalyzeCommand_PageSummary" xml:space="preserve">
     <value>هذا هو توزيع مفصل لكل صفحة يوضح الحجم الإجمالي لتمثيل XML الداخلي وحجم كل صورة وملف مرفق. </value>
@@ -349,12 +400,20 @@
     <value>قد يستغرق التقرير دقائق</value>
     <comment>label</comment>
   </data>
+  <data name="ApplyConditionalFormatCommand_NoMatches" xml:space="preserve">
+    <value>لم يتم العثور على أي تطابقات في هذه الصفحة.</value>
+    <comment>message box</comment>
+  </data>
   <data name="ApplyTableTheme_SelectTable" xml:space="preserve">
     <value>حرك مؤشر النص إلى خلية جدول</value>
     <comment>message</comment>
   </data>
   <data name="ArchiveCommand_archived" xml:space="preserve">
     <value>تمت أرشفة {0} من {1} صفحة إلى {2}</value>
+    <comment>message</comment>
+  </data>
+  <data name="ArchiveCommand_noContext" xml:space="preserve">
+    <value>لا يحتوي OneNote على قسم نشط. يرجى فتح القسم والمحاولة مرة أخرى.</value>
     <comment>message</comment>
   </data>
   <data name="ArchiveCommand_noDirectory" xml:space="preserve">
@@ -405,12 +464,8 @@
     <value>مستخدم حديثا</value>
     <comment>listview annotation</comment>
   </data>
-  <data name="BiLinkCommand_BadAnchor" xml:space="preserve">
-    <value>لا يمكن وضع علامة على نقطة الارتساء. </value>
-    <comment>message box</comment>
-  </data>
   <data name="BiLinkCommand_BadTarget" xml:space="preserve">
-    <value>تعذر إنشاء ارتباط ثنائي الاتجاه. </value>
+    <value>تعذر إنشاء رابط ثنائي الاتجاه. {0}</value>
     <comment>message box</comment>
   </data>
   <data name="BiLinkCommand_Circular" xml:space="preserve">
@@ -418,19 +473,23 @@
     <comment>message box</comment>
   </data>
   <data name="BiLinkCommand_LostAnchor" xml:space="preserve">
-    <value>لا يمكن العثور على المرساة. </value>
-    <comment>message box</comment>
-  </data>
-  <data name="BiLinkCommand_Marked" xml:space="preserve">
-    <value>تم وضع علامة "{0}" على أنها نقطة الارتساء. </value>
+    <value>لم يتم العثور على الإشارة المرجعية. لقد تغيرت الصفحة أو النص.</value>
     <comment>message box</comment>
   </data>
   <data name="BiLinkCommand_NoAnchor" xml:space="preserve">
-    <value>مرساة البدء لم يتم وضع علامة عليها بعد. </value>
+    <value>لم يتم تعيين الإشارة المرجعية بعد. حدد بداية الارتباط ثنائي الاتجاه.</value>
     <comment>message box</comment>
   </data>
   <data name="BiLinkCommand_NoTarget" xml:space="preserve">
     <value>حدد كلمة أو عبارة من فقرة واحدة</value>
+    <comment>message box</comment>
+  </data>
+  <data name="BookmarkCommand_Invalid" xml:space="preserve">
+    <value>ضع مؤشر النص في كلمة أو عبارة لإنشاء إشارة مرجعية</value>
+    <comment>message box</comment>
+  </data>
+  <data name="BookmarkedDialog_Message" xml:space="preserve">
+    <value>تم وضع إشارة مرجعية على "{0}"</value>
     <comment>message box</comment>
   </data>
   <data name="BreakingDialog_oneButton.Text" xml:space="preserve">
@@ -447,10 +506,6 @@
   </data>
   <data name="Calculator_ErrInvalidCountifParams" xml:space="preserve">
     <value>تتطلب الدالة countif معلمتين</value>
-    <comment>error</comment>
-  </data>
-  <data name="Calculator_ErrInvalidFnParamCount" xml:space="preserve">
-    <value>يجب أن تحتوي الدالة {0} على معلمتين</value>
     <comment>error</comment>
   </data>
   <data name="Calculator_ErrInvalidFnParamType" xml:space="preserve">
@@ -513,10 +568,6 @@
     <value>لا يوجد ملف سجل متاح</value>
     <comment>message box message</comment>
   </data>
-  <data name="ClearLog_Title" xml:space="preserve">
-    <value>تؤكد</value>
-    <comment>message box title</comment>
-  </data>
   <data name="Clipboard_locked" xml:space="preserve">
     <value>لا يمكن النسخ في هذا الوقت. الحافظة مقفلة.</value>
     <comment>error message</comment>
@@ -524,6 +575,44 @@
   <data name="Clipboard_norestore" xml:space="preserve">
     <value>غير قادر على استعادة حالة الحافظة</value>
     <comment>message</comment>
+  </data>
+  <data name="CollateTocCommand_indexTitle" xml:space="preserve">
+    <value>فهرس جدول المحتويات</value>
+    <comment>page title</comment>
+  </data>
+  <data name="CollateTocCommand_noPagesFound" xml:space="preserve">
+    <value>لم يتم العثور على صفحات في دفاتر الملاحظات المحددة التي تحتوي على علامة (علامات) التصنيف المحددة.</value>
+    <comment>message</comment>
+  </data>
+  <data name="CollateTocCommand_replaceQuestion" xml:space="preserve">
+    <value>توجد صفحة فهرس جدول المحتويات المجمعة بالفعل في هذا القسم.
+
+هل تريد استبدال محتوياته؟ اختر لا لإنشاء صفحة جديدة بدلاً من ذلك.</value>
+    <comment>question dialog</comment>
+  </data>
+  <data name="CollateTocDialog_hashtagLabel" xml:space="preserve">
+    <value>علامات التصنيف</value>
+    <comment>label</comment>
+  </data>
+  <data name="CollateTocDialog_introLabel" xml:space="preserve">
+    <value>حدد دفاتر الملاحظات للبحث عنها وأدخل علامة تصنيف واحدة أو أكثر. سيتم تجميع جداول المحتوى الخاصة بالصفحات التي تم وضع علامة عليها بواحدة على الأقل من علامات التصنيف المحددة في صفحة فهرس واحدة.</value>
+    <comment>label</comment>
+  </data>
+  <data name="CollateTocDialog_noHashtags" xml:space="preserve">
+    <value>أدخل هاشتاجًا واحدًا على الأقل.</value>
+    <comment>validation error</comment>
+  </data>
+  <data name="CollateTocDialog_noNotebooks" xml:space="preserve">
+    <value>حدد دفتر ملاحظات واحدًا على الأقل.</value>
+    <comment>validation error</comment>
+  </data>
+  <data name="CollateTocDialog_Title" xml:space="preserve">
+    <value>تجميع جداول المحتوى</value>
+    <comment>dialog title</comment>
+  </data>
+  <data name="ColorizeCommand_LanguageError" xml:space="preserve">
+    <value>لا يمكن تحميل ملف تعريف اللغة لـ '{0}'. قد يكون مشوهًا - راجع ملف السجل للحصول على التفاصيل.</value>
+    <comment>messagebox (0 arg is language key)</comment>
   </data>
   <data name="ColorizeDialog_Title" xml:space="preserve">
     <value>اختار اللغة</value>
@@ -588,6 +677,12 @@
     <value>{0}. </value>
     <comment>messagebox (0 arg is Command_Error)</comment>
   </data>
+  <data name="Command_multiWindowWarning" xml:space="preserve">
+    <value>هذه الصفحة مفتوحة في نوافذ متعددة؛ قد لا يكون الاختيار صحيحا.
+
+هل تريد الاستمرار؟</value>
+    <comment>warning message</comment>
+  </data>
   <data name="CommandPalette_clear" xml:space="preserve">
     <value>هل تريد مسح محفوظات الأوامر الحديثة؟</value>
     <comment>message box</comment>
@@ -607,6 +702,44 @@
   <data name="CommandPaletteDialog_introLabel.Text" xml:space="preserve">
     <value>اكتب أمرًا واضغط على Enter أو انقر فوق عنصر من القائمة</value>
     <comment>label</comment>
+  </data>
+  <data name="ConditionalFormatDialog_builtinRadio.Text" xml:space="preserve">
+    <value>نمط OneNote المدمج</value>
+    <comment>radio</comment>
+  </data>
+  <data name="ConditionalFormatDialog_builtinStyles" xml:space="preserve">
+    <value>العنوان 1
+العنوان 2
+العنوان 3
+العنوان 4
+العنوان 5
+العنوان 6
+عنوان الصفحة
+الاقتباس
+يقتبس
+شفرة
+طبيعي</value>
+    <comment>combo box items, must match the order of the StandardStyles enum</comment>
+  </data>
+  <data name="ConditionalFormatDialog_customRadio.Text" xml:space="preserve">
+    <value>نمط OneMore مخصص</value>
+    <comment>radio</comment>
+  </data>
+  <data name="ConditionalFormatDialog_hintLabel.Text" xml:space="preserve">
+    <value>تطبق أنماط الفقرة تنسيق الخط واللون الخاصين بها فقط على النص المطابق؛ لا يتم تحويل الفقرة التي تحتوي على هذا النمط.</value>
+    <comment>multiline label</comment>
+  </data>
+  <data name="ConditionalFormatDialog_patternLabel.Text" xml:space="preserve">
+    <value>التعبير العادي</value>
+    <comment>label</comment>
+  </data>
+  <data name="ConditionalFormatDialog_styleLabel.Text" xml:space="preserve">
+    <value>أسلوب</value>
+    <comment>label</comment>
+  </data>
+  <data name="ConditionalFormatDialog_Text" xml:space="preserve">
+    <value>تطبيق التنسيق الشرطي</value>
+    <comment>dialog title</comment>
   </data>
   <data name="ContextMenuSheet_introBox.Text" xml:space="preserve">
     <value>اختر أوامر لعرضها في قائمة سياق الصفحة. تتضمن عناصر القائمة جميع الأوامر في تلك القائمة. أعد تشغيل OneNote لمشاهدة التغييرات. إذا اخترت أحد خيارات "القائمة" مثل "قائمة التعديل" ، فستتم إضافتها كقائمة منبثقة وتتضمن جميع عناصر قائمة التحرير. ولكن إذا اخترت أحد العناصر الفرعية ، مثل "إلى الأحرف الصغيرة" ، فسيتم إضافة هذا العنصر كعنصر قائمة سياق المستوى الأعلى. إذا قمت بتحديد كليهما ، فسيتم عرض كلاهما ، وربما يتكرر العناصر.</value>
@@ -632,9 +765,25 @@
     <value>تخفيض السعر المنسوخ</value>
     <comment>message box</comment>
   </data>
+  <data name="CopyFolderCommand_AndMore" xml:space="preserve">
+    <value>...و{0} أخرى</value>
+    <comment>message box, {0} is a count of additional failed pages not listed</comment>
+  </data>
   <data name="CopyFolderCommand_InvalidTarget" xml:space="preserve">
     <value>لا يمكن نسخ مجلد إلى نفسه أو إلى أحد توابعه</value>
     <comment>error message</comment>
+  </data>
+  <data name="CopyFolderCommand_NoSourceFolder" xml:space="preserve">
+    <value>تعذر تحديد المجلد المصدر لنسخه. الرجاء تحديد المجلد في المتصفح والمحاولة مرة أخرى.</value>
+    <comment>error message</comment>
+  </data>
+  <data name="CopyFolderCommand_PartialFailure" xml:space="preserve">
+    <value>اكتمل النسخ ولكن تعذر نسخ {0} من {1} صفحة (صفحات). راجع ملف السجل للحصول على التفاصيل.</value>
+    <comment>message box, {0} is failed count, {1} is total count</comment>
+  </data>
+  <data name="CopyFolderCommand_Preparing" xml:space="preserve">
+    <value>مجموعة قسم القراءة، لحظة واحدة من فضلك...</value>
+    <comment>progress dialog initial message, shown while scanning the notebook</comment>
   </data>
   <data name="CrawlWebCommand_NoHyperlinks" xml:space="preserve">
     <value>لا ارتباطات تشعبية موجودة في النطاق</value>
@@ -664,6 +813,98 @@
     <value>تطبيق أعمدة النص على عناوين الصفحات الفرعية</value>
     <comment>checkbox</comment>
   </data>
+  <data name="CreateJournalCommand_cancelled" xml:space="preserve">
+    <value>تم إنشاء {0} من {1} صفحة من صفحات دفتر اليومية قبل إلغاء العملية.</value>
+    <comment>message box</comment>
+  </data>
+  <data name="CreateJournalCommand_noNotebook" xml:space="preserve">
+    <value>يرجى فتح دفتر ملاحظات قبل إنشاء مجلة</value>
+    <comment>error dialog</comment>
+  </data>
+  <data name="CreateJournalCommand_syncError" xml:space="preserve">
+    <value>يتعذر على OneMore إنشاء صفحات أثناء مزامنة OneNote. حاول مرة أخرى بعد قليل.</value>
+    <comment>error dialog</comment>
+  </data>
+  <data name="CreateJournalDialog.Text" xml:space="preserve">
+    <value>إنشاء مجلة</value>
+    <comment>dialog title</comment>
+  </data>
+  <data name="CreateJournalDialog_currentSectionRadio.Text" xml:space="preserve">
+    <value>القسم الحالي</value>
+    <comment>radio button</comment>
+  </data>
+  <data name="CreateJournalDialog_dateFormatLabel.Text" xml:space="preserve">
+    <value>تنسيق التاريخ</value>
+    <comment>label</comment>
+  </data>
+  <data name="CreateJournalDialog_dayRangeLabel.Text" xml:space="preserve">
+    <value>نطاق اليوم</value>
+    <comment>label</comment>
+  </data>
+  <data name="CreateJournalDialog_destinationLabel.Text" xml:space="preserve">
+    <value>وجهة</value>
+    <comment>label</comment>
+  </data>
+  <data name="CreateJournalDialog_hashtagsLabel.Text" xml:space="preserve">
+    <value>علامات التصنيف</value>
+    <comment>label</comment>
+  </data>
+  <data name="CreateJournalDialog_invalidSectionName" xml:space="preserve">
+    <value>يحتوي الاسم على أحرف غير صالحة أو يتجاوز 50 حرفًا</value>
+    <comment>inline validation message</comment>
+  </data>
+  <data name="CreateJournalDialog_monthLabel.Text" xml:space="preserve">
+    <value>شهر</value>
+    <comment>label</comment>
+  </data>
+  <data name="CreateJournalDialog_newSectionRadio.Text" xml:space="preserve">
+    <value>قسم جديد</value>
+    <comment>radio button</comment>
+  </data>
+  <data name="CreateJournalDialog_previewCurrent" xml:space="preserve">
+    <value>سيؤدي هذا إلى إنشاء {0} صفحة ({1}) في القسم الحالي.</value>
+    <comment>live preview label</comment>
+  </data>
+  <data name="CreateJournalDialog_previewNew" xml:space="preserve">
+    <value>سيؤدي هذا إلى إنشاء {0} صفحة ({1}) في قسم جديد يسمى '{2}'.</value>
+    <comment>live preview label</comment>
+  </data>
+  <data name="CreateJournalDialog_sectionCollision" xml:space="preserve">
+    <value>يوجد قسم يسمى '{0}' بالفعل. اختر اسمًا مختلفًا أو حدد "القسم الحالي".</value>
+    <comment>inline validation message</comment>
+  </data>
+  <data name="CreateJournalDialog_sectionNameLabel.Text" xml:space="preserve">
+    <value>اسم القسم الجديد</value>
+    <comment>label</comment>
+  </data>
+  <data name="CreateJournalDialog_titleLabel.Text" xml:space="preserve">
+    <value>عنوان</value>
+    <comment>label</comment>
+  </data>
+  <data name="CreateJournalDialog_titleLooksLikeDate" xml:space="preserve">
+    <value>لا يمكن أن يبدو العنوان كتاريخ</value>
+    <comment>inline validation message</comment>
+  </data>
+  <data name="CreateJournalDialog_weekdaysOnly" xml:space="preserve">
+    <value>أيام الأسبوع فقط</value>
+    <comment>day range description used in live preview</comment>
+  </data>
+  <data name="CreateJournalDialog_weekdaysOnlyRadio.Text" xml:space="preserve">
+    <value>أيام الأسبوع فقط</value>
+    <comment>radio button</comment>
+  </data>
+  <data name="CreateJournalDialog_weekdaysWeekends" xml:space="preserve">
+    <value>أيام الأسبوع وعطلات نهاية الأسبوع</value>
+    <comment>day range description used in live preview</comment>
+  </data>
+  <data name="CreateJournalDialog_weekdaysWeekendsRadio.Text" xml:space="preserve">
+    <value>أيام الأسبوع وعطلات نهاية الأسبوع</value>
+    <comment>radio button</comment>
+  </data>
+  <data name="CreateJournalDialog_yearLabel.Text" xml:space="preserve">
+    <value>سنة</value>
+    <comment>label</comment>
+  </data>
   <data name="CreatePagesCommand_CreatePages" xml:space="preserve">
     <value>هل ترغب في إنشاء صفحات {0}؟</value>
     <comment>message box</comment>
@@ -671,6 +912,14 @@
   <data name="CreatePagesCommand_NoNamesFound" xml:space="preserve">
     <value>لم يتم العثور على قائمة الأسماء على الصفحة</value>
     <comment>message box</comment>
+  </data>
+  <data name="CreatePagesDialog.Text" xml:space="preserve">
+    <value>إنشاء الصفحات</value>
+    <comment>dialog title</comment>
+  </data>
+  <data name="CreatePagesDialog_linksBox.Text" xml:space="preserve">
+    <value>قم بإنشاء روابط ثنائية الاتجاه بين القائمة والصفحات الجديدة</value>
+    <comment>checkbox</comment>
   </data>
   <data name="CropImage_oneImage" xml:space="preserve">
     <value>حدد صورة واحدة لقصها</value>
@@ -720,6 +969,10 @@
     <value>البحث والاستبدال</value>
     <comment>Context menu</comment>
   </data>
+  <data name="ctxStyleGallery_Label" xml:space="preserve">
+    <value>الأنماط</value>
+    <comment>Context menu NODUP</comment>
+  </data>
   <data name="ctxUppercaseButton_Label" xml:space="preserve">
     <value>إلى الحالة العليا</value>
     <comment>Context menu</comment>
@@ -758,6 +1011,10 @@
   </data>
   <data name="DiagramCommand_broken" xml:space="preserve">
     <value>نص الرسم التخطيطي إما غير صالح أو لا يمكن العثور على اتصال بين النص والصورة</value>
+    <comment>error message</comment>
+  </data>
+  <data name="DiagramCommand_Cancelled" xml:space="preserve">
+    <value>تم إلغاء عرض الرسم التخطيطي أو انتهت مهلته</value>
     <comment>error message</comment>
   </data>
   <data name="DiagramCommand_EmptySelection" xml:space="preserve">
@@ -823,6 +1080,98 @@
   <data name="EditTableThemesDialog_Text" xml:space="preserve">
     <value>أنماط الجدول المخصصة</value>
     <comment>dialog</comment>
+  </data>
+  <data name="EmbedCommand_EmbeddedFrom" xml:space="preserve">
+    <value>مضمن من {0}</value>
+    <comment>link</comment>
+  </data>
+  <data name="EmbedCommand_NoClipboardPage" xml:space="preserve">
+    <value>لا يمكن العثور على الصفحة المرتبطة. تأكد من أن دفتر الملاحظات المصدر مفتوح في OneNote.</value>
+    <comment>message box</comment>
+  </data>
+  <data name="EmbedCommand_NoContent" xml:space="preserve">
+    <value>لا تحتوي صفحة المصدر على أي محتوى ضمن العلامات المحددة</value>
+    <comment>message box</comment>
+  </data>
+  <data name="EmbedCommand_NoParagraph" xml:space="preserve">
+    <value>لا يمكن العثور على الفقرة المرتبطة في الصفحة المصدر</value>
+    <comment>message box</comment>
+  </data>
+  <data name="EmbedCommand_NoSource" xml:space="preserve">
+    <value>المحتوى المصدر لم يعد متاحا</value>
+    <comment>message box</comment>
+  </data>
+  <data name="EmbedCommand_Select" xml:space="preserve">
+    <value>حدد الصفحة</value>
+    <comment>quickdialog title</comment>
+  </data>
+  <data name="EmbedCommand_SelectIntro" xml:space="preserve">
+    <value>حدد الصفحة المراد تضمين المحتوى منها</value>
+    <comment>quickdialog intro</comment>
+  </data>
+  <data name="EmbedDialog_beginTagLabel.Text" xml:space="preserve">
+    <value>علامة البدء</value>
+    <comment>label</comment>
+  </data>
+  <data name="EmbedDialog_bookmarkLabel.Text" xml:space="preserve">
+    <value>إشارة مرجعية</value>
+    <comment>label</comment>
+  </data>
+  <data name="EmbedDialog_endTagLabel.Text" xml:space="preserve">
+    <value>علامة النهاية</value>
+    <comment>label</comment>
+  </data>
+  <data name="EmbedDialog_formattedRadio.Text" xml:space="preserve">
+    <value>محتوى منسق</value>
+    <comment>radio button</comment>
+  </data>
+  <data name="EmbedDialog_indentCheck.Text" xml:space="preserve">
+    <value>محتوى المسافة البادئة</value>
+    <comment>checkbox</comment>
+  </data>
+  <data name="EmbedDialog_noteLabel_After" xml:space="preserve">
+    <value>المحتوى بعد العلامة: {0}</value>
+    <comment>embed note, begin tag only</comment>
+  </data>
+  <data name="EmbedDialog_noteLabel_Before" xml:space="preserve">
+    <value>المحتوى قبل العلامة: {0}</value>
+    <comment>embed note, end tag only</comment>
+  </data>
+  <data name="EmbedDialog_noteLabel_Between" xml:space="preserve">
+    <value>المحتوى بين العلامتين: {0} و{1}</value>
+    <comment>embed note, both tags specified</comment>
+  </data>
+  <data name="EmbedDialog_noteLabel_FullPage" xml:space="preserve">
+    <value>صفحة كاملة</value>
+    <comment>embed note, no tags specified</comment>
+  </data>
+  <data name="EmbedDialog_paragraphLabel.Text" xml:space="preserve">
+    <value>فقرة</value>
+    <comment>label</comment>
+  </data>
+  <data name="EmbedDialog_plaintextRadio.Text" xml:space="preserve">
+    <value>نص عادي</value>
+    <comment>radio button</comment>
+  </data>
+  <data name="EmbedDialog_styleBox.Text" xml:space="preserve">
+    <value>طبيعي
+مائل
+رمادي
+يقتبس
+الاقتباس</value>
+    <comment>style options, one per line</comment>
+  </data>
+  <data name="EmbedDialog_styleLabel.Text" xml:space="preserve">
+    <value>نمط النص:</value>
+    <comment>label</comment>
+  </data>
+  <data name="EmbedDialog_Title" xml:space="preserve">
+    <value>خيارات التضمين</value>
+    <comment>dialog</comment>
+  </data>
+  <data name="EmbedDialog_useClipboardLink.Text" xml:space="preserve">
+    <value>استخدم الرابط الموجود في الحافظة بدلاً من ذلك</value>
+    <comment>link</comment>
   </data>
   <data name="EmbedSubpageCommand_NoContent" xml:space="preserve">
     <value>الصفحة المصدر لا تحتوي على محتوى</value>
@@ -1048,16 +1397,60 @@
     <value>أدخل الرموز التعبيرية</value>
     <comment>dialog title</comment>
   </data>
+  <data name="EmojiDialog_activitiesLink.Text" xml:space="preserve">
+    <value>أنشطة</value>
+    <comment>emoji category</comment>
+  </data>
+  <data name="EmojiDialog_animalsLink.Text" xml:space="preserve">
+    <value>الحيوانات والطبيعة</value>
+    <comment>emoji category</comment>
+  </data>
+  <data name="EmojiDialog_flagsLink.Text" xml:space="preserve">
+    <value>أعلام</value>
+    <comment>emoji category</comment>
+  </data>
+  <data name="EmojiDialog_foodLink.Text" xml:space="preserve">
+    <value>الطعام والشراب</value>
+    <comment>emoji category</comment>
+  </data>
+  <data name="EmojiDialog_generalLink.Text" xml:space="preserve">
+    <value>عام</value>
+    <comment>emoji category</comment>
+  </data>
+  <data name="EmojiDialog_gridTab.Text" xml:space="preserve">
+    <value>لوحة</value>
+    <comment>tag</comment>
+  </data>
   <data name="EmojiDialog_introLabel.Text" xml:space="preserve">
     <value>حدد أو أكثر من الرموز التعبيرية لإدراجها</value>
     <comment>instructions</comment>
   </data>
+  <data name="EmojiDialog_listTab.Text" xml:space="preserve">
+    <value>اختيار سريع</value>
+    <comment>tab</comment>
+  </data>
+  <data name="EmojiDialog_objectsLink.Text" xml:space="preserve">
+    <value>أشياء</value>
+    <comment>emoji category</comment>
+  </data>
+  <data name="EmojiDialog_peopleLink.Text" xml:space="preserve">
+    <value>الناس والجسم</value>
+    <comment>emoji category</comment>
+  </data>
+  <data name="EmojiDialog_smileysLink.Text" xml:space="preserve">
+    <value>الوجوه الضاحكة والعاطفة</value>
+    <comment>emoji category</comment>
+  </data>
+  <data name="EmojiDialog_symbolsLink.Text" xml:space="preserve">
+    <value>الرموز</value>
+    <comment>emoji category</comment>
+  </data>
+  <data name="EmojiDialog_travelLink.Text" xml:space="preserve">
+    <value>السفر والأماكن</value>
+    <comment>emoji category</comment>
+  </data>
   <data name="Error_BodyContext" xml:space="preserve">
     <value>يجب أن يكون تركيز النص في نص الصفحة</value>
-    <comment>error message box</comment>
-  </data>
-  <data name="Error_CursorContext" xml:space="preserve">
-    <value>ضع المؤشر في جسم الصفحة دون تحديد مجموعة من النص</value>
     <comment>error message box</comment>
   </data>
   <data name="Error_NoAttachments" xml:space="preserve">
@@ -1099,6 +1492,10 @@
     <value>تصدير 1 صفحة</value>
     <comment>group box title</comment>
   </data>
+  <data name="ExportDialog_invalidPath" xml:space="preserve">
+    <value>يحتوي مسار المجلد على أحرف غير قانونية</value>
+    <comment>error message</comment>
+  </data>
   <data name="ExportDialog_Text" xml:space="preserve">
     <value>تصدير الصفحات</value>
     <comment>dialog title</comment>
@@ -1106,6 +1503,38 @@
   <data name="ExportDialog_underBox.Text" xml:space="preserve">
     <value>استبدل المسافات في اسم الملف بشرطات سفلية</value>
     <comment>checkbox</comment>
+  </data>
+  <data name="ExportFavoritesCommand_error" xml:space="preserve">
+    <value>حدث خطأ أثناء تصدير المفضلة</value>
+    <comment>message</comment>
+  </data>
+  <data name="ExportFavoritesCommand_exported" xml:space="preserve">
+    <value>تم تصدير {0} المفضلة إلى {1}</value>
+    <comment>message</comment>
+  </data>
+  <data name="ExportFavoritesCommand_OpenFileFilter" xml:space="preserve">
+    <value>ملف JSON (*.json)|*.json</value>
+    <comment>export dialog</comment>
+  </data>
+  <data name="ExportFavoritesCommand_OpenFileTitle" xml:space="preserve">
+    <value>تصدير المفضلة</value>
+    <comment>export dialog title</comment>
+  </data>
+  <data name="ExportLayoutsCommand_error" xml:space="preserve">
+    <value>حدث خطأ أثناء تصدير التخطيطات</value>
+    <comment>message</comment>
+  </data>
+  <data name="ExportLayoutsCommand_exported" xml:space="preserve">
+    <value>تم تصدير {0} نوافذ إلى {1}</value>
+    <comment>message</comment>
+  </data>
+  <data name="ExportLayoutsCommand_OpenFileFilter" xml:space="preserve">
+    <value>ملف JSON (*.json)|*.json</value>
+    <comment>export dialog</comment>
+  </data>
+  <data name="ExportLayoutsCommand_OpenFileTitle" xml:space="preserve">
+    <value>تخطيطات التصدير</value>
+    <comment>export dialog title</comment>
   </data>
   <data name="Favorites_suspect" xml:space="preserve">
     <value>الصفحة غير موجودة؛ ربما تمت إعادة تسميته أو نقله</value>
@@ -1131,21 +1560,61 @@
     <value>Favorites.xml</value>
     <comment>FILENAME</comment>
   </data>
-  <data name="FavoritesSheet_DeleteMessage" xml:space="preserve">
-    <value>حذف {0}؟</value>
+  <data name="FavoritesSheet_confirmDrop" xml:space="preserve">
+    <value>هل أنت متأكد أنك تريد حذف كافة البيانات المفضلة؟</value>
     <comment>settings</comment>
   </data>
-  <data name="FavoritesSheet_locationColumn.HeaderText" xml:space="preserve">
-    <value>موقعك</value>
-    <comment>settings table column header</comment>
+  <data name="FavoritesSheet_dropLabel.Text" xml:space="preserve">
+    <value>احذف كافة بيانات المفضلة من قاعدة بيانات OneMore.db المحلية. استخدم هذا فقط لمسح مجموعة المفضلة بأكملها وإعادة استيراد ملف Favorites.xml القديم.</value>
+    <comment>settings</comment>
+  </data>
+  <data name="FavoritesSheet_dropLink.Text" xml:space="preserve">
+    <value>قم بإسقاط مخطط المفضلة من قاعدة البيانات</value>
+    <comment>settings</comment>
+  </data>
+  <data name="FavoritesSheet_dropped" xml:space="preserve">
+    <value>يتم حذف بيانات المفضلة وتحديثها باستخدام Favorites.xml إذا كانت موجودة</value>
+    <comment>settings</comment>
+  </data>
+  <data name="FavoritesSheet_introBox.Text" xml:space="preserve">
+    <value>خيارات مخصصة للمفضلة</value>
+    <comment>settings</comment>
   </data>
   <data name="FavoritesSheet_shortcutsBox.Text" xml:space="preserve">
     <value>قم بتضمين إشارة إلى صفحة اختصارات لوحة المفاتيح</value>
     <comment>settings</comment>
   </data>
   <data name="FileImportSheet_introBox.Text" xml:space="preserve">
-    <value>تخصيص خيارات استيراد PowerPoint و PDF</value>
+    <value>خيارات استيراد الملف</value>
     <comment>label</comment>
+  </data>
+  <data name="FileImportSheet_ppGroup.Text" xml:space="preserve">
+    <value>باور بوينت وPDF</value>
+    <comment>settings groupbox</comment>
+  </data>
+  <data name="FileImportSheet_quickGroup.Text" xml:space="preserve">
+    <value>استيراد سريع</value>
+    <comment>settings groupbox</comment>
+  </data>
+  <data name="FileImportSheet_quickIntroLabel.Text" xml:space="preserve">
+    <value>تعمل هذه الخيارات على تمكين ميزة الاستيراد السريع</value>
+    <comment>label</comment>
+  </data>
+  <data name="FileImportSheet_sectionLink.Text" xml:space="preserve">
+    <value>اختر القسم...</value>
+    <comment>label</comment>
+  </data>
+  <data name="FileImportSheet_SelectFolderText" xml:space="preserve">
+    <value>حدد المجلد للبحث عن ملفات الاستيراد السريع</value>
+    <comment>folder browser dialog description</comment>
+  </data>
+  <data name="FileImportSheet_SelectSectionIntro" xml:space="preserve">
+    <value>حدد القسم المستخدم كهدف للاستيراد السريع</value>
+    <comment>quick filing dialog intro</comment>
+  </data>
+  <data name="FileImportSheet_SelectSectionTitle" xml:space="preserve">
+    <value>حدد القسم</value>
+    <comment>quick filing dialog title</comment>
   </data>
   <data name="FileImportSheet_Title" xml:space="preserve">
     <value>استيراد ملف</value>
@@ -1191,17 +1660,25 @@
     <value>مقاس</value>
     <comment>label</comment>
   </data>
+  <data name="FitGridToTextDialog_snapOutlinesBox.Text" xml:space="preserve">
+    <value>التقط الخطوط العريضة للشبكة</value>
+    <comment>checkbox</comment>
+  </data>
   <data name="FitGridToTextDialog_Text" xml:space="preserve">
     <value>احتواء الشبكة على النص</value>
     <comment>dialog title</comment>
   </data>
-  <data name="FormulaCommand_Exception" xml:space="preserve">
-    <value>{0} (العمود {1})</value>
-    <comment>exception message</comment>
-  </data>
   <data name="FormulaCommand_Linear" xml:space="preserve">
     <value>يجب أن تكون الخلايا المحددة في نفس الصف أو في نفس العمود</value>
     <comment>warning message</comment>
+  </data>
+  <data name="FormulaCommand_Progress" xml:space="preserve">
+    <value>جارٍ الحساب {0}</value>
+    <comment>formula progress message</comment>
+  </data>
+  <data name="FormulaCommand_Saving" xml:space="preserve">
+    <value>اكتملت الحسابات، وحفظ الصفحة...</value>
+    <comment>formula progress message</comment>
   </data>
   <data name="FormulaCommand_SelectOne" xml:space="preserve">
     <value>حدد خلية جدول واحدة أو أكثر</value>
@@ -1240,7 +1717,8 @@
 مرجع الخلية: A1 ، A2 ، ... zzz999
 نطاق الخلية: A1: A22
 النطاقات النسبية: A1: Cell (0 ، -1)</value>
-  <comment>!EDIT</comment></data>
+    <comment>!EDIT</comment>
+  </data>
   <data name="FormulaDialog_selectedLabel.Text" xml:space="preserve">
     <value>الخلايا المحددة:</value>
     <comment>label</comment>
@@ -1273,6 +1751,10 @@
     <value>السماح بمطابقة الأسماء غير المتسلسلة في لوحات الأوامر</value>
     <comment>checkbox</comment>
   </data>
+  <data name="GeneralSheet_telemetryBox.Text" xml:space="preserve">
+    <value>تمكين القياس عن بعد مجهول</value>
+    <comment>checkbox</comment>
+  </data>
   <data name="GeneralSheet_themeBox.Text" xml:space="preserve">
     <value>نظام
 ضوء
@@ -1302,10 +1784,25 @@
     <value>الصفحات الموسومة</value>
     <comment>page title</comment>
   </data>
+  <data name="HashtagCommand_notebookExcluded" xml:space="preserve">
+    <value>لقد تم استبعاد هذا الكمبيوتر الدفتري من مسح الهاشتاج. لتضمينها، افتح الإعدادات وحدد صفحة علامات التصنيف.</value>
+  </data>
+  <data name="HashtagCommand_scanComplete" xml:space="preserve">
+    <value>تم مسح {0} صفحة، وتم تحديث {1}، وتم العثور على {2} علامة تصنيف</value>
+    <comment>toast message</comment>
+  </data>
   <data name="HashtagCommand_scanning" xml:space="preserve">
     <value>يقوم OneMore حاليًا بإنشاء كتالوج الهاشتاج الخاص بك.
 
 البحث عن علامات التصنيف غير متاح حتى اكتمال ذلك.</value>
+  </data>
+  <data name="HashtagCommand_scanPageComplete" xml:space="preserve">
+    <value>تمت معالجة {0} علامة تصنيف في هذه الصفحة</value>
+    <comment>toast message</comment>
+  </data>
+  <data name="HashtagCommand_toastTitle" xml:space="preserve">
+    <value>علامات التصنيف OneMore</value>
+    <comment>toast header</comment>
   </data>
   <data name="HashtagCommand_waiting" xml:space="preserve">
     <value>تمت جدولة إنشاء كتالوج الهاشتاج الخاص بك في {0}. يمكنك تغيير هذا الجدول الزمني من تطبيق OneMore Tray.
@@ -1328,6 +1825,10 @@
     <value>جميع العلامات</value>
     <comment>text</comment>
   </data>
+  <data name="HashtagDialog_allTagsBox.Text" xml:space="preserve">
+    <value>إظهار جميع العلامات ذات الصلة في كل صفحة</value>
+    <comment>checkbox</comment>
+  </data>
   <data name="HashtagDialog_badLink" xml:space="preserve">
     <value>لا يمكن الانتقال إلى هذه الصفحة. قد تم حذفه</value>
     <comment>info message</comment>
@@ -1341,7 +1842,7 @@
     <comment>context menu item</comment>
   </data>
   <data name="HashtagDialog_introLabel.Text" xml:space="preserve">
-    <value>اكتب أي جزء من هاشتاج واحد أو أكثر. يتم تضمين أحرف البدل ما لم تنتهي العلامة بنقطة. يُسمح بالأقواس والعوامل المنطقية.</value>
+    <value>اكتب أي جزء من هاشتاج واحد أو أكثر. يتم تضمين أحرف البدل ما لم تنتهي العلامة بنقطة. يُسمح بالأقواس والعوامل المنطقية (AND، OR، NOT).</value>
     <comment>label</comment>
   </data>
   <data name="HashtagDialog_lastScanLabel" xml:space="preserve">
@@ -1387,10 +1888,6 @@
     <value>الغاءالكل</value>
     <comment>link label</comment>
   </data>
-  <data name="HashtaggerDialog.Text" xml:space="preserve">
-    <value>علامات التصنيف</value>
-    <comment>dialog title</comment>
-  </data>
   <data name="HashtaggerDialog_bankBox.Text" xml:space="preserve">
     <value>أضف إلى بنك العلامات في أعلى الصفحة</value>
     <comment>checkbox</comment>
@@ -1431,6 +1928,10 @@
     <value>تعطيل خدمة الهاشتاج. سيؤدي هذا أيضًا إلى تعطيل البحث عن الهاشتاج.</value>
     <comment>checkbox</comment>
   </data>
+  <data name="HashtagSheet_doubledBox.Text" xml:space="preserve">
+    <value>التعرف على علامات التصنيف المزدوجة البادئة "##" فقط</value>
+    <comment>checkbox</comment>
+  </data>
   <data name="HashtagSheet_filterBox.Text" xml:space="preserve">
     <value>تعامل مع ألوان HTML Hex وتوجيهات C# وC++ كعلامات تصنيف</value>
     <comment>checkbox</comment>
@@ -1443,18 +1944,22 @@
     <value>تخصيص الخيارات المتقدمة لخدمة Hashtag Scanner</value>
     <comment>label</comment>
   </data>
+  <data name="HashtagSheet_notifyBox.Text" xml:space="preserve">
+    <value>إظهار الإشعار المنبثق عند اكتمال الماسح الضوئي</value>
+    <comment>checkbox</comment>
+  </data>
   <data name="HashtagSheet_prescheduled" xml:space="preserve">
     <value>تمت جدولة عملية الفحص لـ {0}. استخدم الخيارات أدناه لتغيير هذا أو اضغط على إلغاء للاحتفاظ بالجدول الحالي.</value>
-  </data>
-  <data name="HashtagSheet_resetTooltip" xml:space="preserve">
-    <value>متقدم: إعادة تعيين علامة الترقية</value>
-    <comment>tooltip</comment>
   </data>
   <data name="HashtagSheet_scanNotebooks" xml:space="preserve">
     <value>قم بجدولة فحص متزايد لدفاتر الملاحظات المضافة حديثًا</value>
   </data>
   <data name="HashtagSheet_scheduleLink.Text" xml:space="preserve">
     <value>جدولة المسح الضوئي أو المسح الضوئي الآن</value>
+    <comment>link label</comment>
+  </data>
+  <data name="HashtagSheet_selectLink.Text" xml:space="preserve">
+    <value>حدد دفاتر الملاحظات لتضمينها أو تخطي مسح الهاشتاج فيها</value>
     <comment>link label</comment>
   </data>
   <data name="HashtagSheet_styleBox.Text" xml:space="preserve">
@@ -1467,10 +1972,6 @@
     <value>تطبيق نمط مخصص</value>
     <comment>label</comment>
   </data>
-  <data name="HashtagSheet_upgradeLink.Text" xml:space="preserve">
-    <value>ترقية علامات الصفحة إلى علامات التصنيف المضمنة</value>
-    <comment>link</comment>
-  </data>
   <data name="HashtagSheet_warningLabel.Text" xml:space="preserve">
     <value>يجب استخدام هذا بعد إضافة أو إزالة دفتر واحد أو أكثر من دفاتر الملاحظات. يوصى بجدولة إعادة البناء بعد ساعات ، مثل منتصف الليل.</value>
     <comment>multiline label</comment>
@@ -1482,6 +1983,10 @@
   <data name="HighlightsSheet_deepRadio.Text" xml:space="preserve">
     <value>عميق</value>
     <comment>radio</comment>
+  </data>
+  <data name="HighlightsSheet_extendBox.Text" xml:space="preserve">
+    <value>تمكين الألوان الموسعة</value>
+    <comment>checkbox</comment>
   </data>
   <data name="HighlightsSheet_fadedRadio.Text" xml:space="preserve">
     <value>تلاشى</value>
@@ -1547,7 +2052,7 @@
     <comment>label</comment>
   </data>
   <data name="ImportDialog_introLabel.Text" xml:space="preserve">
-    <value>حدد ملف Word أو PowerPoint أو OneNote أو Markdown أو XML</value>
+    <value>حدد ملف Word أو PowerPoint أو OneNote أو Markdown أو Text أو XML</value>
     <comment>label</comment>
   </data>
   <data name="ImportDialog_notInstalledLabel.Text" xml:space="preserve">
@@ -1555,7 +2060,7 @@
     <comment>label</comment>
   </data>
   <data name="ImportDialog_OpenFileFilter" xml:space="preserve">
-    <value>جميع الملفات (* .docx؛ *. pptx؛ *. pdf؛ *. md؛ *. one؛ *. xml) | * .docx؛ *. doc؛ *. pptx؛ * ppt؛ *. pdf؛ *. md ؛ *. one؛ *. xml | ملفات Word (* .docx) | * .docx | ملفات Powerpoint (* .pptx) | * .pptx | PDF (* .pdf) | * .pdf | Markdown (* .md) | * .md | OneNote File (* .one) | * .one | OneMore Template files (* .xml) | * .xml</value>
+    <value>كافة الملفات (*.docx;*.pptx;*.pdf;*.md;*.one;*.txt;*.xml)|*.docx;*.doc;*.pptx;*ppt;*.pdf;*.md;*.one;*.txt;*.xml|ملفات Word (*.docx)|*.docx|ملفات Powerpoint (*.pptx)|*.pptx|PDF (*.pdf)|*.pdf|Markdown (*.md)|*.md|ملف OneNote (*.one)|*.one|ملفات نصية (*.txt)|*.txt|ملفات قالب OneMore (*.xml)|*.xml</value>
     <comment>openfiledialog filter</comment>
   </data>
   <data name="ImportDialog_OpenFileTitle" xml:space="preserve">
@@ -1582,12 +2087,240 @@
     <value>خيارات Word</value>
     <comment>group box</comment>
   </data>
+  <data name="ImportEvernoteCommand_Importing" xml:space="preserve">
+    <value>جارٍ استيراد {0}...</value>
+    <comment>progress message, {0} is a note title</comment>
+  </data>
+  <data name="ImportEvernoteCommand_ReadError" xml:space="preserve">
+    <value>لا يمكن قراءة {0}</value>
+    <comment>error message, {0} is a file path</comment>
+  </data>
+  <data name="ImportEvernoteDialog_abortCheckBox.Text" xml:space="preserve">
+    <value>تخطي الملاحظة بأكملها بدلاً من إدراج عنصر نائب للمحتوى المشفر</value>
+    <comment>checkbox</comment>
+  </data>
+  <data name="ImportEvernoteDialog_fileLabel.Text" xml:space="preserve">
+    <value>ملف</value>
+    <comment>label</comment>
+  </data>
+  <data name="ImportEvernoteDialog_includeSubfoldersCheckBox.Text" xml:space="preserve">
+    <value>قم بتضمين المجلدات الفرعية عند تحديد مجلد</value>
+    <comment>checkbox</comment>
+  </data>
+  <data name="ImportEvernoteDialog_introLabel.Text" xml:space="preserve">
+    <value>حدد واحدًا أو أكثر من ملفات تصدير Evernote (.enex) أو مجلدًا لاستيراده</value>
+    <comment>label !EDIT</comment>
+  </data>
+  <data name="ImportEvernoteDialog_OpenFileFilter" xml:space="preserve">
+    <value>ملفات تصدير Evernote (*.enex)|*.enex</value>
+    <comment>openfiledialog filter</comment>
+  </data>
+  <data name="ImportEvernoteDialog_OpenFileTitle" xml:space="preserve">
+    <value>اختر ملف (ملفات) تصدير Evernote لاستيرادها</value>
+    <comment>openfiledialog title !EDIT</comment>
+  </data>
+  <data name="ImportEvernoteDialog_OpenFolderTitle" xml:space="preserve">
+    <value>اختر مجلدًا لملفات تصدير Evernote لاستيرادها</value>
+    <comment>folderbrowserdialog title</comment>
+  </data>
+  <data name="ImportEvernoteDialog_Text" xml:space="preserve">
+    <value>استيراد إيفرنوت</value>
+    <comment>dialog title</comment>
+  </data>
+  <data name="ImportFavoritesCommand_error" xml:space="preserve">
+    <value>حدث خطأ أثناء استيراد المفضلة</value>
+    <comment>message</comment>
+  </data>
+  <data name="ImportFavoritesCommand_imported" xml:space="preserve">
+    <value>تم استيراد {0} من {1} المفضلة</value>
+    <comment>message</comment>
+  </data>
+  <data name="ImportFavoritesCommand_OpenFileFilter" xml:space="preserve">
+    <value>ملف JSON (*.json)|*.json</value>
+    <comment>import dialog</comment>
+  </data>
+  <data name="ImportFavoritesCommand_OpenFileTitle" xml:space="preserve">
+    <value>استيراد المفضلة</value>
+    <comment>import dialog title</comment>
+  </data>
+  <data name="ImportLayoutsCommand_error" xml:space="preserve">
+    <value>حدث خطأ أثناء استيراد التخطيطات</value>
+    <comment>message</comment>
+  </data>
+  <data name="ImportLayoutsCommand_imported" xml:space="preserve">
+    <value>تم استيراد {0} من {1} نافذة تخطيط</value>
+    <comment>message</comment>
+  </data>
+  <data name="ImportLayoutsCommand_OpenFileFilter" xml:space="preserve">
+    <value>ملف JSON (*.json)|*.json</value>
+    <comment>import dialog</comment>
+  </data>
+  <data name="ImportLayoutsCommand_OpenFileTitle" xml:space="preserve">
+    <value>استيراد التخطيطات</value>
+    <comment>import dialog title</comment>
+  </data>
+  <data name="ImportOutlookContactsCommand_address" xml:space="preserve">
+    <value>عنوان</value>
+    <comment>report column heading</comment>
+  </data>
+  <data name="ImportOutlookContactsCommand_companyTitle" xml:space="preserve">
+    <value>الشركة/العنوان</value>
+    <comment>report column heading</comment>
+  </data>
+  <data name="ImportOutlookContactsCommand_creatingPages" xml:space="preserve">
+    <value>إنشاء صفحات اتصال...</value>
+    <comment>progress dialog message</comment>
+  </data>
+  <data name="ImportOutlookContactsCommand_email" xml:space="preserve">
+    <value>بريد إلكتروني</value>
+    <comment>report column heading</comment>
+  </data>
+  <data name="ImportOutlookContactsCommand_finalizing" xml:space="preserve">
+    <value>جارٍ الانتهاء...</value>
+    <comment>progress dialog message</comment>
+  </data>
+  <data name="ImportOutlookContactsCommand_firstName" xml:space="preserve">
+    <value>الاسم الأول</value>
+    <comment>report column heading</comment>
+  </data>
+  <data name="ImportOutlookContactsCommand_importing" xml:space="preserve">
+    <value>جارٍ استيراد {0}...</value>
+    <comment>progress dialog message</comment>
+  </data>
+  <data name="ImportOutlookContactsCommand_lastName" xml:space="preserve">
+    <value>اسم العائلة</value>
+    <comment>report column heading</comment>
+  </data>
+  <data name="ImportOutlookContactsCommand_loadingCategories" xml:space="preserve">
+    <value>جارٍ تحميل فئات Outlook...</value>
+    <comment>progress dialog message</comment>
+  </data>
+  <data name="ImportOutlookContactsCommand_loadingContacts" xml:space="preserve">
+    <value>جارٍ تحميل جهات اتصال Outlook...</value>
+    <comment>progress dialog message</comment>
+  </data>
+  <data name="ImportOutlookContactsCommand_loadingFolders" xml:space="preserve">
+    <value>جارٍ تحميل مجلدات جهات اتصال Outlook...</value>
+    <comment>progress dialog message</comment>
+  </data>
+  <data name="ImportOutlookContactsCommand_outlookRequired" xml:space="preserve">
+    <value>يجب تثبيت Outlook لاستخدام هذا الأمر</value>
+    <comment>info message</comment>
+  </data>
+  <data name="ImportOutlookContactsCommand_pageTitle" xml:space="preserve">
+    <value>جهات اتصال Outlook</value>
+    <comment>page title</comment>
+  </data>
+  <data name="ImportOutlookContactsCommand_phone" xml:space="preserve">
+    <value>هاتف</value>
+    <comment>report column heading</comment>
+  </data>
+  <data name="ImportOutlookContactsCommand_reportNotFound" xml:space="preserve">
+    <value>لم يتم العثور على تقرير جهات اتصال Outlook. ربما تم حذفه</value>
+    <comment>info message</comment>
+  </data>
+  <data name="ImportOutlookContactsDialog.Text" xml:space="preserve">
+    <value>استيراد جهات اتصال Outlook</value>
+    <comment>dialog title</comment>
+  </data>
+  <data name="ImportOutlookContactsDialog_backButton.Text" xml:space="preserve">
+    <value>&lt; العودة</value>
+    <comment>button</comment>
+  </data>
+  <data name="ImportOutlookContactsDialog_bothRadio.Text" xml:space="preserve">
+    <value>كلاهما - إظهار التفاصيل الشخصية والتجارية</value>
+    <comment>radio, step 4 Template option, default</comment>
+  </data>
+  <data name="ImportOutlookContactsDialog_businessRadio.Text" xml:space="preserve">
+    <value>الأعمال - عرض تفاصيل الأعمال فقط</value>
+    <comment>radio, step 4 Template option</comment>
+  </data>
+  <data name="ImportOutlookContactsDialog_calculating" xml:space="preserve">
+    <value>جارٍ الحساب...</value>
+    <comment>caption shown while resolving per-contact folder/category data</comment>
+  </data>
+  <data name="ImportOutlookContactsDialog_categoryIntro" xml:space="preserve">
+    <value>اختر فئات Outlook التي تريد تضمينها.</value>
+    <comment>step 2 intro text</comment>
+  </data>
+  <data name="ImportOutlookContactsDialog_companyRadio.Text" xml:space="preserve">
+    <value>اسم الشركة</value>
+    <comment>radio, step 4 Sort by option</comment>
+  </data>
+  <data name="ImportOutlookContactsDialog_contactIntro" xml:space="preserve">
+    <value>{0} جهة اتصال تطابق عوامل التصفية الخاصة بك. اختر ما تريد استيراده.</value>
+    <comment>step 3 intro text, {0} is a contact count</comment>
+  </data>
+  <data name="ImportOutlookContactsDialog_contactsCount" xml:space="preserve">
+    <value>{0} جهات اتصال</value>
+    <comment>folder/category row count suffix, {0} is a contact count</comment>
+  </data>
+  <data name="ImportOutlookContactsDialog_contactsSelected" xml:space="preserve">
+    <value>تم تحديد {0} من {1} جهة اتصال</value>
+    <comment>step 3 footer caption</comment>
+  </data>
+  <data name="ImportOutlookContactsDialog_firstNameRadio.Text" xml:space="preserve">
+    <value>الاسم الأول</value>
+    <comment>radio, step 4 Sort by option</comment>
+  </data>
+  <data name="ImportOutlookContactsDialog_folderIntro" xml:space="preserve">
+    <value>اختر مجلدات جهات اتصال Outlook التي تريد الاستيراد منها.</value>
+    <comment>step 1 intro text</comment>
+  </data>
+  <data name="ImportOutlookContactsDialog_importButton" xml:space="preserve">
+    <value>يستورد</value>
+    <comment>primary button text, step 3 only</comment>
+  </data>
+  <data name="ImportOutlookContactsDialog_lastNameRadio.Text" xml:space="preserve">
+    <value>اسم العائلة</value>
+    <comment>radio, step 4 Sort by option, default</comment>
+  </data>
+  <data name="ImportOutlookContactsDialog_matchesSelection" xml:space="preserve">
+    <value>{0} جهة اتصال تطابق اختيارك الحالي</value>
+    <comment>step 1-2 footer caption, {0} is a contact count</comment>
+  </data>
+  <data name="ImportOutlookContactsDialog_nextButton" xml:space="preserve">
+    <value>التالي &gt;</value>
+    <comment>primary button text, steps 1-2 only</comment>
+  </data>
+  <data name="ImportOutlookContactsDialog_personalRadio.Text" xml:space="preserve">
+    <value>شخصي - إظهار التفاصيل الشخصية/المنزلية فقط</value>
+    <comment>radio, step 4 Template option</comment>
+  </data>
+  <data name="ImportOutlookContactsDialog_sortGroupBox.Text" xml:space="preserve">
+    <value>الترتيب حسب</value>
+    <comment>group, step 4</comment>
+  </data>
+  <data name="ImportOutlookContactsDialog_stepCategories" xml:space="preserve">
+    <value>فئات</value>
+    <comment>step indicator label</comment>
+  </data>
+  <data name="ImportOutlookContactsDialog_stepContacts" xml:space="preserve">
+    <value>اتصالات</value>
+    <comment>step indicator label</comment>
+  </data>
+  <data name="ImportOutlookContactsDialog_stepFolders" xml:space="preserve">
+    <value>المجلدات</value>
+    <comment>step indicator label</comment>
+  </data>
+  <data name="ImportOutlookContactsDialog_stepOptions" xml:space="preserve">
+    <value>خيارات</value>
+    <comment>step indicator label</comment>
+  </data>
+  <data name="ImportOutlookContactsDialog_templateGroupBox.Text" xml:space="preserve">
+    <value>نموذج</value>
+    <comment>group, step 4</comment>
+  </data>
+  <data name="ImportOutlookContactsDialog_uncategorized" xml:space="preserve">
+    <value>غير مصنف</value>
+    <comment>synthetic category representing contacts with no assigned category</comment>
+  </data>
   <data name="ImportOutlookTasksDialog.Text" xml:space="preserve">
     <value>مهام الاستيراد من Outlook</value>
     <comment>dialog title</comment>
   </data>
   <data name="ImportOutlookTasksDialog_introBox.Text" xml:space="preserve">
-    <value>اختر مجلدا كاملا أو مهام فردية للاستيراد من Outlook إلى OneNote. </value>
+    <value>اختر المهام المراد استيرادها من Outlook إلى OneNote. تشير العناصر المعطلة إلى المهام المرتبطة بالفعل بـ OneNote</value>
     <comment>text box</comment>
   </data>
   <data name="ImportOutlookTasksDialog_listButton.Text" xml:space="preserve">
@@ -1606,13 +2339,35 @@
     <value>إنشاء جدول تفاصيل المهمة</value>
     <comment>radio</comment>
   </data>
-  <data name="ImportOutlookTasksDialog_warningBox.Text" xml:space="preserve">
-    <value>لاحظ أن OneNote لا يرتبط بشكل كامل بالمهمة غير الموجودة في مجلد مهام Outlook. </value>
-    <comment>rich text box</comment>
-  </data>
   <data name="ImportWebCommand_BadUrl" xml:space="preserve">
     <value>لم يتم العثور على صفحة الويب أو إرجاع محتوى فارغ</value>
     <comment>error message</comment>
+  </data>
+  <data name="ImportWebCommand_CannotLoad" xml:space="preserve">
+    <value>لا يمكن تحميل صفحة الويب.
+
+{0}</value>
+    <comment>error message, {0} is the underlying error detail</comment>
+  </data>
+  <data name="ImportWebCommand_EdgeNotInstalled" xml:space="preserve">
+    <value>غير قادر على استخدام هذا الأمر؛ لم يتم تثبيت Edge WebView2</value>
+    <comment>error message</comment>
+  </data>
+  <data name="ImportWebCommand_Importing" xml:space="preserve">
+    <value>جارٍ استيراد {0}...</value>
+    <comment>progress message, {0} is the address being imported</comment>
+  </data>
+  <data name="ImportWebCommand_RasterizingImage" xml:space="preserve">
+    <value>تنقيط الصورة {0} من {1}</value>
+    <comment>progress message</comment>
+  </data>
+  <data name="ImportWebCommand_ResolvingImages" xml:space="preserve">
+    <value>حل الصور...</value>
+    <comment>progress message</comment>
+  </data>
+  <data name="ImportWebCommand_UpdatingPage" xml:space="preserve">
+    <value>جارٍ تحديث الصفحة</value>
+    <comment>progress message</comment>
   </data>
   <data name="ImportWebDialog_addressLabel.Text" xml:space="preserve">
     <value>عنوان</value>
@@ -1637,6 +2392,14 @@
   <data name="ImportWebDialog_Text" xml:space="preserve">
     <value>استيراد صفحة ويب</value>
     <comment>dialog title</comment>
+  </data>
+  <data name="IndexModifiedCommand_NoSection" xml:space="preserve">
+    <value>افتح قسمًا للإبلاغ عن الصفحات المعدلة</value>
+    <comment>message box</comment>
+  </data>
+  <data name="IndexModifiedCommand_Title" xml:space="preserve">
+    <value>{0} الصفحات المعدلة</value>
+    <comment>page title</comment>
   </data>
   <data name="InsertBoxCommand_Code" xml:space="preserve">
     <value>الكود الخاص بك هنا ...</value>
@@ -1698,6 +2461,84 @@
     <value>خلايا تحول الحق</value>
     <comment>radio</comment>
   </data>
+  <data name="InsertNotebookTocDialog_pagesBox.Text" xml:space="preserve">
+    <value>تضمين صفحات في كل قسم</value>
+    <comment>checkbox</comment>
+  </data>
+  <data name="InsertNotebookTocDialog_previewBox" xml:space="preserve">
+    <value>تضمين معاينة النص لكل صفحة</value>
+    <comment>checkbox</comment>
+  </data>
+  <data name="InsertNotebookTocDialog_Text" xml:space="preserve">
+    <value>جدول القسم في دفتر الملاحظات</value>
+    <comment>radio</comment>
+  </data>
+  <data name="InsertNotebookTocDialog_timeBox" xml:space="preserve">
+    <value>تحديث تاريخ الصفحة والوقت</value>
+    <comment>checkbox</comment>
+  </data>
+  <data name="InsertPageTocDialog_levelsLabel.Text" xml:space="preserve">
+    <value>إظهار المستويات</value>
+    <comment>label</comment>
+  </data>
+  <data name="InsertPageTocDialog_locationBox.Text" xml:space="preserve">
+    <value>في أعلى الصفحة
+في أعلى الصفحة، متراكب
+في المؤشر الحالي</value>
+    <comment>combobox</comment>
+  </data>
+  <data name="InsertPageTocDialog_locationLabel.Text" xml:space="preserve">
+    <value>أدخل الموقع</value>
+    <comment>label</comment>
+  </data>
+  <data name="InsertPageTocDialog_rightAlignBox.Text" xml:space="preserve">
+    <value>محاذاة إلى اليمين أعلى رابط الصفحة</value>
+    <comment>checkbox</comment>
+  </data>
+  <data name="InsertPageTocDialog_secondaryBox.Text" xml:space="preserve">
+    <value>تضمين العناوين من الجداول والقوائم</value>
+    <comment>checkbox</comment>
+  </data>
+  <data name="InsertPageTocDialog_styleBox.Text" xml:space="preserve">
+    <value>عنوان الصفحة القياسية
+العنوان القياسي 1
+العنوان القياسي 2
+العنوان القياسي 3
+عنوان الصفحة المخصصة
+عنوان مخصص 1
+عنوان مخصص 2
+عنوان مخصص 3</value>
+    <comment>cobobox</comment>
+  </data>
+  <data name="InsertPageTocDialog_styleLabel.Text" xml:space="preserve">
+    <value>نمط العنوان</value>
+    <comment>label</comment>
+  </data>
+  <data name="InsertPageTocDialog_Text" xml:space="preserve">
+    <value>إدراج جدول المحتويات</value>
+    <comment>radio</comment>
+  </data>
+  <data name="InsertPageTocDialog_todoBox.Text" xml:space="preserve">
+    <value>لا أحد
+صندوق الاقتراع
+الدائرة الحمراء
+الساحة الحمراء
+الساحة الزرقاء
+ساحة البرتقال
+الساحة الصفراء
+الساحة الخضراء
+الساحة الأرجوانية
+ساحة براون</value>
+    <comment>combobox</comment>
+  </data>
+  <data name="InsertPageTocDialog_todoLabel.Text" xml:space="preserve">
+    <value>مارك تودو العناوين</value>
+    <comment>label</comment>
+  </data>
+  <data name="InsertPageTocDialog_topBox.Text" xml:space="preserve">
+    <value>أضف رابطًا لكل عنوان للانتقال إلى أعلى الصفحة</value>
+    <comment>checkbox</comment>
+  </data>
   <data name="InsertQRCommand_MaxLength" xml:space="preserve">
     <value>لا يمكن أن يتجاوز النص المحدد {0} حرفًا</value>
     <comment>message</comment>
@@ -1706,6 +2547,22 @@
     <value>حدد النص لعرضه كرمز QR جديد</value>
     <comment>message</comment>
   </data>
+  <data name="InsertSectionTocDialog_headingsBox.Text" xml:space="preserve">
+    <value>قم بتضمين العناوين في كل صفحة</value>
+    <comment>checkbox</comment>
+  </data>
+  <data name="InsertSectionTocDialog_previewBox" xml:space="preserve">
+    <value>تضمين معاينة النص لكل صفحة</value>
+    <comment>checkbox</comment>
+  </data>
+  <data name="InsertSectionTocDialog_Text" xml:space="preserve">
+    <value>جدول الصفحات في القسم</value>
+    <comment>radio</comment>
+  </data>
+  <data name="InsertSectionTocDialog_timeBox" xml:space="preserve">
+    <value>تحديث تاريخ الصفحة والوقت</value>
+    <comment>checkbox</comment>
+  </data>
   <data name="InsertSnippets_CouldNotLoad" xml:space="preserve">
     <value>لا يتم تحميل المقتطف على السحابة من "{0}"</value>
     <comment>error message</comment>
@@ -1713,6 +2570,10 @@
   <data name="InsertTocCommand_NoHeadings" xml:space="preserve">
     <value>لا توجد عناوين في هذه الصفحة</value>
     <comment>message</comment>
+  </data>
+  <data name="InsertTocCommand_Saving" xml:space="preserve">
+    <value>جارٍ حفظ الصفحة...</value>
+    <comment>progress message</comment>
   </data>
   <data name="InsertTocCommand_TOC" xml:space="preserve">
     <value>جدول المحتويات</value>
@@ -1729,63 +2590,6 @@
   <data name="InsertTocCommand_Top" xml:space="preserve">
     <value>أعلى الصفحة</value>
     <comment>hyperlink</comment>
-  </data>
-  <data name="InsertTocDialog_levelsLabel.Text" xml:space="preserve">
-    <value>إظهار المستويات</value>
-    <comment>label</comment>
-  </data>
-  <data name="InsertTocDialog_locationBox.Text" xml:space="preserve">
-    <value>في أعلى الصفحة
-في أعلى الصفحة، متراكب
-في المؤشر الحالي</value>
-    <comment>combobox</comment>
-  </data>
-  <data name="InsertTocDialog_locationLabel.Text" xml:space="preserve">
-    <value>أدخل الموقع</value>
-    <comment>label</comment>
-  </data>
-  <data name="InsertTocDialog_notebookRadio.Text" xml:space="preserve">
-    <value>صفحة جديدة تحتوي على فهرس الأقسام الموجودة في هذا الدفتر</value>
-    <comment>radio</comment>
-  </data>
-  <data name="InsertTocDialog_pageRadio.Text" xml:space="preserve">
-    <value>أدخل جدول العناوين في هذه الصفحة</value>
-    <comment>radio</comment>
-  </data>
-  <data name="InsertTocDialog_pagesBox.Text" xml:space="preserve">
-    <value>تضمين صفحات في كل قسم</value>
-    <comment>checkbox</comment>
-  </data>
-  <data name="InsertTocDialog_previewBox.Text" xml:space="preserve">
-    <value>قم بتضمين معاينة النص لكل صفحة</value>
-    <comment>checkbox</comment>
-  </data>
-  <data name="InsertTocDialog_rightAlignBox.Text" xml:space="preserve">
-    <value>محاذاة لليمين أعلى ارتباط الصفحة</value>
-    <comment>checkbox</comment>
-  </data>
-  <data name="InsertTocDialog_sectionRadio.Text" xml:space="preserve">
-    <value>صفحة جديدة مع فهرس الصفحات في هذا القسم</value>
-    <comment>radio</comment>
-  </data>
-  <data name="InsertTocDialog_styleBox.Text" xml:space="preserve">
-    <value>عنوان الصفحة القياسية
-العنوان القياسي 1
-العنوان القياسي 2
-العنوان القياسي 3
-عنوان الصفحة المخصصة
-عنوان مخصص 1
-عنوان مخصص 2
-عنوان مخصص 3</value>
-    <comment>cobobox</comment>
-  </data>
-  <data name="InsertTocDialog_styleLabel.Text" xml:space="preserve">
-    <value>نمط العنوان</value>
-    <comment>label</comment>
-  </data>
-  <data name="InsertTocDialog_topBox.Text" xml:space="preserve">
-    <value>أضف ارتباطًا إلى كل عنوان للانتقال إلى أعلى الصفحة</value>
-    <comment>checkbox</comment>
   </data>
   <data name="InsertTocForNotebook_RefreshQuestion" xml:space="preserve">
     <value>هناك صفحة جدول المحتويات لهذا دفتر الملاحظات. يمكنك تحديث تلك الصفحة أو إنشاء صفحة جديدة.
@@ -1837,10 +2641,6 @@
     <value>المراجع المرتبطة</value>
     <comment>title text</comment>
   </data>
-  <data name="LinkReferencesCommand_noref" xml:space="preserve">
-    <value>لم يتم العثور على مراجع. </value>
-    <comment>message</comment>
-  </data>
   <data name="LoadStyleTheme_errorLoading" xml:space="preserve">
     <value>لا يمكن تحميل الملف أو الملف فارغ</value>
   </data>
@@ -1851,6 +2651,102 @@
   <data name="LoadStyleTheme_Title" xml:space="preserve">
     <value>تحميل نمط النمط</value>
     <comment>OpenFileDialog title</comment>
+  </data>
+  <data name="ManageFavorites_DeleteMessage" xml:space="preserve">
+    <value>حذف {0}؟</value>
+    <comment>settings</comment>
+  </data>
+  <data name="ManageFavoritesControl_emptyFolderHint" xml:space="preserve">
+    <value>فارغ - اسحب المفضلة هنا</value>
+    <comment>list view hint text</comment>
+  </data>
+  <data name="ManageFavoritesControl_export" xml:space="preserve">
+    <value>تصدير المفضلة</value>
+    <comment>toolbar button</comment>
+  </data>
+  <data name="ManageFavoritesControl_import" xml:space="preserve">
+    <value>استيراد المفضلة</value>
+    <comment>toolbar button</comment>
+  </data>
+  <data name="ManageFavoritesControl_newFolder" xml:space="preserve">
+    <value>مجلد جديد</value>
+    <comment>dialog title</comment>
+  </data>
+  <data name="ManageFavoritesControl_renameFavorite" xml:space="preserve">
+    <value>إعادة تسمية المفضلة</value>
+    <comment>dialog title</comment>
+  </data>
+  <data name="ManageFavoritesControl_renameFolder" xml:space="preserve">
+    <value>إعادة تسمية المجلد</value>
+    <comment>dialog title</comment>
+  </data>
+  <data name="ManageFavoritesControl_sort" xml:space="preserve">
+    <value>فرز المجلد الحالي</value>
+    <comment>toolbar button</comment>
+  </data>
+  <data name="ManageFavoritesrControl_deleteConfirmMultiple" xml:space="preserve">
+    <value>هل تريد حذف {0} عنصر؟</value>
+    <comment>message box</comment>
+  </data>
+  <data name="ManageLayouts_DeleteMessage" xml:space="preserve">
+    <value>هل تريد حذف {0}؟</value>
+    <comment>settings</comment>
+  </data>
+  <data name="ManageLayoutsControl_captureLayout" xml:space="preserve">
+    <value>تخطيط الالتقاط</value>
+    <comment>toolbar button</comment>
+  </data>
+  <data name="ManageLayoutsControl_check" xml:space="preserve">
+    <value>تحقق من التخطيطات</value>
+    <comment>toolbar button</comment>
+  </data>
+  <data name="ManageLayoutsControl_deleteConfirmMultiple" xml:space="preserve">
+    <value>هل تريد حذف {0} عنصر؟</value>
+    <comment>message box</comment>
+  </data>
+  <data name="ManageLayoutsControl_emptyLayoutHint" xml:space="preserve">
+    <value>فارغ - اسحب النوافذ هنا</value>
+    <comment>list view hint text</comment>
+  </data>
+  <data name="ManageLayoutsControl_export" xml:space="preserve">
+    <value>تخطيطات التصدير</value>
+    <comment>toolbar button</comment>
+  </data>
+  <data name="ManageLayoutsControl_import" xml:space="preserve">
+    <value>استيراد التخطيطات</value>
+    <comment>toolbar button</comment>
+  </data>
+  <data name="ManageLayoutsControl_locationColumn.HeaderText" xml:space="preserve">
+    <value>موقع</value>
+    <comment>settings table column header</comment>
+  </data>
+  <data name="ManageLayoutsControl_renameLayout" xml:space="preserve">
+    <value>إعادة تسمية التخطيط</value>
+    <comment>toolbar button</comment>
+  </data>
+  <data name="ManageLayoutsControl_renameWindow" xml:space="preserve">
+    <value>إعادة تسمية النافذة</value>
+    <comment>toolbar button</comment>
+  </data>
+  <data name="ManageLayoutsControl_restore" xml:space="preserve">
+    <value>استعادة التخطيط</value>
+    <comment>toolbar button</comment>
+  </data>
+  <data name="ManageLayoutsControl_sort" xml:space="preserve">
+    <value>فرز التخطيط الحالي</value>
+    <comment>toolbar button</comment>
+  </data>
+  <data name="ManageWorkspaceDialog_discard" xml:space="preserve">
+    <value>هل تريد تجاهل التغييرات غير المحفوظة؟</value>
+    <comment>message box</comment>
+  </data>
+  <data name="ManageWorkspaceDialog_Text" xml:space="preserve">
+    <value>مساحة العمل</value>
+    <comment>dialog title</comment>
+  </data>
+  <data name="MangeFavoritesControl_locationColumn.HeaderText" xml:space="preserve">
+    <value>موقعك</value>
+    <comment>settings table column header</comment>
   </data>
   <data name="MapDialog_groupBox.Text" xml:space="preserve">
     <value>الصفحات بتنسيق</value>
@@ -1864,6 +2760,26 @@
     <value>إنشاء خريطة الصفحة</value>
     <comment>dialog title</comment>
   </data>
+  <data name="MarkdownSheet_blankBeforeHeadingsBox.Text" xml:space="preserve">
+    <value>أدخل سطرًا فارغًا قبل العناوين</value>
+    <comment>checkbox</comment>
+  </data>
+  <data name="MarkdownSheet_gfmLineBreaksBox.Text" xml:space="preserve">
+    <value>تعامل مع فواصل الأسطر المفردة على أنها فواصل أسطر GitHub-Flavored Markdown</value>
+    <comment>checkbox</comment>
+  </data>
+  <data name="MarkdownSheet_introBox.Text" xml:space="preserve">
+    <value>قم بتخصيص كيفية تفسير Convert Markdown لفواصل الأسطر وتباعد الفقرات</value>
+    <comment>label</comment>
+  </data>
+  <data name="MarkdownSheet_singleSpacingBox.Text" xml:space="preserve">
+    <value>استخدم تباعد فقرات واحد بدلاً من إضافة مسافة إضافية بعد كل فقرة</value>
+    <comment>checkbox</comment>
+  </data>
+  <data name="MarkdownSheet_Title" xml:space="preserve">
+    <value>تخفيض السعر</value>
+    <comment>settings sheet</comment>
+  </data>
   <data name="MoreMessageBox_hideBox.Text" xml:space="preserve">
     <value>إخفاء هذه الرسالة في المستقبل</value>
     <comment>checkbox</comment>
@@ -1871,18 +2787,6 @@
   <data name="MovePageCommand_noPages" xml:space="preserve">
     <value>لا توجد صفحات محددة لنقلها</value>
     <comment>error message</comment>
-  </data>
-  <data name="NameStyleDialog_errorLabel.Text" xml:space="preserve">
-    <value>الاسم موجود. اختر اسمًا مختلفًا.</value>
-    <comment>label</comment>
-  </data>
-  <data name="NameStyleDialog_nameLabel.Text" xml:space="preserve">
-    <value>اسم النمط</value>
-    <comment>label</comment>
-  </data>
-  <data name="NameStyleDialog_RenameStyle" xml:space="preserve">
-    <value>إعادة تسمية نمط</value>
-    <comment>dialog title</comment>
   </data>
   <data name="NavigatorSheet_corrallBox.Text" xml:space="preserve">
     <value>قصر نافذة المستكشف على الشاشة النشطة</value>
@@ -1898,6 +2802,10 @@
   </data>
   <data name="NavigatorSheet_disabledBox.Text" xml:space="preserve">
     <value>قم بتعطيل خدمة الملاحة. سيؤدي هذا إلى جعل نافذة المستكشف غير قابلة للتشغيل.</value>
+    <comment>checkbox</comment>
+  </data>
+  <data name="NavigatorSheet_elevateBox.Text" xml:space="preserve">
+    <value>رفع المستكشف عند ارتفاع OneNote</value>
     <comment>checkbox</comment>
   </data>
   <data name="NavigatorSheet_hidePinnedBox.Text" xml:space="preserve">
@@ -1936,6 +2844,38 @@
     <value>نقل العناصر المحددة لأسفل</value>
     <comment>tooltip</comment>
   </data>
+  <data name="NavigatorWindow_filterButton_Tooltip" xml:space="preserve">
+    <value>تصفية هذه القائمة</value>
+    <comment>tooltip</comment>
+  </data>
+  <data name="NavigatorWindow_filterCloseButton_Tooltip" xml:space="preserve">
+    <value>إغلاق عامل التصفية وإظهار كافة العناصر</value>
+    <comment>tooltip</comment>
+  </data>
+  <data name="NavigatorWindow_menuAddToList" xml:space="preserve">
+    <value>أضف إلى قائمة القراءة</value>
+    <comment>context menu item</comment>
+  </data>
+  <data name="NavigatorWindow_menuCopy" xml:space="preserve">
+    <value>نسخ إلى الحافظة</value>
+    <comment>context menu item</comment>
+  </data>
+  <data name="NavigatorWindow_menuDelete" xml:space="preserve">
+    <value>يمسح</value>
+    <comment>context menu item</comment>
+  </data>
+  <data name="NavigatorWindow_menuMoveDown" xml:space="preserve">
+    <value>تحرك للأسفل</value>
+    <comment>context menu item</comment>
+  </data>
+  <data name="NavigatorWindow_menuMoveUp" xml:space="preserve">
+    <value>تحرك لأعلى</value>
+    <comment>context menu item</comment>
+  </data>
+  <data name="NavigatorWindow_menuOpenInNew" xml:space="preserve">
+    <value>فتح في نافذة جديدة</value>
+    <comment>context menu item</comment>
+  </data>
   <data name="NavigatorWindow_pinButton_Tooltip" xml:space="preserve">
     <value>إضافة العناصر المحددة إلى قائمة القراءة الخاصة بي</value>
     <comment>tooltip</comment>
@@ -1967,6 +2907,22 @@
     <value>لم يتم العثور على صفحات غير مقروءة في هذا الاتجاه</value>
     <comment>message</comment>
   </data>
+  <data name="NotebooksDialog_emptyLabel" xml:space="preserve">
+    <value>لم يتم فحص أي دفاتر ملاحظات حتى الآن. قم بإجراء فحص أولي لعلامة التصنيف أولاً.</value>
+    <comment>label</comment>
+  </data>
+  <data name="NotebooksDialog_infoLabel" xml:space="preserve">
+    <value>حدد دفاتر الملاحظات لتضمينها أو استبعادها من مسح علامة التصنيف. ✔ يحدد دفاتر الملاحظات التي تم مسحها ضوئيًا بالفعل.</value>
+    <comment>label</comment>
+  </data>
+  <data name="NotebooksDialog_scanned" xml:space="preserve">
+    <value>✔</value>
+    <comment>suffix appended to notebook names that have been scanned</comment>
+  </data>
+  <data name="NotebooksDialog_Title" xml:space="preserve">
+    <value>اختيار دفتر الملاحظات</value>
+    <comment>dialog title</comment>
+  </data>
   <data name="NumberingPage_Message" xml:space="preserve">
     <value>صفحة الترقيم {0}</value>
     <comment>progress status dialog</comment>
@@ -1983,18 +2939,6 @@
     <value>اختر نمط الترقيم</value>
     <comment>label</comment>
   </data>
-  <data name="OneMore_GitHub" xml:space="preserve">
-    <value>https://github.com/stevencohn/OneMore</value>
-    <comment>SKIP</comment>
-  </data>
-  <data name="OneMore_Home" xml:space="preserve">
-    <value>https://onemorereaddin.com</value>
-    <comment>SKIP</comment>
-  </data>
-  <data name="OneMore_Sponsor" xml:space="preserve">
-    <value>https://github.com/sponsors/stevencohn</value>
-    <comment>SKIP</comment>
-  </data>
   <data name="OneMoreNamespace" xml:space="preserve">
     <value>http://schemas.smc.com/onemore/2020/styles</value>
     <comment>DO NOT TRANSLATE</comment>
@@ -2005,6 +2949,18 @@
   <data name="oneNamespace" xml:space="preserve">
     <value>http://schemas.microsoft.com/office/onenote/2013/onenote</value>
     <comment>DO NOT TRANSLATE</comment>
+  </data>
+  <data name="OpenFolderCommand_duplicates" xml:space="preserve">
+    <value>لم يتم تعديل بعض أسماء الأقسام لتجنب الأسماء المكررة والحفاظ على سجل الطوابع الزمنية أو لأنها كانت مقفلة</value>
+    <comment>message</comment>
+  </data>
+  <data name="OpenFolderCommand_error" xml:space="preserve">
+    <value>حدثت مشكلة أثناء تحميل دفتر الملاحظات أو تحديثه</value>
+    <comment>message</comment>
+  </data>
+  <data name="OpenFolderDialog_editBox.Text" xml:space="preserve">
+    <value>إزالة الطوابع الزمنية من أسماء الأقسام، على سبيل المثال. (بتاريخ 2025-12-4)</value>
+    <comment>checkbox</comment>
   </data>
   <data name="OpenFolderDialog_Text" xml:space="preserve">
     <value>فتح المجلد كدفتر ملاحظات</value>
@@ -2054,9 +3010,113 @@
     <value>إزالة العلامات</value>
     <comment>checkbox</comment>
   </data>
+  <data name="OutlineDialog_secondaryBox.Text" xml:space="preserve">
+    <value>تضمين العناوين من الجداول والقوائم</value>
+    <comment>checkbox</comment>
+  </data>
   <data name="OutlineDialog_tagLabel.Text" xml:space="preserve">
     <value>بطاقة شعار:</value>
     <comment>label</comment>
+  </data>
+  <data name="OutlookContactCommand_anniversary" xml:space="preserve">
+    <value>عيد</value>
+    <comment>report field label</comment>
+  </data>
+  <data name="OutlookContactCommand_birthday" xml:space="preserve">
+    <value>عيد ميلاد</value>
+    <comment>report field label</comment>
+  </data>
+  <data name="OutlookContactCommand_business" xml:space="preserve">
+    <value>عمل</value>
+    <comment>report column heading</comment>
+  </data>
+  <data name="OutlookContactCommand_categories" xml:space="preserve">
+    <value>فئات</value>
+    <comment>report field label</comment>
+  </data>
+  <data name="OutlookContactCommand_city" xml:space="preserve">
+    <value>مدينة</value>
+    <comment>report field label</comment>
+  </data>
+  <data name="OutlookContactCommand_company" xml:space="preserve">
+    <value>شركة</value>
+    <comment>report field label</comment>
+  </data>
+  <data name="OutlookContactCommand_countryRegion" xml:space="preserve">
+    <value>البلد/المنطقة</value>
+    <comment>report field label</comment>
+  </data>
+  <data name="OutlookContactCommand_customerID" xml:space="preserve">
+    <value>معرف العميل</value>
+    <comment>report field label</comment>
+  </data>
+  <data name="OutlookContactCommand_department" xml:space="preserve">
+    <value>قسم</value>
+    <comment>report field label</comment>
+  </data>
+  <data name="OutlookContactCommand_email1" xml:space="preserve">
+    <value>البريد الإلكتروني 1</value>
+    <comment>report field label</comment>
+  </data>
+  <data name="OutlookContactCommand_email2" xml:space="preserve">
+    <value>البريد الإلكتروني 2</value>
+    <comment>report field label</comment>
+  </data>
+  <data name="OutlookContactCommand_email3" xml:space="preserve">
+    <value>البريد الإلكتروني 3</value>
+    <comment>report field label</comment>
+  </data>
+  <data name="OutlookContactCommand_first" xml:space="preserve">
+    <value>أولاً</value>
+    <comment>report field label</comment>
+  </data>
+  <data name="OutlookContactCommand_jobTitle" xml:space="preserve">
+    <value>مسمى وظيفي</value>
+    <comment>report field label</comment>
+  </data>
+  <data name="OutlookContactCommand_last" xml:space="preserve">
+    <value>آخر</value>
+    <comment>report field label</comment>
+  </data>
+  <data name="OutlookContactCommand_middle" xml:space="preserve">
+    <value>وسط</value>
+    <comment>report field label</comment>
+  </data>
+  <data name="OutlookContactCommand_mobile" xml:space="preserve">
+    <value>متحرك</value>
+    <comment>report field label</comment>
+  </data>
+  <data name="OutlookContactCommand_notApplicable" xml:space="preserve">
+    <value>لا يوجد</value>
+    <comment>report value placeholder</comment>
+  </data>
+  <data name="OutlookContactCommand_openInOutlook" xml:space="preserve">
+    <value>فتح في Outlook</value>
+    <comment>report link text</comment>
+  </data>
+  <data name="OutlookContactCommand_personal" xml:space="preserve">
+    <value>شخصي</value>
+    <comment>report column heading</comment>
+  </data>
+  <data name="OutlookContactCommand_saveWarnings" xml:space="preserve">
+    <value>تم حفظ جهة الاتصال ولكن لا يمكن التحقق من صحة هذه القيم وتم تركها بدون تغيير: {0}</value>
+    <comment>info message, {0} is a comma-separated list of field labels</comment>
+  </data>
+  <data name="OutlookContactCommand_stateProvince" xml:space="preserve">
+    <value>الولاية/المقاطعة</value>
+    <comment>report field label</comment>
+  </data>
+  <data name="OutlookContactCommand_street" xml:space="preserve">
+    <value>شارع</value>
+    <comment>report field label</comment>
+  </data>
+  <data name="OutlookContactCommand_telephone" xml:space="preserve">
+    <value>هاتف</value>
+    <comment>report field label</comment>
+  </data>
+  <data name="OutlookContactCommand_zipPostal" xml:space="preserve">
+    <value>الرمز البريدي/البريدي</value>
+    <comment>report field label</comment>
   </data>
   <data name="OutlookTaskReport_DateDue" xml:space="preserve">
     <value>مستحق / مكتمل</value>
@@ -2089,6 +3149,10 @@
   <data name="OutlookTaskReport_Week" xml:space="preserve">
     <value>الأسبوع {0}</value>
     <comment>report</comment>
+  </data>
+  <data name="PageAliasDialog_originalNameLabel" xml:space="preserve">
+    <value>الاسم الأصلي: {0}</value>
+    <comment>label format string</comment>
   </data>
   <data name="PageColorDialog.Text" xml:space="preserve">
     <value>لون الصفحة</value>
@@ -2152,6 +3216,10 @@
   <data name="phrase_AppendToThisPage" xml:space="preserve">
     <value>إلحاق بهذه الصفحة</value>
   </data>
+  <data name="phrase_AssigneeContains" xml:space="preserve">
+    <value>يحتوي المكلف</value>
+    <comment>label</comment>
+  </data>
   <data name="phrase_CreateANewPage" xml:space="preserve">
     <value>قم بإنشاء صفحة جديدة</value>
   </data>
@@ -2172,12 +3240,6 @@
   </data>
   <data name="phrase_QuickNote" xml:space="preserve">
     <value>ملاحظة سريعة</value>
-  </data>
-  <data name="phrase_scopeOptions" xml:space="preserve">
-    <value>في جميع دفاتر الملاحظات
-في هذا الكمبيوتر الدفتري
-في هذا القسم</value>
-    <comment>drop down</comment>
   </data>
   <data name="phrase_SelectAll" xml:space="preserve">
     <value>اختر الكل</value>
@@ -2309,10 +3371,6 @@
     <value>معاينة تخفيض السعر</value>
     <comment>dialog title</comment>
   </data>
-  <data name="ProgramName" xml:space="preserve">
-    <value>OneMore</value>
-    <comment>SKIP</comment>
-  </data>
   <data name="Pronunciate_EmptyWord" xml:space="preserve">
     <value>لا يمكن أن تكون الكلمة المحددة فارغة</value>
     <comment>error message box</comment>
@@ -2349,6 +3407,30 @@ tr ، التركية
 zh-CN ، الصينية (المبسطة)</value>
     <comment>Recognized languages, one per line.
 ISO-code then comma then language name</comment>
+  </data>
+  <data name="QuickImportCommand_ImportedFolderName" xml:space="preserve">
+    <value>مستورد</value>
+    <comment>quick-import destination subfolder name</comment>
+  </data>
+  <data name="QuickImportCommand_InvalidPath" xml:space="preserve">
+    <value>مجلد الاستيراد السريع غير موجود. تحقق من الإعداد في الإعدادات &gt; استيراد الملف.</value>
+    <comment>message</comment>
+  </data>
+  <data name="QuickImportCommand_NoFilesFound" xml:space="preserve">
+    <value>لم يتم العثور على ملفات قابلة للاستيراد في مجلد الاستيراد السريع.</value>
+    <comment>message</comment>
+  </data>
+  <data name="QuickImportCommand_ResultFormat" xml:space="preserve">
+    <value>تم استيراد {0} من {1} ملف (ملفات)؛ {2} فشل.</value>
+    <comment>message format string</comment>
+  </data>
+  <data name="QuickImportCommand_SectionNotFound" xml:space="preserve">
+    <value>تعذر العثور على قسم هدف الاستيراد السريع. تحقق من الإعداد في الإعدادات &gt; استيراد الملف.</value>
+    <comment>message</comment>
+  </data>
+  <data name="QuickImportCommand_SettingsNotSet" xml:space="preserve">
+    <value>يجب تكوين مجلد وقسم الاستيراد السريع أولاً في الإعدادات &gt; استيراد الملف.</value>
+    <comment>message</comment>
   </data>
   <data name="QuickNotesSheet_groupingBox.Text" xml:space="preserve">
     <value>أسبوع العمل (2023-02-13 W7)
@@ -2459,6 +3541,10 @@ ISO-code then comma then language name</comment>
   <data name="RecalculateFormulaCommand_NoFormula" xml:space="preserve">
     <value>لم يتم العثور على صيغة في الجدول المحدد</value>
     <comment>recalculate command message</comment>
+  </data>
+  <data name="RecolorInkCommand_noselection" xml:space="preserve">
+    <value>حدد ضغطة حبر لإعادة تلوينها</value>
+    <comment>error message</comment>
   </data>
   <data name="RefreshPageLinksCommand_none" xml:space="preserve">
     <value>لا توجد مراجع وجدت لهذه الصفحة</value>
@@ -2607,11 +3693,23 @@ ISO-code then comma then language name</comment>
   <data name="RemoveDuplicatesDialog_basicRadio.Text" xml:space="preserve">
     <value>بنية XML الأساسية</value>
   </data>
+  <data name="RemoveDuplicatesDialog_basicRadioTip" xml:space="preserve">
+    <value>يقارن فقط النص المرئي لكل صفحة، ويتجاهل التنسيق</value>
+    <comment>tooltip</comment>
+  </data>
   <data name="RemoveDuplicatesDialog_deepRadio.Text" xml:space="preserve">
     <value>XML العميق مع مقارنة ثنائية (بطيئة)</value>
   </data>
+  <data name="RemoveDuplicatesDialog_deepRadioTip" xml:space="preserve">
+    <value>يقارن XML الكامل بما في ذلك الصور والحبر المضمن؛ الأكثر دقة ولكن الأبطأ</value>
+    <comment>tooltip</comment>
+  </data>
   <data name="RemoveDuplicatesDialog_depthBox.Text" xml:space="preserve">
     <value>عمق المسح</value>
+  </data>
+  <data name="RemoveDuplicatesDialog_fuzzyBox.Text" xml:space="preserve">
+    <value>اكتشف أيضًا الصفحات المشابهة (غير المتطابقة).</value>
+    <comment>checkbox</comment>
   </data>
   <data name="RemoveDuplicatesDialog_includeTitlesBox.Text" xml:space="preserve">
     <value>تضمين عناوين الصفحات عند المقارنة</value>
@@ -2620,11 +3718,27 @@ ISO-code then comma then language name</comment>
   <data name="RemoveDuplicatesDialog_simpleRadio.Text" xml:space="preserve">
     <value>نص بسيط (سريع)</value>
   </data>
+  <data name="RemoveDuplicatesDialog_simpleRadioTip" xml:space="preserve">
+    <value>يقارن النص المرئي وبنية XML لكل صفحة</value>
+    <comment>tooltip</comment>
+  </data>
   <data name="RemoveDuplicatesNavigator_confirm1" xml:space="preserve">
     <value>هل أنت متأكد من أنك تريد حذف الصفحة المحددة؟</value>
   </data>
   <data name="RemoveDuplicatesNavigator_confirmAll" xml:space="preserve">
     <value>هل أنت متأكد من أنك تريد حذف الصفحات المحددة {0}؟</value>
+  </data>
+  <data name="RemoveDuplicatesNavigator_duplicatesOf" xml:space="preserve">
+    <value>نسخ مكررة من {0}</value>
+    <comment>listview group title</comment>
+  </data>
+  <data name="RemoveDuplicatesNavigator_emptyPageTip" xml:space="preserve">
+    <value>احذف هذه الصفحة الفارغة</value>
+    <comment>tooltip</comment>
+  </data>
+  <data name="RemoveDuplicatesNavigator_keepNewest" xml:space="preserve">
+    <value>احتفظ بالأحدث</value>
+    <comment>button</comment>
   </data>
   <data name="RemoveDuplicatesNavigator_pagesSimilarTo" xml:space="preserve">
     <value>صفحات مشابهة لـ {0}</value>
@@ -2661,6 +3775,14 @@ ISO-code then comma then language name</comment>
     <value>إزالة الرقم من الصفحة {0}</value>
     <comment>progress status dialog</comment>
   </data>
+  <data name="RenameDialog_errorLabel.Text" xml:space="preserve">
+    <value>الاسم موجود. اختر اسمًا مختلفًا.</value>
+    <comment>label</comment>
+  </data>
+  <data name="RenameDialog_renameStyle" xml:space="preserve">
+    <value>إعادة تسمية نمط</value>
+    <comment>dialog title</comment>
+  </data>
   <data name="ReorderDialog.Text" xml:space="preserve">
     <value>إعادة ترتيب الأنماط</value>
     <comment>dialog title</comment>
@@ -2671,6 +3793,10 @@ ISO-code then comma then language name</comment>
   </data>
   <data name="ReportRemindersDialog.Text" xml:space="preserve">
     <value>نطاق التقرير</value>
+  </data>
+  <data name="ReportRemindersDialog_groupByNotebookBox.Text" xml:space="preserve">
+    <value>تذكيرات المجموعة عن طريق دفتر الملاحظات</value>
+    <comment>checkbox</comment>
   </data>
   <data name="ReportRemindersDialog_introLabel.Text" xml:space="preserve">
     <value>توليد تقرير للتذكير في هذا النطاق</value>
@@ -2692,6 +3818,26 @@ ISO-code then comma then language name</comment>
     <value>قديم أو جديد</value>
     <comment>title</comment>
   </data>
+  <data name="RestoreBackgroundImagesCommand_invalid" xml:space="preserve">
+    <value>تعذرت استعادة صور الخلفية لأن الصفحة الناتجة فشلت في التحقق من الصحة؛ لم يتم إجراء أي تغييرات</value>
+    <comment>error message</comment>
+  </data>
+  <data name="RestoreBackgroundImagesCommand_lostImages" xml:space="preserve">
+    <value>حدث خطأ أثناء استعادة صور الخلفية ولم يتمكن OneMore من استعادة النسخ الأصلية؛ استخدم التراجع في OneNote لاستعادة الصفحة</value>
+    <comment>error message</comment>
+  </data>
+  <data name="RestoreBackgroundImagesCommand_noImages" xml:space="preserve">
+    <value>لا تحتوي هذه الصفحة على صور خلفية لاستعادتها</value>
+    <comment>error message</comment>
+  </data>
+  <data name="RestoreBackgroundImagesCommand_restoredAfterError" xml:space="preserve">
+    <value>حدث خطأ أثناء استعادة صور الخلفية؛ تم إرجاع الصور الأصلية</value>
+    <comment>error message</comment>
+  </data>
+  <data name="RestoreLayoutCommand_notFound" xml:space="preserve">
+    <value>لم يتم العثور على التخطيط '{0}'.</value>
+    <comment>message box</comment>
+  </data>
   <data name="ribAboutButton_Label" xml:space="preserve">
     <value>حول OneMore</value>
     <comment>Ribbon OneMore menu item</comment>
@@ -2707,6 +3853,10 @@ ISO-code then comma then language name</comment>
   <data name="ribAddCaptionButton_Screentip" xml:space="preserve">
     <value>أضف تعليقًا على الصورة المحددة</value>
     <comment>ribbon images</comment>
+  </data>
+  <data name="ribAddFavoriteButton_Label" xml:space="preserve">
+    <value>أضف إلى المفضلة</value>
+    <comment>page, section group, and notebook context menus</comment>
   </data>
   <data name="ribAddFavoritePageButton_Label" xml:space="preserve">
     <value>أضف الصفحة الحالية</value>
@@ -2729,16 +3879,16 @@ ISO-code then comma then language name</comment>
     <comment>Ribbon OneMore menu item, Extras...</comment>
   </data>
   <data name="ribAddFootnoteButton_Screentip" xml:space="preserve">
-    <value>إضافة حاشية سفلية (Ctrl + Alt + F)</value>
-    <comment>Ribbon OneMore menu item, Extras...</comment>
+    <value>أضف حاشية سفلية جديدة من الموضع الحالي</value>
+    <comment>ribbon references NODUP</comment>
   </data>
   <data name="ribAddFormulaButton_Label" xml:space="preserve">
     <value>أضف الصيغة</value>
     <comment>Ribbon OneMore menu item, Formula...</comment>
   </data>
   <data name="ribAddFormulaButton_Screentip" xml:space="preserve">
-    <value>إضافة / تحرير الصيغة في خلايا الجدول المحددة (F5)</value>
-    <comment>Ribbon OneMore menu item, Formula...</comment>
+    <value>إضافة صيغة أو تحريرها في خلايا الجدول المحددة</value>
+    <comment>ribbon table</comment>
   </data>
   <data name="ribAddTagBankButton_Label" xml:space="preserve">
     <value>إضافة علامة البنك</value>
@@ -2748,9 +3898,17 @@ ISO-code then comma then language name</comment>
     <value>إضافة مخطط تفصيلي لعلامة أعلى الصفحة</value>
     <comment>ribbon search</comment>
   </data>
+  <data name="ribAddTopSectionGroupButton_Label" xml:space="preserve">
+    <value>إضافة مجموعة أقسام ذات المستوى الأعلى</value>
+    <comment>notebook context menu</comment>
+  </data>
+  <data name="ribAddTopSectionGroupButton_Screentip" xml:space="preserve">
+    <value>أضف مجموعة مقاطع جديدة إلى المستوى الأعلى من دفتر الملاحظات هذا</value>
+    <comment>notebook context menu</comment>
+  </data>
   <data name="ribAdjustImagesButton_Label" xml:space="preserve">
-    <value>تغيير حجم وتعديل</value>
-    <comment>Ribbon OneMore menu item, Resize selected image(s)</comment>
+    <value>تحرير الصور</value>
+    <comment>ribbon images</comment>
   </data>
   <data name="ribAdjustImagesButton_Screentip" xml:space="preserve">
     <value>تغيير حجم الصور المحددة وضبطها</value>
@@ -2763,6 +3921,14 @@ ISO-code then comma then language name</comment>
   <data name="ribAnalyzeButton_Screentip" xml:space="preserve">
     <value>قم بإنشاء تقرير عن التخزين المستخدم بواسطة القسم أو الكمبيوتر الدفتري</value>
     <comment>ribbon extras</comment>
+  </data>
+  <data name="ribApplyConditionalFormatButton_Label" xml:space="preserve">
+    <value>تطبيق التنسيق الشرطي</value>
+    <comment>ribbon styles</comment>
+  </data>
+  <data name="ribApplyConditionalFormatButton_Screentip" xml:space="preserve">
+    <value>قم بتطبيق نمط على النص الموجود في هذه الصفحة يطابق التعبير العادي</value>
+    <comment>ribbon styles</comment>
   </data>
   <data name="ribApplyStyle0Button_Label" xml:space="preserve">
     <value>تطبيق النمط 1</value>
@@ -2901,6 +4067,10 @@ ISO-code then comma then language name</comment>
     <value>شريط الشريط</value>
     <comment>settings dialog</comment>
   </data>
+  <data name="ribBookmarkButton_Label" xml:space="preserve">
+    <value>إشارة مرجعية</value>
+    <comment>ribbon references</comment>
+  </data>
   <data name="ribBreakingButton_Label" xml:space="preserve">
     <value>تغيير تباعد الجمل</value>
     <comment>clean menu item</comment>
@@ -2941,9 +4111,6 @@ ISO-code then comma then language name</comment>
     <value>تلوين</value>
     <comment>ribbon edit</comment>
   </data>
-  <data name="ribChooseFavoriteButton_Label" xml:space="preserve">
-    <value>اختر المفضلة</value>
-  </data>
   <data name="ribCleanMenu_Label" xml:space="preserve">
     <value>نظيف</value>
     <comment>Ribbon OneMore menu item</comment>
@@ -2970,7 +4137,8 @@ ISO-code then comma then language name</comment>
   </data>
   <data name="ribClearTableShadingButton_Label" xml:space="preserve">
     <value>مسح كافة أنماط الجدول</value>
-  <comment>ribbon item</comment></data>
+    <comment>ribbon item</comment>
+  </data>
   <data name="ribClearTableShadingButton_Screentip" xml:space="preserve">
     <value>إعادة تعيين التظليل في كل الخلايا في الجدول الحالي</value>
     <comment>ribbon table styles</comment>
@@ -2991,16 +4159,33 @@ ISO-code then comma then language name</comment>
     <value>طي الصفحات الفرعية في لوحة تصفح الصفحة</value>
     <comment>ribbon extras</comment>
   </data>
+  <data name="ribCollateTocButton_Label" xml:space="preserve">
+    <value>تجميع جداول المحتوى</value>
+    <comment>ribbon snippets NODUP</comment>
+  </data>
+  <data name="ribCollateTocButton_Screentip" xml:space="preserve">
+    <value>قم بتجميع كافة جداول المحتوى من دفاتر الملاحظات المحددة في صفحة فهرس واحدة.</value>
+    <comment>ribbon snippets</comment>
+  </data>
   <data name="ribColorizeMenu_Label" xml:space="preserve">
     <value>تلوين</value>
     <comment>ribbon item</comment>
   </data>
   <data name="ribCommandPaletteButton_Label" xml:space="preserve">
     <value>لوحة القيادة</value>
-  <comment>ribbon item</comment></data>
+    <comment>ribbon item</comment>
+  </data>
   <data name="ribCommandPaletteButton_Screentip" xml:space="preserve">
     <value>افتح نافذة لوحة الأوامر</value>
     <comment>ribbon main</comment>
+  </data>
+  <data name="ribCompleteHashtagButton_Label" xml:space="preserve">
+    <value>الهاشتاج الكامل</value>
+    <comment>ribbon search</comment>
+  </data>
+  <data name="ribCompleteHashtagButton_Screentip" xml:space="preserve">
+    <value>أكمل الكلمة الحالية في علامة تصنيف مختارة من قائمة الإكمال التلقائي (Alt+G)</value>
+    <comment>ribbon search</comment>
   </data>
   <data name="ribCompleteReminderButton_Label" xml:space="preserve">
     <value>تذكير كامل</value>
@@ -3063,19 +4248,19 @@ ISO-code then comma then language name</comment>
     <comment>context menu item</comment>
   </data>
   <data name="ribCopyLinkToPageButton_Label" xml:space="preserve">
-    <value>نسخ الرابط إلى الصفحة</value>
-    <comment>ribbon item</comment>
+    <value>انسخ رابط المسار إلى الصفحة</value>
+    <comment>ribbon references</comment>
   </data>
   <data name="ribCopyLinkToPageButton_Screentip" xml:space="preserve">
-    <value>انسخ ارتباطًا تشعبيًا إلى الصفحة الحالية</value>
+    <value>انسخ الرابط التشعبي للمسار إلى الصفحة الحالية</value>
     <comment>ribbon references</comment>
   </data>
   <data name="ribCopyLinkToParagraphButton_Label" xml:space="preserve">
-    <value>نسخ الرابط إلى الفقرة</value>
-    <comment>ribbon item</comment>
+    <value>نسخ رابط المسار إلى الفقرة</value>
+    <comment>ribbon references</comment>
   </data>
   <data name="ribCopyLinkToParagraphButton_Screentip" xml:space="preserve">
-    <value>انسخ ارتباطًا تشعبيًا إلى الفقرة الحالية</value>
+    <value>انسخ الرابط التشعبي للمسار إلى الفقرة الحالية</value>
     <comment>ribbon references</comment>
   </data>
   <data name="ribCopyPageContentButton_Label" xml:space="preserve">
@@ -3086,6 +4271,22 @@ ISO-code then comma then language name</comment>
     <value>انسخ المحتوى المحدد إلى صفحة جديدة</value>
     <comment>ribbon page</comment>
   </data>
+  <data name="ribCopyPageToReadingListButton_Label" xml:space="preserve">
+    <value>إضافة صفحة إلى قائمة القراءة الخاصة بي</value>
+    <comment>ribbon references</comment>
+  </data>
+  <data name="ribCopyPageToReadingListButton_Screentip" xml:space="preserve">
+    <value>أضف الصفحة الحالية إلى قائمة القراءة الخاصة بي</value>
+    <comment>ribbon references</comment>
+  </data>
+  <data name="ribCopyParagraphToReadingListButton_Label" xml:space="preserve">
+    <value>إضافة فقرة إلى قائمة القراءة الخاصة بي</value>
+    <comment>ribbon references</comment>
+  </data>
+  <data name="ribCopyParagraphToReadingListButton_Screentip" xml:space="preserve">
+    <value>أضف الفقرة الحالية إلى قائمة القراءة الخاصة بي</value>
+    <comment>ribbon references</comment>
+  </data>
   <data name="ribCrawlWebPageButton_Label" xml:space="preserve">
     <value>استيراد ارتباطات تشعبية</value>
     <comment>ribbon item</comment>
@@ -3093,6 +4294,14 @@ ISO-code then comma then language name</comment>
   <data name="ribCrawlWebPageButton_Screentip" xml:space="preserve">
     <value>استيراد الارتباطات التشعبية كصفحات جديدة</value>
     <comment>ribbon file</comment>
+  </data>
+  <data name="ribCreateJournalButton_Label" xml:space="preserve">
+    <value>إنشاء مجلة</value>
+    <comment>ribbon snippets NODUP</comment>
+  </data>
+  <data name="ribCreateJournalButton_Screentip" xml:space="preserve">
+    <value>قم بإنشاء شهر من صفحات المجلة المؤرخة</value>
+    <comment>ribbon snippets</comment>
   </data>
   <data name="ribCreatePagesButton_Label" xml:space="preserve">
     <value>قم بإنشاء صفحات من القائمة</value>
@@ -3131,8 +4340,8 @@ ISO-code then comma then language name</comment>
     <comment>Ribbon OneMore menu item</comment>
   </data>
   <data name="ribDecreaseFontSizeButton_Screentip" xml:space="preserve">
-    <value>تصغير حجم خط الصفحة (Ctrl + Alt + علامة ناقص)</value>
-    <comment>Ribbon OneMore menu item</comment>
+    <value>تقليل حجم خط الصفحة</value>
+    <comment>ribbon edit</comment>
   </data>
   <data name="ribDeleteFormulaButton_Label" xml:space="preserve">
     <value>حذف الصيغة</value>
@@ -3206,13 +4415,13 @@ ISO-code then comma then language name</comment>
     <value>تحرير أنماط الجدول المخصصة</value>
     <comment>ribbon table styles</comment>
   </data>
-  <data name="ribEmbedSubpageButton_Label" xml:space="preserve">
-    <value>تضمين الصفحة</value>
-    <comment>ribbon item</comment>
+  <data name="ribEmbedButton_Label" xml:space="preserve">
+    <value>تضمين</value>
+    <comment>ribbon references</comment>
   </data>
-  <data name="ribEmbedSubpageButton_Screentip" xml:space="preserve">
-    <value>تضمين محتوى صفحة أخرى في الصفحة الحالية</value>
-    <comment>ribbon item screentip</comment>
+  <data name="ribEmbedButton_Screentip" xml:space="preserve">
+    <value>تضمين محتوى من صفحة أخرى في الصفحة الحالية</value>
+    <comment>ribbon references</comment>
   </data>
   <data name="ribEnableSpellCheckButton_Label" xml:space="preserve">
     <value>تمكين التدقيق الإملائي</value>
@@ -3242,9 +4451,28 @@ ISO-code then comma then language name</comment>
     <value>تصدير الصفحة (الصفحات) بتنسيق HTML أو PDF أو Word أو XML</value>
     <comment>Ribbon OneMore menu item</comment>
   </data>
+  <data name="ribExportFavoritesButton_Label" xml:space="preserve">
+    <value>تصدير المفضلة</value>
+    <comment>ribbon favorites</comment>
+  </data>
+  <data name="ribExportFavoritesButton_Screentip" xml:space="preserve">
+    <value>تصدير كافة المفضلة إلى ملف JSON</value>
+    <comment>ribbon favorites</comment>
+  </data>
+  <data name="ribExportLayoutsButton_Label" xml:space="preserve">
+    <value>تخطيطات التصدير</value>
+    <comment>ribbon favorites</comment>
+  </data>
+  <data name="ribExportLayoutsButton_Screentip" xml:space="preserve">
+    <value>تصدير كافة التخطيطات إلى ملف JSON</value>
+    <comment>ribbon favorites</comment>
+  </data>
   <data name="ribExtrasMenu_Label" xml:space="preserve">
     <value>إضافات</value>
     <comment>Ribbon OneMore menu item, Extras...</comment>
+  </data>
+  <data name="ribFavoritesButton_Label" xml:space="preserve">
+    <value>اختر المفضلة</value>
   </data>
   <data name="ribFavoritesMenu_Label" xml:space="preserve">
     <value>المفضلة</value>
@@ -3275,20 +4503,12 @@ ISO-code then comma then language name</comment>
     <comment>ribbon</comment>
   </data>
   <data name="ribFillDownButton_Screentip" xml:space="preserve">
-    <value>ملء لأسفل (Ctrl + D)</value>
-    <comment>ribbon</comment>
+    <value>ملء التسلسل أسفل الأعمدة المحددة</value>
+    <comment>ribbon table</comment>
   </data>
   <data name="ribFindHashtagsButton_Label" xml:space="preserve">
     <value>البحث في الوسوم</value>
     <comment>ribbon references NODUP</comment>
-  </data>
-  <data name="ribFinishBiLinkButton_Label" xml:space="preserve">
-    <value>قم بإنهاء الارتباط ثنائي الاتجاه</value>
-    <comment>ribbon item</comment>
-  </data>
-  <data name="ribFinishBiLinkButton_Screentip" xml:space="preserve">
-    <value>إنهاء الارتباط بين المرساة والموقع الحالي</value>
-    <comment>ribbon references </comment>
   </data>
   <data name="ribFitGridToTextButton_Label" xml:space="preserve">
     <value>احتواء الشبكة على النص</value>
@@ -3338,17 +4558,49 @@ ISO-code then comma then language name</comment>
     <value>إزالة التمييز</value>
     <comment>ribbon edit</comment>
   </data>
+  <data name="ribHistoryButton_Label" xml:space="preserve">
+    <value>تاريخ</value>
+    <comment>ribbon main NODUP</comment>
+  </data>
   <data name="ribImagesMenu_Label" xml:space="preserve">
     <value>الصور</value>
-    <comment>Ribbon OneMore menu item, Images...</comment>
+    <comment>ribbon images NODUP</comment>
   </data>
   <data name="ribImportButton_Label" xml:space="preserve">
-    <value>استيراد</value>
-    <comment>ribbon item</comment>
+    <value>ملف الاستيراد</value>
+    <comment>ribbon file NODUP</comment>
   </data>
   <data name="ribImportButton_Screentip" xml:space="preserve">
     <value>قم باستيراد ملف</value>
     <comment>ribbon file NODUP</comment>
+  </data>
+  <data name="ribImportEvernoteButton_Label" xml:space="preserve">
+    <value>استيراد إيفرنوت</value>
+    <comment>ribbon file NODUP</comment>
+  </data>
+  <data name="ribImportEvernoteButton_Screentip" xml:space="preserve">
+    <value>استيراد الملاحظات من ملف تصدير Evernote (.enex).</value>
+    <comment>ribbon file NODUP</comment>
+  </data>
+  <data name="ribImportFavoritesButton_Label" xml:space="preserve">
+    <value>استيراد المفضلة</value>
+    <comment>ribbon favorites</comment>
+  </data>
+  <data name="ribImportFavoritesButton_Screentip" xml:space="preserve">
+    <value>استيراد كافة المفضلة من ملف JSON</value>
+    <comment>ribbon favorites</comment>
+  </data>
+  <data name="ribImportLayoutsButton_Label" xml:space="preserve">
+    <value>استيراد التخطيطات</value>
+    <comment>ribbon favorites</comment>
+  </data>
+  <data name="ribImportLayoutsButton_Screentip" xml:space="preserve">
+    <value>استيراد كافة التخطيطات من ملف JSON</value>
+    <comment>ribbon favorites</comment>
+  </data>
+  <data name="ribImportOutlookContactsButton_Label" xml:space="preserve">
+    <value>استيراد جهات الاتصال من Outlook</value>
+    <comment>ribbon reminders NODUP</comment>
   </data>
   <data name="ribImportOutlookTasksButton_Label" xml:space="preserve">
     <value>استيراد المهام من Outlook</value>
@@ -3371,8 +4623,12 @@ ISO-code then comma then language name</comment>
     <comment>Ribbon OneMore menu item</comment>
   </data>
   <data name="ribIncreaseFontSizeButton_Screentip" xml:space="preserve">
-    <value>تكبير حجم خط الصفحة (Ctrl + Alt + Plus)</value>
-    <comment>Ribbon OneMore menu item</comment>
+    <value>زيادة حجم خط الصفحة</value>
+    <comment>ribbon edit</comment>
+  </data>
+  <data name="ribIndexModifiedButton_Label" xml:space="preserve">
+    <value>تم تعديل الفهرس</value>
+    <comment>command !EDIT</comment>
   </data>
   <data name="ribInsertBlueStatusButton_Label" xml:space="preserve">
     <value>الحالة الزرقاء</value>
@@ -3411,7 +4667,7 @@ ISO-code then comma then language name</comment>
     <comment>ribbon snippets</comment>
   </data>
   <data name="ribInsertCodeBoxButton_Screentip" xml:space="preserve">
-    <value>أدخل مربع رمز (F6) ، مع التفاف المحتوى المحدد</value>
+    <value>قم بإدراج مربع التعليمات البرمجية، مع التفاف المحتوى المحدد</value>
     <comment>ribbon snippets</comment>
   </data>
   <data name="ribInsertDateButton_Label" xml:space="preserve">
@@ -3419,8 +4675,8 @@ ISO-code then comma then language name</comment>
     <comment>ribbon item</comment>
   </data>
   <data name="ribInsertDateButton_Screentip" xml:space="preserve">
-    <value>أدخل التاريخ الحالي (Ctrl + Shift + D)</value>
-    <comment>ribbon</comment>
+    <value>أدخل التاريخ الحالي</value>
+    <comment>ribbon snippets</comment>
   </data>
   <data name="ribInsertDateTimeButton_Label" xml:space="preserve">
     <value>تاريخ فرز مع مرور الوقت</value>
@@ -3474,12 +4730,28 @@ ISO-code then comma then language name</comment>
     <value>أدخل مربع المعلومات</value>
     <comment>ribbon snippets</comment>
   </data>
+  <data name="ribInsertNotebookTocButton_Label" xml:space="preserve">
+    <value>جدول الأقسام في دفتر الملاحظات</value>
+    <comment>ribbon snippets NODUP</comment>
+  </data>
+  <data name="ribInsertNotebookTocButton_Screentip" xml:space="preserve">
+    <value>قم بإدراج جدول الأقسام لهذا دفتر الملاحظات</value>
+    <comment>ribbon snippets</comment>
+  </data>
   <data name="ribInsertNoteBoxButton_Label" xml:space="preserve">
     <value>صندوق الملاحظات</value>
     <comment>ribbon snippets</comment>
   </data>
   <data name="ribInsertNoteBoxButton_Screentip" xml:space="preserve">
     <value>أدخل مربع ملاحظات</value>
+    <comment>ribbon snippets</comment>
+  </data>
+  <data name="ribInsertPageTocButton_Label" xml:space="preserve">
+    <value>جدول المحتويات</value>
+    <comment>ribbon snippets NODUP</comment>
+  </data>
+  <data name="ribInsertPageTocButton_Screentip" xml:space="preserve">
+    <value>قم بإدراج جدول محتويات العناوين في أعلى الصفحة</value>
     <comment>ribbon snippets</comment>
   </data>
   <data name="ribInsertQRButton_Label" xml:space="preserve">
@@ -3496,6 +4768,14 @@ ISO-code then comma then language name</comment>
   </data>
   <data name="ribInsertRedStatusButton_Screentip" xml:space="preserve">
     <value>أدخل تسمية الحالة الحمراء</value>
+    <comment>ribbon snippets</comment>
+  </data>
+  <data name="ribInsertSectionTocButton_Label" xml:space="preserve">
+    <value>جدول الصفحات في القسم</value>
+    <comment>ribbon snippets NODUP</comment>
+  </data>
+  <data name="ribInsertSectionTocButton_Screentip" xml:space="preserve">
+    <value>قم بإدراج جدول الصفحات لهذا القسم</value>
     <comment>ribbon snippets</comment>
   </data>
   <data name="ribInsertSingleLineButton_Label" xml:space="preserve">
@@ -3521,14 +4801,6 @@ ISO-code then comma then language name</comment>
   <data name="ribInsertTimerButton_Screentip" xml:space="preserve">
     <value>أدخل قيمة المؤقت الحالي</value>
     <comment>ribbon extras</comment>
-  </data>
-  <data name="ribInsertTocButton_Label" xml:space="preserve">
-    <value>جدول المحتويات</value>
-    <comment>Ribbon OneMore menu item, Extras...</comment>
-  </data>
-  <data name="ribInsertTocButton_Screentip" xml:space="preserve">
-    <value>أدخل جدول محتويات عناوين في أعلى الصفحة</value>
-    <comment>ribbon snippets</comment>
   </data>
   <data name="ribInsertWarnBoxButton_Label" xml:space="preserve">
     <value>صندوق التحذير</value>
@@ -3589,6 +4861,10 @@ ISO-code then comma then language name</comment>
   <data name="ribManageFavoritesButton_Label" xml:space="preserve">
     <value>إدارة المفضلة</value>
     <comment>favorites menu command</comment>
+  </data>
+  <data name="ribManageLayoutsButton_Label" xml:space="preserve">
+    <value>إدارة تخطيطات النافذة</value>
+    <comment>extras menu command NODUP</comment>
   </data>
   <data name="ribManagePluginsButton_Label" xml:space="preserve">
     <value>إدارة الإضافات المحفوظة</value>
@@ -3690,6 +4966,14 @@ ISO-code then comma then language name</comment>
     <value>الترقيم</value>
     <comment>Ribbon OneMore menu item</comment>
   </data>
+  <data name="ribNumberLinesButton_Label" xml:space="preserve">
+    <value>خطوط الأعداد</value>
+    <comment>ribbon numbering</comment>
+  </data>
+  <data name="ribNumberLinesButton_Screentip" xml:space="preserve">
+    <value>إضافة أرقام الأسطر النص المحدد</value>
+    <comment>ribbon numbering</comment>
+  </data>
   <data name="ribNumberPagesButton_Label" xml:space="preserve">
     <value>عدد الصفحات</value>
     <comment>Ribbon OneMore menu item</comment>
@@ -3705,6 +4989,10 @@ ISO-code then comma then language name</comment>
   <data name="ribNumberSectionsButton_Screentip" xml:space="preserve">
     <value>قم بإضافة أو تحديث ترقيم كافة الأقسام في دفتر الملاحظات هذا</value>
     <comment>Ribbon OneMore menu item</comment>
+  </data>
+  <data name="ribOfficeMenu_Label" xml:space="preserve">
+    <value>مكتب</value>
+    <comment>menu NODUP</comment>
   </data>
   <data name="ribOneMoreBasicsGroup_Label" xml:space="preserve">
     <value>الأساسيات</value>
@@ -3813,21 +5101,9 @@ ISO-code then comma then language name</comment>
     <value>لصق والحفاظ على النص فقط</value>
     <comment>ribbon item</comment>
   </data>
-  <data name="ribPasteTextButton_Label" xml:space="preserve">
-    <value>لصق والحفاظ على النص فقط</value>
-    <comment>ribbon item</comment>
-  </data>
   <data name="ribPasteTextButton_Screentip" xml:space="preserve">
     <value>لصق والحفاظ على النص فقط (CTRL + SHIFT + V)</value>
     <comment>ribbon item</comment>
-  </data>
-  <data name="ribPasteTextButton_Screentip" xml:space="preserve">
-    <value>لصق والحفاظ على النص فقط (CTRL + SHIFT + V)</value>
-    <comment>ribbon item</comment>
-  </data>
-  <data name="ribPinPageButton_Label" xml:space="preserve">
-    <value>إضافة صفحة إلى قائمة القراءة الخاصة بي</value>
-    <comment>navigator</comment>
   </data>
   <data name="ribPlantUmlButton_Label" xml:space="preserve">
     <value>رسم النبات</value>
@@ -3877,6 +5153,14 @@ ISO-code then comma then language name</comment>
     <value>لغة التدقيق</value>
     <comment>ribbon menu</comment>
   </data>
+  <data name="ribQuickImportButton_Label" xml:space="preserve">
+    <value>استيراد سريع</value>
+    <comment>ribbon file</comment>
+  </data>
+  <data name="ribQuickImportButton_Screentip" xml:space="preserve">
+    <value>قم باستيراد كافة الملفات المعروفة من المجلد الذي تم تكوينه إلى القسم الذي تم تكوينه</value>
+    <comment>ribbon file</comment>
+  </data>
   <data name="ribQuickPaletteButton_Label" xml:space="preserve">
     <value>لوحة سريعة</value>
     <comment>ribbon menu</comment>
@@ -3892,6 +5176,13 @@ ISO-code then comma then language name</comment>
   <data name="ribRecalculateFormulaButton_Screentip" xml:space="preserve">
     <value>إعادة حساب كل الصيغ في الجدول الحالي (Shift + F5)</value>
     <comment>Ribbon OneMore menu item, Formula...</comment>
+  </data>
+  <data name="ribRecolorInkButton_Label" xml:space="preserve">
+    <value>إعادة تلوين الحبر</value>
+    <comment>ribbon edit</comment>
+  </data>
+  <data name="ribRecolorInkButton_Screentip" xml:space="preserve">
+    <value>إعادة تلوين الرسومات المحددة بالحبر</value>
   </data>
   <data name="ribReferencesMenu_Label" xml:space="preserve">
     <value>المراجع</value>
@@ -3968,6 +5259,22 @@ ISO-code then comma then language name</comment>
   <data name="ribRemoveFootnoteButton_Screentip" xml:space="preserve">
     <value>إزالة الحاشية السفلية (Ctrl + Shift + F)</value>
     <comment>Ribbon OneMore menu item, Extras...</comment>
+  </data>
+  <data name="ribRemoveHyperlinksButton_Label" xml:space="preserve">
+    <value>إزالة الارتباطات التشعبية</value>
+    <comment>ribbon clean</comment>
+  </data>
+  <data name="ribRemoveHyperlinksButton_Screentip" xml:space="preserve">
+    <value>إزالة كافة الارتباطات التشعبية من الصفحة</value>
+    <comment>ribbon clean</comment>
+  </data>
+  <data name="ribRemoveIndentsButton_Label" xml:space="preserve">
+    <value>إزالة المسافات البادئة</value>
+    <comment>ribbon clean</comment>
+  </data>
+  <data name="ribRemoveIndentsButton_Screentip" xml:space="preserve">
+    <value>إزالة المسافة البادئة من المحتوى المحدد</value>
+    <comment>ribbon clean</comment>
   </data>
   <data name="ribRemoveInkButton_Label" xml:space="preserve">
     <value>إزالة الحبر</value>
@@ -4056,6 +5363,14 @@ ISO-code then comma then language name</comment>
     <value>إعادة تعيين العرض التلقائي لجميع الحاويات</value>
     <comment>ribbon clean</comment>
   </data>
+  <data name="ribRestoreBackgroundImagesButton_Label" xml:space="preserve">
+    <value>استعادة صور الخلفية</value>
+    <comment>ribbon images</comment>
+  </data>
+  <data name="ribRestoreBackgroundImagesButton_Screentip" xml:space="preserve">
+    <value>انقل جميع صور خلفية الصفحة إلى نص الصفحة، من الأعلى إلى الأسفل</value>
+    <comment>ribbon images</comment>
+  </data>
   <data name="ribRestoreCollapsedButton_Label" xml:space="preserve">
     <value>استعادة المخطط التفصيلي المطوي</value>
     <comment>ribbon</comment>
@@ -4063,6 +5378,10 @@ ISO-code then comma then language name</comment>
   <data name="ribRestoreCollapsedButton_Screentip" xml:space="preserve">
     <value>قم بتوسيع العناوين إلى الحالة المحفوظة مؤخرًا</value>
     <comment>ribbon page</comment>
+  </data>
+  <data name="ribRestoreLayoutButton_Label" xml:space="preserve">
+    <value>استعادة التخطيط</value>
+    <comment>ribbon favorites</comment>
   </data>
   <data name="ribRunPluginButton_Label" xml:space="preserve">
     <value>تشغيل البرنامج المساعد</value>
@@ -4080,6 +5399,10 @@ ISO-code then comma then language name</comment>
     <value>تم حفظ الحالة المنهارة لجميع العناوين</value>
     <comment>ribbon page</comment>
   </data>
+  <data name="ribSaveLayoutButton_Label" xml:space="preserve">
+    <value>التقاط التخطيط</value>
+    <comment>ribbon favorites</comment>
+  </data>
   <data name="ribSaveSnippetButton_Label" xml:space="preserve">
     <value>حفظ المقتطف الجديد</value>
     <comment>ribbon snippets</comment>
@@ -4087,6 +5410,14 @@ ISO-code then comma then language name</comment>
   <data name="ribSaveSnippetButton_Screentip" xml:space="preserve">
     <value>احفظ مقتطفًا مخصصًا جديدًا من المحتوى المحدد</value>
     <comment>ribbon snippets</comment>
+  </data>
+  <data name="ribScanButton_Label" xml:space="preserve">
+    <value>مسح</value>
+    <comment>file ribbon</comment>
+  </data>
+  <data name="ribScanButton_Screentip" xml:space="preserve">
+    <value>استيراد من الماسح الضوئي</value>
+    <comment>file ribbon</comment>
   </data>
   <data name="ribScanHashtagsButton_Label" xml:space="preserve">
     <value>مسح علامات التصنيف</value>
@@ -4113,12 +5444,12 @@ ISO-code then comma then language name</comment>
     <comment>Ribbon OneMore menu item, search and replace</comment>
   </data>
   <data name="ribSearchButton_Label" xml:space="preserve">
-    <value>بحث ونسخ / نقل</value>
-    <comment>ribbon item</comment>
+    <value>يبحث</value>
+    <comment>ribbon search</comment>
   </data>
   <data name="ribSearchButton_Screentip" xml:space="preserve">
-    <value>صفحات البحث عن الكلمات الرئيسية ونسخ / نقل إلى قسم آخر (Alt + F)</value>
-    <comment>ribbon item</comment>
+    <value>ابحث في الصفحات عن الكلمات الرئيسية وانسخ/انقل إلى قسم آخر</value>
+    <comment>ribbon search</comment>
   </data>
   <data name="ribSearchHashtagsButton_Label" xml:space="preserve">
     <value>البحث في الوسوم</value>
@@ -4131,6 +5462,14 @@ ISO-code then comma then language name</comment>
   <data name="ribSearchMenu_Label" xml:space="preserve">
     <value>البحث والعلامة</value>
     <comment>ribbon menu item</comment>
+  </data>
+  <data name="ribSearchTitleButton_Label" xml:space="preserve">
+    <value>البحث في العناوين</value>
+    <comment>ribbon search</comment>
+  </data>
+  <data name="ribSearchTitleButton_Screentip" xml:space="preserve">
+    <value>ابحث في عناوين الصفحات عبر دفتر ملاحظات وقم بفهرسة النتائج بشكل اختياري</value>
+    <comment>ribbon search</comment>
   </data>
   <data name="ribSectionColorButton_Label" xml:space="preserve">
     <value>تخصيص لون القسم</value>
@@ -4180,17 +5519,29 @@ ISO-code then comma then language name</comment>
     <value>افتح نافذة إعدادات OneMore</value>
     <comment>ribbon main</comment>
   </data>
-  <data name="ribShowKeyboardShortcutsButton_Label" xml:space="preserve">
+  <data name="ribShowContainersButton_Label" xml:space="preserve">
+    <value>تبديل حاويات الملاحظات</value>
+    <comment>ribbon extras</comment>
+  </data>
+  <data name="ribShowContainersButton_Screentip" xml:space="preserve">
+    <value>تبديل خيار إظهار حاويات الملاحظات</value>
+    <comment>ribbon extras</comment>
+  </data>
+  <data name="ribShowKeyMapsPageButton_Label" xml:space="preserve">
     <value>اختصارات لوحة مفاتيح OneNote</value>
     <comment>favorite</comment>
+  </data>
+  <data name="ribShowWindowsButton_Label" xml:space="preserve">
+    <value>إظهار النوافذ المفتوحة</value>
+    <comment>ribbon extras</comment>
   </data>
   <data name="ribShowXmlButton_Label" xml:space="preserve">
     <value>إظهار XML</value>
     <comment>Ribbon OneMore menu item</comment>
   </data>
   <data name="ribShowXmlButton_Screentip" xml:space="preserve">
-    <value>إظهار XML للتسلسل الهرمي والصفحة الحالية (Ctrl + Shift + Alt + X)</value>
-    <comment>Ribbon OneMore menu item</comment>
+    <value>إظهار XML للتسلسل الهرمي والصفحة الحالية</value>
+    <comment>ribbon extras</comment>
   </data>
   <data name="ribShutdownTimerButton_Label" xml:space="preserve">
     <value>إيقاف الموقت</value>
@@ -4199,6 +5550,14 @@ ISO-code then comma then language name</comment>
   <data name="ribShutdownTimerButton_Screentip" xml:space="preserve">
     <value>توقف وأغلق نافذة المؤقت</value>
     <comment>ribbon extras</comment>
+  </data>
+  <data name="ribSnapToGridButton_Label" xml:space="preserve">
+    <value>انجذاب إلى الشبكة</value>
+    <comment>ribbon page NODUP</comment>
+  </data>
+  <data name="ribSnapToGridButton_Screentip" xml:space="preserve">
+    <value>قم بإطباق مواضع المخطط التفصيلي على شبكة الخلفية</value>
+    <comment>ribbon page NODUP</comment>
   </data>
   <data name="ribSnippetsMenu_Label" xml:space="preserve">
     <value>المقتطفات</value>
@@ -4272,10 +5631,6 @@ ISO-code then comma then language name</comment>
     <value>تغيير موضع صور الخلفية من أعلى إلى أسفل</value>
     <comment>ribbon images</comment>
   </data>
-  <data name="ribStartBiLinkButton_Label" xml:space="preserve">
-    <value>ابدأ رابط ثنائي الاتجاه</value>
-    <comment>ribbon item</comment>
-  </data>
   <data name="ribStartBiLinkButton_Screentip" xml:space="preserve">
     <value>ابدأ ارتباط ثنائي الاتجاه</value>
     <comment>ribbon references</comment>
@@ -4307,6 +5662,10 @@ ISO-code then comma then language name</comment>
   <data name="ribStylizeImagesButton_Screentip" xml:space="preserve">
     <value>إعادة تلوين الصور باستخدام النمط المحدد</value>
     <comment>ribbon images</comment>
+  </data>
+  <data name="ribSyncNotebooksButton_Label" xml:space="preserve">
+    <value>مزامنة دفاتر الملاحظات</value>
+    <comment>command</comment>
   </data>
   <data name="ribTableMenu_Label" xml:space="preserve">
     <value>الطاولة</value>
@@ -4355,6 +5714,22 @@ ISO-code then comma then language name</comment>
     <value>اقتطاع المسافة البيضاء البادئة من النص المحدد</value>
     <comment>ribbon item tootp</comment>
   </data>
+  <data name="ribTwoWayLinkButton_Label" xml:space="preserve">
+    <value>رابط ثنائي الاتجاه إلى الإشارة المرجعية</value>
+    <comment>ribbon references</comment>
+  </data>
+  <data name="ribTwoWayLinkButton_Screentip" xml:space="preserve">
+    <value>إنهاء الارتباط بين المرساة والموقع الحالي</value>
+    <comment>ribbon references </comment>
+  </data>
+  <data name="ribTwoWayPathButton_Label" xml:space="preserve">
+    <value>مسار ذو اتجاهين إلى الإشارة المرجعية</value>
+    <comment>ribbon references</comment>
+  </data>
+  <data name="ribTwoWayPathButton_Screentip" xml:space="preserve">
+    <value>قم بإنهاء الارتباط التفصيلي بين الإشارة المرجعية والموقع الحالي</value>
+    <comment>ribbon references</comment>
+  </data>
   <data name="ribUnnameUrlsButton_Label" xml:space="preserve">
     <value>استبدل عناوين URL بالعناوين</value>
     <comment>ribbon reference</comment>
@@ -4384,8 +5759,8 @@ ISO-code then comma then language name</comment>
     <comment>Ribbon OneMore menu item</comment>
   </data>
   <data name="ribUppercaseButton_Screentip" xml:space="preserve">
-    <value>تحويل النص إلى أحرف كبيرة (Ctrl + Shift + Alt + U)</value>
-    <comment>Ribbon OneMore menu item</comment>
+    <value>تحويل النص إلى أحرف كبيرة</value>
+    <comment>ribbon edit</comment>
   </data>
   <data name="ribViewNotebookInBrowserButton_Label" xml:space="preserve">
     <value>عرض دفتر الملاحظات في المتصفح</value>
@@ -4411,6 +5786,14 @@ ISO-code then comma then language name</comment>
     <value>عرض القسم في متصفح الويب</value>
     <comment>section context menu</comment>
   </data>
+  <data name="ribWhereAmIButton_Label" xml:space="preserve">
+    <value>أين أنا؟</value>
+    <comment>ribbon extras</comment>
+  </data>
+  <data name="ribWhereAmIButton_Screentip" xml:space="preserve">
+    <value>إظهار المسار الهرمي للصفحة الحالية، مع القوائم المنسدلة للانتقال إلى أي مستوى</value>
+    <comment>ribbon extras</comment>
+  </data>
   <data name="ribWordCountButton_Label" xml:space="preserve">
     <value>عدد الكلمات</value>
     <comment>Ribbon OneMore menu extras</comment>
@@ -4426,6 +5809,18 @@ ISO-code then comma then language name</comment>
   <data name="SaveAsMany_Success" xml:space="preserve">
     <value>تم حفظ {0} من {1} صفحة في {2}</value>
     <comment>save many message</comment>
+  </data>
+  <data name="SaveLayoutCommand_error" xml:space="preserve">
+    <value>لا يمكن حفظ التخطيط.</value>
+    <comment>message box</comment>
+  </data>
+  <data name="SaveLayoutCommand_noWindows" xml:space="preserve">
+    <value>لا توجد نوافذ OneNote مفتوحة للحفظ.</value>
+    <comment>message box</comment>
+  </data>
+  <data name="SaveLayoutCommand_Text" xml:space="preserve">
+    <value>حفظ التخطيط</value>
+    <comment>dialog title</comment>
   </data>
   <data name="SaveSnippet_NeedSelection" xml:space="preserve">
     <value>حدد المحتوى المراد حفظه كمقتطف جديد</value>
@@ -4451,9 +5846,35 @@ ISO-code then comma then language name</comment>
     <value>اسم المقتطف:</value>
     <comment>label</comment>
   </data>
-  <data name="ScanningCueFile" xml:space="preserve">
-    <value>HashtagScanner.json</value>
-    <comment>SKIP</comment>
+  <data name="ScanDialog.Text" xml:space="preserve">
+    <value>مسح</value>
+    <comment>dialog title</comment>
+  </data>
+  <data name="ScanDialog_colorBox" xml:space="preserve">
+    <value>لون
+رمادي
+بالأبيض والأسود</value>
+    <comment>combobox</comment>
+  </data>
+  <data name="ScanDialog_colorLabel.Text" xml:space="preserve">
+    <value>تنسيق اللون</value>
+    <comment>label</comment>
+  </data>
+  <data name="ScanDialog_profileLabel.Text" xml:space="preserve">
+    <value>حساب تعريفي</value>
+    <comment>label</comment>
+  </data>
+  <data name="ScanDialog_resolutionLabel.Text" xml:space="preserve">
+    <value>دقة</value>
+    <comment>label</comment>
+  </data>
+  <data name="ScanDialog_scannLabel.Text" xml:space="preserve">
+    <value>الماسح الضوئي</value>
+    <comment>label</comment>
+  </data>
+  <data name="ScanDialog_sizeLabel.Text" xml:space="preserve">
+    <value>مقاس</value>
+    <comment>label</comment>
   </data>
   <data name="ScheduleScanDialog_booksInfoLabel.Text" xml:space="preserve">
     <value>حدد دفاتر الملاحظات لجدولة لإنقاذ كامل</value>
@@ -4501,6 +5922,10 @@ ISO-code then comma then language name</comment>
     <value>دفاتر محددة ...</value>
     <comment>radio</comment>
   </data>
+  <data name="SearchAndReplaceCommand_NoMatches" xml:space="preserve">
+    <value>لم يتم العثور على أي تطابقات في هذه الصفحة.</value>
+    <comment>message box</comment>
+  </data>
   <data name="SearchAndReplaceCommand_Results" xml:space="preserve">
     <value>تم استبدال {0} من التطابقات في {1} صفحة</value>
     <comment>message box</comment>
@@ -4517,7 +5942,15 @@ ISO-code then comma then language name</comment>
     <value>استخدم التعبيرات العادية</value>
     <comment>checkbox</comment>
   </data>
-  <data name="SearchAndReplaceDialog_scopBox" xml:space="preserve">
+  <data name="SearchAndReplaceDialog_replaceAllButton.Text" xml:space="preserve">
+    <value>استبدال الكل</value>
+    <comment>button</comment>
+  </data>
+  <data name="SearchAndReplaceDialog_replaceButton.Text" xml:space="preserve">
+    <value>استبدال التالي</value>
+    <comment>button</comment>
+  </data>
+  <data name="SearchAndReplaceDialog_scopeBox.Text" xml:space="preserve">
     <value>هذه الصفحة
 هذا القسم
 هذا دفتر
@@ -4540,57 +5973,79 @@ ISO-code then comma then language name</comment>
     <value>استبدل ب:</value>
     <comment>label</comment>
   </data>
-  <data name="SearchDialog_findLabel.Text" xml:space="preserve">
-    <value>تجد:</value>
-    <comment>label</comment>
+  <data name="SearchAndReplaceSessionDialog_replaceAllButton.Text" xml:space="preserve">
+    <value>استبدال الكل</value>
+    <comment>button</comment>
+  </data>
+  <data name="SearchAndReplaceSessionDialog_statusLabel.Text" xml:space="preserve">
+    <value>مطابقة {0} من {1} — «{2}»</value>
+    <comment>status label</comment>
+  </data>
+  <data name="SearchAndReplaceSessionDialog_Text" xml:space="preserve">
+    <value>بحث واستبدال</value>
+    <comment>dialog title</comment>
+  </data>
+  <data name="SearchCommand_indexTitle" xml:space="preserve">
+    <value>نتائج البحث</value>
+    <comment>page title</comment>
+  </data>
+  <data name="SearchDialog_clearAllLink.Text" xml:space="preserve">
+    <value>مسح التحديد</value>
+    <comment>link</comment>
+  </data>
+  <data name="SearchDialog_dateOptions" xml:space="preserve">
+    <value>أي تاريخ
+تم إنشاؤها بعد
+تم إنشاؤها من قبل
+تم التعديل بعد
+تم التعديل من قبل</value>
+    <comment>combobox</comment>
+  </data>
+  <data name="SearchDialog_includeTocBox.Text" xml:space="preserve">
+    <value>البحث عن نص في جدول المحتويات</value>
+    <comment>checkbox</comment>
   </data>
   <data name="SearchDialog_introLabel.Text" xml:space="preserve">
-    <value>أدخل كلمة رئيسية واحدة أو أكثر ، "عبارات مقتبسة" ، واستخدم الحرفين "و" و "أو"</value>
-    <comment>intro label</comment>
+    <value>أدخل معايير البحث، بما في ذلك، اختياريًا، علامات الاقتباس والأقواس و، أو، أو، لا</value>
+    <comment>label</comment>
   </data>
-  <data name="SearchDialog_Title" xml:space="preserve">
-    <value>بحث ونقل / نسخ</value>
-    <comment>dialog title</comment>
+  <data name="SearchDialog_matchBox.Text" xml:space="preserve">
+    <value>حالة المباراة</value>
+    <comment>checkbox</comment>
   </data>
-  <data name="SearchEngineDialog_deleteLabel.Text" xml:space="preserve">
-    <value>حذف:</value>
-    <comment>delete label</comment>
+  <data name="SearchDialog_menuOpenInNew" xml:space="preserve">
+    <value>فتح في نافذة جديدة</value>
+    <comment>context menu item</comment>
   </data>
-  <data name="SearchEngineDialog_DeleteMessage" xml:space="preserve">
-    <value>حذف {0}؟</value>
+  <data name="SearchDialog_menuShowInCurrent" xml:space="preserve">
+    <value>عرض في النافذة الحالية</value>
+    <comment>context menu item</comment>
+  </data>
+  <data name="SearchDialog_regBox.Text" xml:space="preserve">
+    <value>استخدم التعبيرات العادية</value>
+    <comment>checkbox</comment>
+  </data>
+  <data name="SearchDialog_selectAllLink.Text" xml:space="preserve">
+    <value>حدد الكل</value>
+    <comment>link</comment>
+  </data>
+  <data name="SearchDialogText_scopeOptions" xml:space="preserve">
+    <value>في هذا الكمبيوتر الدفتري
+في هذا القسم
+في هذه الصفحة</value>
+    <comment>combobox</comment>
+  </data>
+  <data name="SearchEngineSheet_DeleteMessage" xml:space="preserve">
+    <value>هل تريد حذف {0}؟</value>
     <comment>delete confirmation message</comment>
-  </data>
-  <data name="SearchEngineDialog_downButton.Text" xml:space="preserve">
-    <value>تحرك لأسفل</value>
-    <comment>down buttom</comment>
-  </data>
-  <data name="SearchEngineDialog_iconColumn.HeaderText" xml:space="preserve">
-    <value>أيقونة</value>
-    <comment>icon col</comment>
-  </data>
-  <data name="SearchEngineDialog_introLabel.Text" xml:space="preserve">
-    <value>يجب أن تحتوي أنماط عناوين URL على رمز مميز لاستبدال السلسلة ، مثل &amp;q={0}</value>
-    <comment>intro label</comment>
-  </data>
-  <data name="SearchEngineDialog_refreshButton.Text" xml:space="preserve">
-    <value>تحديث الرموز</value>
-    <comment>refresh button</comment>
-  </data>
-  <data name="SearchEngineDialog_Text" xml:space="preserve">
-    <value>محركات البحث</value>
-    <comment>dialog title</comment>
-  </data>
-  <data name="SearchEngineDialog_upButton.Text" xml:space="preserve">
-    <value>تحرك</value>
-    <comment>up buttom</comment>
-  </data>
-  <data name="SearchEngineDialog_urlColumn.HeaderText" xml:space="preserve">
-    <value>نمط URL</value>
-    <comment>url col</comment>
   </data>
   <data name="SearchEngineSheet_downButton.Text" xml:space="preserve">
     <value>تحرك لأسفل</value>
     <comment>button</comment>
+  </data>
+  <data name="SearchEngineSheet_iconColumn.HeaderText" xml:space="preserve">
+    <value>رمز</value>
+    <comment>icon col</comment>
   </data>
   <data name="SearchEngineSheet_introBox.Text" xml:space="preserve">
     <value>يجب أن تحتوي أنماط عنوان URL على رمز استبدال السلسلة ، مثل &amp; q = {0}
@@ -4598,9 +6053,21 @@ ISO-code then comma then language name</comment>
 ستظهر محركات البحث في قائمة سياق الصفحة ، النقر بزر الماوس الأيمن.</value>
     <comment>label</comment>
   </data>
+  <data name="SearchEngineSheet_refreshButton.Text" xml:space="preserve">
+    <value>تحديث الرموز</value>
+    <comment>refresh button</comment>
+  </data>
+  <data name="SearchEngineSheet_Text" xml:space="preserve">
+    <value>محركات البحث</value>
+    <comment>dialog title</comment>
+  </data>
   <data name="SearchEngineSheet_upButton.Text" xml:space="preserve">
     <value>تحرك</value>
     <comment>button</comment>
+  </data>
+  <data name="SearchEngineSheet_urlColumn.HeaderText" xml:space="preserve">
+    <value>نمط عنوان URL</value>
+    <comment>url col</comment>
   </data>
   <data name="SearchQF_DescriptionCopy" xml:space="preserve">
     <value>اختر الموقع حيث يجب نسخ الصفحات المحددة</value>
@@ -4617,6 +6084,38 @@ ISO-code then comma then language name</comment>
   <data name="SearchQF_Title" xml:space="preserve">
     <value>اختر موقعا</value>
     <comment>QuickFiling title</comment>
+  </data>
+  <data name="SearchResultsCardView_lastModified" xml:space="preserve">
+    <value>آخر تعديل: {0}</value>
+    <comment>hover text</comment>
+  </data>
+  <data name="SearchTitleCommand_indexTitle" xml:space="preserve">
+    <value>نتائج البحث عن العنوان</value>
+    <comment>page title</comment>
+  </data>
+  <data name="SearchTitleDialog_clearAllLink.Text" xml:space="preserve">
+    <value>مسح التحديد</value>
+    <comment>link</comment>
+  </data>
+  <data name="SearchTitleDialog_introLabel.Text" xml:space="preserve">
+    <value>أدخل استعلام عنوان الصفحة. يبحث في كافة دفاتر الملاحظات بشكل افتراضي. استخدم "\name" لتحديد نطاق دفتر الملاحظات المطابق، و"\\" لدفتر الملاحظات الحالي فقط، و"#tag" للتصفية حسب علامة التصنيف، و"-#tag" لاستبعاد علامة تصنيف. البادئة بـ "&gt;" للفرز حسب آخر تعديل.</value>
+    <comment>label</comment>
+  </data>
+  <data name="SearchTitleDialog_noHashtagCatalog" xml:space="preserve">
+    <value>يتطلب البحث عن الهاشتاج كتالوج الهاشتاج. قم بإجراء فحص الهاشتاج أولاً.</value>
+    <comment>message</comment>
+  </data>
+  <data name="SearchTitleDialog_noResults" xml:space="preserve">
+    <value>لم يتم العثور على نتائج</value>
+    <comment>message</comment>
+  </data>
+  <data name="SearchTitleDialog_selectAllLink.Text" xml:space="preserve">
+    <value>حدد الكل</value>
+    <comment>link</comment>
+  </data>
+  <data name="SearchTitleDialog_Text" xml:space="preserve">
+    <value>البحث في عناوين الصفحات</value>
+    <comment>dialog title</comment>
   </data>
   <data name="SectionColor_Title" xml:space="preserve">
     <value>لون القسم</value>
@@ -4654,9 +6153,17 @@ ISO-code then comma then language name</comment>
     <value>إعدادات OneMore</value>
     <comment>dialog title</comment>
   </data>
-  <data name="SettingsFilename" xml:space="preserve">
-    <value>Settings.xml</value>
-    <comment>FILENAME</comment>
+  <data name="ShowWindowsDialog_locationColumn_HeaderText" xml:space="preserve">
+    <value>موقع</value>
+    <comment>listview column header</comment>
+  </data>
+  <data name="ShowWindowsDialog_Text" xml:space="preserve">
+    <value>افتح ويندوز</value>
+    <comment>dialog title</comment>
+  </data>
+  <data name="ShowWindowsDialog_zColumn_HeaderText" xml:space="preserve">
+    <value>ترتيب Z</value>
+    <comment>listview column header</comment>
   </data>
   <data name="ShowXmlDialog.Text" xml:space="preserve">
     <value>OneMore XML</value>
@@ -4734,12 +6241,24 @@ ISO-code then comma then language name</comment>
     <value>دوران النص</value>
     <comment>checkbox</comment>
   </data>
+  <data name="SnapToGridCommand_noContainers" xml:space="preserve">
+    <value>لم يتم العثور على حاويات في هذه الصفحة</value>
+    <comment>message</comment>
+  </data>
+  <data name="SnapToGridCommand_noGrid" xml:space="preserve">
+    <value>تمكين خطوط الشبكة قبل استخدام هذا الأمر</value>
+    <comment>message</comment>
+  </data>
+  <data name="SnippetsSheet_codeStyleBox.Text" xml:space="preserve">
+    <value>قم دائمًا بتطبيق نمط "الكود" على محتوى Code Box</value>
+    <comment>label</comment>
+  </data>
   <data name="SnippetsSheet_ConfirmDelete" xml:space="preserve">
     <value>حذف المقتطف "{0}"</value>
     <comment>question</comment>
   </data>
   <data name="SnippetsSheet_introBox.Text" xml:space="preserve">
-    <value>إدارة المقتطفات الخاصة بي</value>
+    <value>إدارة الخيارات والمقتطفات الخاصة بي</value>
     <comment>label</comment>
   </data>
   <data name="SortDialog.Text" xml:space="preserve">
@@ -4764,6 +6283,14 @@ ISO-code then comma then language name</comment>
   </data>
   <data name="SortDialog_modifiedButton.Text" xml:space="preserve">
     <value>التاريخ عدل</value>
+    <comment>radio</comment>
+  </data>
+  <data name="SortDialog_nameButton.Text" xml:space="preserve">
+    <value>الاسم، أبجديا</value>
+    <comment>radio</comment>
+  </data>
+  <data name="SortDialog_naturalButton.Text" xml:space="preserve">
+    <value>الاسم، طبيعي</value>
     <comment>radio</comment>
   </data>
   <data name="SortDialog_pinNotesBox.Text" xml:space="preserve">
@@ -4879,9 +6406,6 @@ ISO-code then comma then language name</comment>
     <value>فشل OneMore في الاتصال بـ OneNote ، راجع ملف السجل للحصول على تفاصيل الاستثناء</value>
     <comment>message box</comment>
   </data>
-  <data name="String1" xml:space="preserve">
-    <value />
-  </data>
   <data name="StyleDialog_afterLabel.Text" xml:space="preserve">
     <value>مسافة بعد:</value>
     <comment>label</comment>
@@ -4931,6 +6455,10 @@ ISO-code then comma then language name</comment>
     <value>تعطيل التدقيق الإملائي</value>
     <comment>checkbox</comment>
   </data>
+  <data name="StyleDialog_isCodeBox.Text" xml:space="preserve">
+    <value>فقرة كود المصدر</value>
+    <comment>checkbox</comment>
+  </data>
   <data name="StyleDialog_italicButton.Text" xml:space="preserve">
     <value>مائل</value>
     <comment>button</comment>
@@ -4976,9 +6504,13 @@ ISO-code then comma then language name</comment>
     <comment>button</comment>
   </data>
   <data name="StyleDialog_styleTypeBox_Items" xml:space="preserve">
-    <value>حرف - كلمات في الفقرة
-فقرة - فقرة كاملة
-العنوان - تضمين في جدول المحتويات</value>
+    <value>العنوان - متضمن في جدول المحتويات
+عنوان الصفحة - فقرة عنوان الصفحة
+الاقتباس - الفقرة المرجعية
+اقتباس - فقرة نصية مقتبسة
+الكود - فقرة كتلة الكود
+الفقرة - الفقرة بأكملها
+الحرف - الكلمات في الفقرة</value>
     <comment>combobox</comment>
   </data>
   <data name="StyleDialog_styleTypeLabel.Text" xml:space="preserve">
@@ -5038,6 +6570,46 @@ ISO-code then comma then language name</comment>
     <value>موضوع جدول OneMore {0}</value>
     <comment>Screentip for table theme gallery tiles</comment>
   </data>
+  <data name="TableThemesSheet_clearLink.Text" xml:space="preserve">
+    <value>مسح الكل</value>
+    <comment>link label</comment>
+  </data>
+  <data name="TableThemesSheet_introBox.Text" xml:space="preserve">
+    <value>قم بتخصيص قائمة سمات الجدول المعدة مسبقًا المتوفرة على الشريط.</value>
+    <comment>label</comment>
+  </data>
+  <data name="TableThemesSheet_selectLink.Text" xml:space="preserve">
+    <value>حدد الكل</value>
+    <comment>link label</comment>
+  </data>
+  <data name="TableThemesSheet_showCCBox.Text" xml:space="preserve">
+    <value>إظهار سمات صفوف اللون اللون</value>
+    <comment>checkbox</comment>
+  </data>
+  <data name="TableThemesSheet_showCCHBox.Text" xml:space="preserve">
+    <value>إظهار صفوف الألوان مع سمات ألوان الرأس</value>
+    <comment>checkbox</comment>
+  </data>
+  <data name="TableThemesSheet_showCCHHBox.Text" xml:space="preserve">
+    <value>إظهار صفوف الألوان مع كل من سمات ألوان الرأس</value>
+    <comment>checkbox</comment>
+  </data>
+  <data name="TableThemesSheet_showMBox.Text" xml:space="preserve">
+    <value>إظهار سمات الصفوف متعددة الألوان</value>
+    <comment>checkbox</comment>
+  </data>
+  <data name="TableThemesSheet_showWCBox.Text" xml:space="preserve">
+    <value>إظهار سمات الصفوف ذات اللون الأبيض</value>
+    <comment>checkbox</comment>
+  </data>
+  <data name="TableThemesSheet_showWCHBox.Text" xml:space="preserve">
+    <value>إظهار صفوف بيضاء اللون مع سمات لون الرأس</value>
+    <comment>checkbox</comment>
+  </data>
+  <data name="TableThemesSheet_Title" xml:space="preserve">
+    <value>سمات الجدول</value>
+    <comment>settings dialog</comment>
+  </data>
   <data name="TabOneMore_Label" xml:space="preserve">
     <value>OneMore</value>
     <comment>ribbon</comment>
@@ -5045,6 +6617,30 @@ ISO-code then comma then language name</comment>
   <data name="TagBankCommand_confirm" xml:space="preserve">
     <value>يحتوي بنك العلامات على نص. هل أنت متأكد أنك تريد إزالته؟</value>
     <comment>messagebox</comment>
+  </data>
+  <data name="TelemetryDialog_noButton.Text" xml:space="preserve">
+    <value>لا، لا تقم بتمكين القياس عن بعد</value>
+  </data>
+  <data name="TelemetryDialog_readLabel.Text" xml:space="preserve">
+    <value>اقرأ عن تصميم القياس عن بعد</value>
+  </data>
+  <data name="TelemetryDialog_subtitleLabel.Text" xml:space="preserve">
+    <value>تمكين القياس عن بعد المجهول</value>
+  </data>
+  <data name="TelemetryDialog_titleLabel.Text" xml:space="preserve">
+    <value>ساعد في تحسين {0}</value>
+    <comment>!EDIT</comment>
+  </data>
+  <data name="TelemetryDialog_whyBox.Text" xml:space="preserve">
+    <value>يرجى النظر في تمكين القياس عن بعد المجهول لمساعدتنا في تحسين {0}. يسجل القياس عن بعد الأوامر المستخدمة وتفاصيل البيئة الأساسية ومعرف الجلسة فقط الذي تتم إعادة تعيينه في كل مرة يتم فيها إعادة تشغيل OneNote. تساعدنا هذه المعلومات على فهم الميزات الأكثر أهمية وكيفية استخدام الوظيفة الإضافية. لا يتم جمع أي بيانات شخصية أو تعريفية على الإطلاق - فقط أحداث الاستخدام المجهولة بالكامل.
+
+يمكنك تمكين القياس عن بعد أو تعطيله في أي وقت من مربع حوار الإعدادات {0}.
+
+شكرًا لك!</value>
+    <comment>!EDIT</comment>
+  </data>
+  <data name="TelemetryDialog_yesButton.Text" xml:space="preserve">
+    <value>نعم، سوف أساعد! تمكين القياس عن بعد</value>
   </data>
   <data name="TextToTable_NoText" xml:space="preserve">
     <value>لم يتم تحديد نص</value>
@@ -5094,10 +6690,6 @@ ISO-code then comma then language name</comment>
     <value>إزالة الاقتباسات من السلاسل الكاملة</value>
     <comment>checkbox</comment>
   </data>
-  <data name="ThemesFolder" xml:space="preserve">
-    <value>المواضيع</value>
-    <comment>SKIP</comment>
-  </data>
   <data name="TimerWindow.Text" xml:space="preserve">
     <value>مؤقت OneNote</value>
     <comment>window title</comment>
@@ -5130,6 +6722,14 @@ ISO-code then comma then language name</comment>
     <value>تبديل</value>
     <comment>group box</comment>
   </data>
+  <data name="Update_ChecksumMismatch" xml:space="preserve">
+    <value>لا يتطابق المجموع الاختباري لبرنامج التثبيت الذي تم تنزيله مع القيمة المنشورة في ملاحظات الإصدار. قد يشير هذا إلى تنزيل تالف أو تلاعب. المضي قدما في التثبيت على أية حال؟</value>
+    <comment>warning</comment>
+  </data>
+  <data name="Update_ChecksumNotFound" xml:space="preserve">
+    <value>تعذر العثور على المجموع الاختباري المنشور في ملاحظات الإصدار للتحقق من المثبت الذي تم تنزيله. المضي قدما في التثبيت على أية حال؟</value>
+    <comment>warning</comment>
+  </data>
   <data name="UpdateDialog.Text" xml:space="preserve">
     <value>تحقق من وجود تحديثات OneMore</value>
     <comment>dialog title</comment>
@@ -5137,14 +6737,6 @@ ISO-code then comma then language name</comment>
   <data name="UpdateDialog_currentLabel.Text" xml:space="preserve">
     <value>OneMore محدث</value>
     <comment>panel title</comment>
-  </data>
-  <data name="UpdateDialog_lastUpdatedLabel.Text" xml:space="preserve">
-    <value>التحديث الاخير:</value>
-    <comment>label</comment>
-  </data>
-  <data name="UpdateDialog_releaseDateLabel.Text" xml:space="preserve">
-    <value>تاريخ النشر:</value>
-    <comment>label</comment>
   </data>
   <data name="UpdateDialog_releaseNotesLink.Text" xml:space="preserve">
     <value>ملاحظات الإصدار</value>
@@ -5162,8 +6754,20 @@ ISO-code then comma then language name</comment>
     <value>يتوفر تحديث OneMore</value>
     <comment>panel title</comment>
   </data>
+  <data name="UpdateDialog_upLastUpdatedLabel.Text" xml:space="preserve">
+    <value>آخر تحديث:</value>
+    <comment>label</comment>
+  </data>
   <data name="UpdateDialog_upOKButton.Text" xml:space="preserve">
     <value>تحديث</value>
+    <comment>button</comment>
+  </data>
+  <data name="UpdateDialog_upReleaseDateLabel.Text" xml:space="preserve">
+    <value>تاريخ الافراج عنه:</value>
+    <comment>label</comment>
+  </data>
+  <data name="UpdateDialog_upSkipButton.Text" xml:space="preserve">
+    <value>يتخطى</value>
     <comment>button</comment>
   </data>
   <data name="UpdateDialog_upVersionLabel.Text" xml:space="preserve">
@@ -5172,6 +6776,25 @@ ISO-code then comma then language name</comment>
   </data>
   <data name="UpdateDialog_versionLabel.Text" xml:space="preserve">
     <value>الإصدار المثبت:</value>
+    <comment>label</comment>
+  </data>
+  <data name="UpdateGuardDialog.Text" xml:space="preserve">
+    <value>تم حظره بواسطة النقر للتشغيل</value>
+    <comment>title</comment>
+  </data>
+  <data name="UpdateGuardDialog_acceptLink.Text" xml:space="preserve">
+    <value>اقبل المخاطرة واستمر في التحديث</value>
+    <comment>linklable</comment>
+  </data>
+  <data name="UpdateGuardDialog_browseLink.Text" xml:space="preserve">
+    <value>افتح صفحة التنزيل في متصفحك</value>
+    <comment>link label</comment>
+  </data>
+  <data name="UpdateGuardDialog_messageBox.Text" xml:space="preserve">
+    <value>يتم تشغيل OneNote ضمن المحاكاة الافتراضية للتشغيل الفوري. لا يمكنك تحديث OneMore باستخدام مربع الحوار هذا. أغلق OneNote، وقم بتنزيل برنامج تثبيت OneMore، وقم بتشغيل برنامج التثبيت يدويًا.</value>
+  </data>
+  <data name="UpdateGuardDialog_warningLabel.Text" xml:space="preserve">
+    <value>أريد أن أحاول على أي حال. أوافق على المخاطرة المتمثلة في أن C2R قد يتسبب في إعادة تشغيل OneNote تلقائيًا إذا كانت هناك مهام مزامنة معلقة وقد يفشل التحديث بسبب ذلك.</value>
     <comment>label</comment>
   </data>
   <data name="VariablesSheet_deleteVariable" xml:space="preserve">
@@ -5202,11 +6825,12 @@ ISO-code then comma then language name</comment>
     <value>يجب أن تكون الأسماء المتغيرة فريدة من نوعها</value>
     <comment>messagebox</comment>
   </data>
+  <data name="WhereAmIWindow.Text" xml:space="preserve">
+    <value>أين أنا؟</value>
+    <comment>window title</comment>
+  </data>
   <data name="word_Actual" xml:space="preserve">
     <value>فعلي</value>
-  </data>
-  <data name="word_Add" xml:space="preserve">
-    <value>يضيف</value>
   </data>
   <data name="word_Alias" xml:space="preserve">
     <value>الاسم المستعار</value>
@@ -5219,6 +6843,10 @@ ISO-code then comma then language name</comment>
   </data>
   <data name="word_Apply" xml:space="preserve">
     <value>يتقدم</value>
+  </data>
+  <data name="word_Assignee" xml:space="preserve">
+    <value>المكلف</value>
+    <comment>label</comment>
   </data>
   <data name="word_Brightness" xml:space="preserve">
     <value>سطوع</value>
@@ -5262,8 +6890,14 @@ ISO-code then comma then language name</comment>
   <data name="word_Delete" xml:space="preserve">
     <value>حذف</value>
   </data>
+  <data name="word_Diary" xml:space="preserve">
+    <value>مذكرة</value>
+  </data>
   <data name="word_Distance" xml:space="preserve">
     <value>مسافه: بعد</value>
+  </data>
+  <data name="word_Document" xml:space="preserve">
+    <value>وثيقة</value>
   </data>
   <data name="word_Due" xml:space="preserve">
     <value>بسبب</value>
@@ -5283,6 +6917,18 @@ ISO-code then comma then language name</comment>
   <data name="word_Favorites" xml:space="preserve">
     <value>المفضلة</value>
   </data>
+  <data name="word_Feeder" xml:space="preserve">
+    <value>التغذية</value>
+  </data>
+  <data name="word_Filter" xml:space="preserve">
+    <value>فلتر</value>
+  </data>
+  <data name="word_Find" xml:space="preserve">
+    <value>يجد</value>
+  </data>
+  <data name="word_Flatbed" xml:space="preserve">
+    <value>مسطحة</value>
+  </data>
   <data name="word_Folder" xml:space="preserve">
     <value>مجلد</value>
   </data>
@@ -5301,9 +6947,6 @@ ISO-code then comma then language name</comment>
   <data name="word_Go" xml:space="preserve">
     <value>يذهب</value>
   </data>
-  <data name="word_Grayscale" xml:space="preserve">
-    <value>رمادي</value>
-  </data>
   <data name="word_Hashtags" xml:space="preserve">
     <value>علامات التصنيف</value>
   </data>
@@ -5317,22 +6960,22 @@ ISO-code then comma then language name</comment>
     <value>مسافة بادئة</value>
   </data>
   <data name="word_Index" xml:space="preserve">
-    <value>word_Index</value>
+    <value>فِهرِس</value>
   </data>
   <data name="word_Information" xml:space="preserve">
     <value>معلومة</value>
   </data>
-  <data name="word_Keyboard" xml:space="preserve">
-    <value>لوحة المفاتيح</value>
+  <data name="word_Journal" xml:space="preserve">
+    <value>مجلة</value>
   </data>
   <data name="word_Language" xml:space="preserve">
     <value>لغة</value>
   </data>
+  <data name="word_Layouts" xml:space="preserve">
+    <value>التخطيطات</value>
+  </data>
   <data name="word_Length" xml:space="preserve">
     <value>طول</value>
-  </data>
-  <data name="word_Limit" xml:space="preserve">
-    <value>حد</value>
   </data>
   <data name="word_Minutes" xml:space="preserve">
     <value>دقائق</value>
@@ -5361,9 +7004,6 @@ ISO-code then comma then language name</comment>
   <data name="word_Notes" xml:space="preserve">
     <value>ملحوظات</value>
   </data>
-  <data name="word_Numbering" xml:space="preserve">
-    <value>الترقيم</value>
-  </data>
   <data name="word_Numeric" xml:space="preserve">
     <value>رقمي</value>
   </data>
@@ -5379,8 +7019,14 @@ ISO-code then comma then language name</comment>
   <data name="word_Page" xml:space="preserve">
     <value>صفحة</value>
   </data>
+  <data name="word_Paragraphs" xml:space="preserve">
+    <value>الفقرات</value>
+  </data>
   <data name="word_PercentSymbol" xml:space="preserve">
     <value>٪</value>
+  </data>
+  <data name="word_Photo" xml:space="preserve">
+    <value>صورة</value>
   </data>
   <data name="word_Planned" xml:space="preserve">
     <value>مخطط</value>
@@ -5403,8 +7049,14 @@ ISO-code then comma then language name</comment>
   <data name="word_Rename" xml:space="preserve">
     <value>إعادة تسمية</value>
   </data>
+  <data name="word_Replace" xml:space="preserve">
+    <value>يستبدل</value>
+  </data>
   <data name="word_Reset" xml:space="preserve">
     <value>إعادة ضبط</value>
+  </data>
+  <data name="word_Revert" xml:space="preserve">
+    <value>يرجع</value>
   </data>
   <data name="word_Saturation" xml:space="preserve">
     <value>التشبع</value>
@@ -5430,11 +7082,18 @@ ISO-code then comma then language name</comment>
   <data name="word_Silenced" xml:space="preserve">
     <value>صامت</value>
   </data>
+  <data name="word_Skip" xml:space="preserve">
+    <value>يتخطى</value>
+  </data>
   <data name="word_Snippets" xml:space="preserve">
     <value>مقتطفات</value>
   </data>
   <data name="word_Sort" xml:space="preserve">
     <value>نوع</value>
+  </data>
+  <data name="word_Source" xml:space="preserve">
+    <value>مصدر</value>
+    <comment>word</comment>
   </data>
   <data name="word_Start" xml:space="preserve">
     <value>يبدأ</value>
@@ -5454,17 +7113,11 @@ ISO-code then comma then language name</comment>
   <data name="word_Stylize" xml:space="preserve">
     <value>أسلب</value>
   </data>
-  <data name="word_Suggestions" xml:space="preserve">
-    <value>اقتراحات</value>
-  </data>
   <data name="word_Target" xml:space="preserve">
     <value>استهداف</value>
   </data>
   <data name="word_Text" xml:space="preserve">
     <value>نص</value>
-  </data>
-  <data name="word_Total" xml:space="preserve">
-    <value>مجموع</value>
   </data>
   <data name="word_Value" xml:space="preserve">
     <value>قيمة</value>
@@ -5491,8 +7144,16 @@ ISO-code then comma then language name</comment>
     <value>إجمالي الكلمات في الصفحة: {0}</value>
     <comment>message box</comment>
   </data>
+  <data name="WordCountCommand_Paragraphs" xml:space="preserve">
+    <value>إجمالي الفقرات في الصفحة: {0}</value>
+    <comment>message box</comment>
+  </data>
   <data name="WordCountCommand_Selected" xml:space="preserve">
     <value>إجمالي الكلمات المحددة: {0}</value>
+    <comment>message box</comment>
+  </data>
+  <data name="WordCountCommand_SelectedParagraphs" xml:space="preserve">
+    <value>إجمالي الفقرات المحددة: {0}</value>
     <comment>message box</comment>
   </data>
   <data name="WordCounts_Notebook" xml:space="preserve">

@@ -31,7 +31,9 @@ Process
 	$0 = Resolve-Path '.\chocolatey\onemore.nuspec'
 	$xml = [xml](Get-Content $0)
 	$xml.package.metadata.version = $version
-	$xml.package.metadata.releaseNotes = $release.body
+	# strip surrogate-pair emoji (codepoints above U+FFFF) to avoid XML encoding issues
+	$body = $release.body -replace '[^ -ï¿¿]', ''
+	$xml.package.metadata.releaseNotes = $body
 	$encoding = New-Object System.Text.UTF8Encoding($false)
 	$writer = New-Object System.IO.StreamWriter($0, $false, $encoding)
 	$writer.NewLine = "`n"
@@ -40,10 +42,18 @@ Process
 
 	$0 = '.\chocolatey\tools\chocolateyinstall.ps1'
 	$content = (Get-Content $0) -replace '\d+\.\d+(?:\.\d+)?/OneMore_\d+\.\d+(?:\.\d+)?',"$version/OneMore_$version"
-	$checksum = (checksum -t sha256 $home\Downloads\OneMore_$version`_Setupx86.msi)
-	$content = $content -replace "(checksum\s+=\s+)\'([^']+)(\')","`$1'$checksum`$3"
-	$checksum = (checksum -t sha256 $home\Downloads\OneMore_$version`_Setupx64.msi)
-	$content = $content -replace "(checksum64\s+=\s+)\'([^']+)(\')","`$1'$checksum`$3"
-	$conetnt = $content -replace "`r`n","`n"
-	$content | Out-File $0 -Encoding utf8BOM -Force
+	$checksumx86 = (checksum -t sha256 $home\Downloads\OneMore_$version`_Setupx86.msi)
+	$content = $content -replace "(checksum\s+=\s+)'([^']+)(')","`$1'$checksumx86`$3"
+	$checksumx64 = (checksum -t sha256 $home\Downloads\OneMore_$version`_Setupx64.msi)
+	$content = $content -replace "(checksum64\s+=\s+)'([^']+)(')","`$1'$checksumx64`$3"
+	$content = $content -replace "`r`n","`n"
+	$content | Out-File $0 -Encoding utf8 -Force
+
+	$0 = Resolve-Path '.\chocolatey\tools\VERIFICATION.txt'
+	$vcontent = (Get-Content $0 -Raw) -replace '\d+\.\d+(?:\.\d+)?/OneMore_\d+\.\d+(?:\.\d+)?',"$version/OneMore_$version"
+	$vcontent = $vcontent -replace '(?<=releases/tag/)\d+\.\d+(?:\.\d+)?', $version
+	$vcontent = $vcontent -replace '(?<=checksum \(x86\): )[A-Fa-f0-9]+', $checksumx86
+	$vcontent = $vcontent -replace '(?<=checksum \(x64\): )[A-Fa-f0-9]+', $checksumx64
+	$vcontent = $vcontent -replace "`r`n","`n"
+	[System.IO.File]::WriteAllText($0, $vcontent, $encoding)
 }

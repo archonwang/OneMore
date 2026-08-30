@@ -57,6 +57,9 @@ namespace River.OneMoreAddIn.Commands
 				return;
 			}
 
+			using var guard = EnterOnce();
+			if (guard is null) { return; }
+
 			await using var one = new OneNote(out var page, out var ns);
 			var element = page.Root.Descendants(ns + "T")
 				.FirstOrDefault(e =>

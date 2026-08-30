@@ -49,6 +49,7 @@ namespace River.OneMoreAddIn.Settings
 		private readonly IRibbonUI ribbon;
 		private readonly BindingList<KeyMap> map;
 		private List<KeyMap> defaultMap;
+		private Hotkey hotkeyFilter;
 
 
 		public KeyboardSheet(SettingsProvider provider, IRibbonUI ribbon)
@@ -66,7 +67,8 @@ namespace River.OneMoreAddIn.Settings
 					"introBox",
 					"clearButton=word_Clear",
 					"resetButton=word_Reset",
-					"resetAllButton"
+					"resetAllButton",
+					"filterLabel=word_Filter"
 				});
 
 				cmdColumn.HeaderText = Resx.word_Command;
@@ -125,29 +127,49 @@ namespace River.OneMoreAddIn.Settings
 		}
 
 
-		private void AssignOnKeyDown(object sender, KeyEventArgs e)
+		private static bool IsHotkeyChord(Keys keyCode, Keys modifiers)
 		{
-			if ( // clear assignment (Back is explicit clear, None is implicit resolve)
-				 e.KeyCode == Keys.Back ||
-				// any combination of ctrl+shift+alt+win
-				(e.Modifiers != 0 &&
-				 // ensure modifiers also comes with a value key
-				 e.KeyCode != Keys.ControlKey &&
-				 e.KeyCode != Keys.LControlKey &&
-				 e.KeyCode != Keys.RControlKey &&
-				 e.KeyCode != Keys.ShiftKey &&
-				 e.KeyCode != Keys.LShiftKey &&
-				 e.KeyCode != Keys.RShiftKey &&
-				 e.KeyCode != Keys.Menu && // alt
-				 e.KeyCode != Keys.LMenu &&
-				 e.KeyCode != Keys.RMenu) ||
-				// F1..F24
-				(e.Modifiers == 0 &&
-				 e.KeyCode >= Keys.F1 &&
-				 e.KeyCode <= Keys.F24))
+			if (modifiers != Keys.None &&
+				// ensure modifiers also comes with a value key
+				keyCode != Keys.ControlKey &&
+				keyCode != Keys.LControlKey &&
+				keyCode != Keys.RControlKey &&
+				keyCode != Keys.ShiftKey &&
+				keyCode != Keys.LShiftKey &&
+				keyCode != Keys.RShiftKey &&
+				keyCode != Keys.Menu && // alt
+				keyCode != Keys.LMenu &&
+				keyCode != Keys.RMenu)
 			{
 				// ignore Shift without a Fn key
-				if ((e.Modifiers == Keys.Shift) && (e.KeyCode < Keys.F1 || e.KeyCode > Keys.F24))
+				return !(modifiers == Keys.Shift && (keyCode < Keys.F1 || keyCode > Keys.F24));
+			}
+
+			// F1..F24
+			return modifiers == Keys.None && keyCode >= Keys.F1 && keyCode <= Keys.F24;
+		}
+
+
+		private void FormatHotkeyCell(object sender, DataGridViewCellFormattingEventArgs e)
+		{
+			if (e.ColumnIndex != keyColumn.Index || e.RowIndex < 0 || e.RowIndex >= defaultMap.Count)
+			{
+				return;
+			}
+
+			e.CellStyle.ForeColor = map[e.RowIndex].Hotkey.Equals(defaultMap[e.RowIndex].Hotkey)
+				? gridView.ForeColor
+				: UI.ThemeManager.Instance.GetColor("HintText");
+		}
+
+
+		private void AssignOnKeyDown(object sender, KeyEventArgs e)
+		{
+			// clear assignment (Back is explicit clear, None is implicit resolve)
+			if (e.KeyCode == Keys.Back || IsHotkeyChord(e.KeyCode, e.Modifiers))
+			{
+				// ignore Shift without a Fn key (covers Shift+Back too)
+				if (e.Modifiers == Keys.Shift && (e.KeyCode < Keys.F1 || e.KeyCode > Keys.F24))
 				{
 					return;
 				}
@@ -209,6 +231,69 @@ namespace River.OneMoreAddIn.Settings
 		}
 
 
+		private void FilterCommands(object sender, EventArgs e)
+		{
+			var text = filterBox.Text.Trim();
+
+			// the currency manager's current row can't be hidden while it's current, so
+			// release it before toggling row visibility
+			gridView.CurrentCell = null;
+
+			if (hotkeyFilter != null && text == hotkeyFilter.ToString())
+			{
+				for (var i = 0; i < map.Count; i++)
+				{
+					gridView.Rows[i].Visible = map[i].Hotkey.Equals(hotkeyFilter);
+				}
+
+				return;
+			}
+
+			hotkeyFilter = null;
+			var filtering = text.Length >= 2;
+
+			for (var i = 0; i < map.Count; i++)
+			{
+				gridView.Rows[i].Visible = !filtering || map[i].Description.ContainsICIC(text);
+			}
+		}
+
+
+		private void FilterBoxKeyDown(object sender, KeyEventArgs e)
+		{
+			// block normal character entry while a chord is being pressed;
+			// TextBox needs SuppressKeyPress (not just Handled) to stop WM_CHAR
+			if (IsHotkeyChord(e.KeyCode, e.Modifiers))
+			{
+				e.Handled = true;
+				e.SuppressKeyPress = true;
+			}
+		}
+
+
+		private void FilterBoxKeyUp(object sender, KeyEventArgs e)
+		{
+			if (!IsHotkeyChord(e.KeyCode, e.Modifiers))
+			{
+				return;
+			}
+
+			hotkeyFilter = new Hotkey(e.KeyData);
+			filterBox.Text = hotkeyFilter.ToString();
+			filterBox.SelectionStart = filterBox.Text.Length;
+
+			e.Handled = true;
+		}
+
+
+		private void ClearFilter(object sender, EventArgs e)
+		{
+			hotkeyFilter = null;
+			filterBox.Clear();
+			filterBox.Focus();
+		}
+
+
 		private void ClearCommand(object sender, System.EventArgs e)
 		{
 			if (gridView.SelectedCells.Count > 0)
@@ -246,6 +331,13 @@ namespace River.OneMoreAddIn.Settings
 			var element = new XElement(SettingsName);
 			for (int i = 0; i < map.Count; i++)
 			{
+				// Back is an explicit clear; never persist it so the command
+				// falls back to its hard-coded default on next load
+				if (map[i].Hotkey.Keys == Keys.Back)
+				{
+					continue;
+				}
+
 				if (!map[i].Hotkey.Equals(defaultMap[i].Hotkey))
 				{
 					element.Add(new XElement("command",

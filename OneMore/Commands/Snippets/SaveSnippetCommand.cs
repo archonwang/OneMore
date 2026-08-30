@@ -11,7 +11,6 @@ namespace River.OneMoreAddIn.Commands
 
 	internal class SaveSnippetCommand : Command
 	{
-
 		public SaveSnippetCommand()
 		{
 		}
@@ -19,6 +18,9 @@ namespace River.OneMoreAddIn.Commands
 
 		public override async Task Execute(params object[] args)
 		{
+			using var guard = EnterOnce();
+			if (guard is null) { return; }
+
 			await using var one = new OneNote(out var page, out _);
 
 			var range = new Models.SelectionRange(page);

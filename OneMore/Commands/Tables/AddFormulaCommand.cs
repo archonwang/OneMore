@@ -6,6 +6,7 @@ namespace River.OneMoreAddIn.Commands
 {
 	using River.OneMoreAddIn.Commands.Tables.Formulas;
 	using River.OneMoreAddIn.Models;
+	using System;
 	using System.Collections.Generic;
 	using System.Linq;
 	using System.Text;
@@ -44,97 +45,140 @@ namespace River.OneMoreAddIn.Commands
 
 		public override async Task Execute(params object[] args)
 		{
-			await using var one = new OneNote(out var page, out var ns);
+			using var guard = EnterOnce();
+			if (guard is null) { return; }
 
-			if (!page.ConfirmBodyContext())
+			Table table;
+			List<TableCell> cells;
+			string tagIndex;
+			Page page;
+
+			try
 			{
-				ShowInfo(Resx.FormulaCommand_SelectOne);
-				return;
-			}
-
-			// Find first selected cell as anchor point to locate table into which
-			// the formula should be inserted; By filtering on selected=all, we avoid
-			// including the parent table of a selected nested table.
-
-			var anchor = page.Root.Descendants(ns + "Cell")
-				// first dive down to find the selected T
-				.Elements(ns + "OEChildren").Elements(ns + "OE")
-				.Elements(ns + "T")
-				.Where(e => e.Attribute("selected")?.Value == "all")
-				// now move back up to the Cell
-				.Select(e => e.Parent.Parent.Parent)
-				.FirstOrDefault();
-
-			if (anchor == null)
-			{
-				ShowInfo(Resx.FormulaCommand_SelectOne);
-				return;
-			}
-
-			var table = new Table(anchor.FirstAncestor(ns + "Table"));
-			var cells = table.GetSelectedCells(out var range).ToList();
-
-			if (range == TableSelectionRange.Rectangular)
-			{
-				ShowInfo(Resx.FormulaCommand_Linear);
-				return;
-			}
-
-			using var dialog = new FormulaDialog(table);
-
-			// display selected cell names
-			if (cells.Count == 1)
-			{
-				dialog.SetCellNames(cells[0].Coordinates);
-			}
-			else
-			{
-				dialog.SetCellNames(
-					$"{cells[0].Coordinates} - {cells[cells.Count - 1].Coordinates}");
-			}
-
-			var cell = cells[0];
-
-			// display formula of first cell if any
-			var formula = new Formula(cell);
-			if (formula.Valid)
-			{
-				dialog.Format = formula.Format;
-				dialog.Formula = formula.Expression;
-				dialog.DecimalPlaces = formula.DecimalPlaces;
-			}
-
-			var tagIndex = page.GetTagDefIndex(BoltSymbol);
-			if (!string.IsNullOrEmpty(tagIndex))
-			{
-				if (cell.HasTag(tagIndex))
+				await using (var one = new OneNote(out page, out var ns))
 				{
-					dialog.Tagged = true;
-				}
-				else
-				{
-					tagIndex = null;
+					if (!page.ConfirmBodyContext())
+					{
+						ShowInfo(Resx.FormulaCommand_SelectOne);
+						return;
+					}
+
+					// Find first selected cell as anchor point to locate table into which
+					// the formula should be inserted; By filtering on selected=all, we avoid
+					// including the parent table of a selected nested table.
+
+					var anchor = page.Root.Descendants(ns + "Cell")
+						// first dive down to find the selected T
+						.Elements(ns + "OEChildren").Elements(ns + "OE")
+						.Elements(ns + "T")
+						.Where(e => e.Attribute("selected")?.Value == "all")
+						// now move back up to the Cell
+						.Select(e => e.Parent?.Parent?.Parent)
+						.FirstOrDefault();
+
+					if (anchor == null)
+					{
+						ShowInfo(Resx.FormulaCommand_SelectOne);
+						return;
+					}
+
+					table = new Table(anchor.FirstAncestor(ns + "Table"));
+					cells = table.GetSelectedCells(out var range).ToList();
+
+					if (range == TableSelectionRange.Rectangular)
+					{
+						ShowInfo(Resx.FormulaCommand_Linear);
+						return;
+					}
+
+					using var dialog = new FormulaDialog(table);
+
+					// display selected cell names
+					if (cells.Count == 1)
+					{
+						dialog.SetCellNames(cells[0].Coordinates);
+					}
+					else
+					{
+						dialog.SetCellNames(
+							$"{cells[0].Coordinates} - {cells[cells.Count - 1].Coordinates}");
+					}
+
+					var cell = cells[0];
+
+					// display formula of first cell if any
+					var formula = new Formula(cell);
+					if (formula.Valid)
+					{
+						dialog.Format = formula.Format;
+						dialog.Formula = formula.Expression;
+						dialog.DecimalPlaces = formula.DecimalPlaces;
+					}
+
+					tagIndex = page.GetTagDefIndex(BoltSymbol);
+					if (!string.IsNullOrEmpty(tagIndex))
+					{
+						if (cell.HasTag(tagIndex))
+						{
+							dialog.Tagged = true;
+						}
+						else
+						{
+							tagIndex = null;
+						}
+					}
+
+					if (dialog.ShowDialog(owner) != DialogResult.OK)
+					{
+						return;
+					}
+
+					if (dialog.Tagged)
+					{
+						tagIndex = page.AddTagDef(BoltSymbol, Resx.AddFormulaCommand_Calculated);
+					}
+
+					StoreFormula(table, cells,
+						dialog.Formula, dialog.Format, dialog.DecimalPlaces,
+						range, tagIndex);
 				}
 			}
-
-			if (dialog.ShowDialog(owner) != DialogResult.OK)
+			catch (Exception exc)
 			{
+				logger.WriteLine("error adding formula", exc);
+				ShowInfo("Error adding formula. Please check the OneMore.log file");
 				return;
 			}
 
-			if (dialog.Tagged)
+			// one/page are no longer needed here; the page is a POCO so it is safe to
+			// carry across the boundary, but a fresh OneNote COM instance is created
+			// inside the worker callback since it will run on its own STA thread.
+
+			using var progress = new UI.ProgressDialog(10);
+			var result = progress.ShowTimedDialog(async (dialog, token) =>
 			{
-				tagIndex = page.AddTagDef(BoltSymbol, Resx.AddFormulaCommand_Calculated);
+				try
+				{
+					new Processor(table).Execute(cells, dialog);
+
+					dialog.SetMessage(Resx.FormulaCommand_Saving);
+
+					await using var one = new OneNote();
+					await one.Update(page);
+
+					return true;
+				}
+				catch (Exception exc)
+				{
+					logger.WriteLine("error saving formula", exc);
+					return false;
+				}
+			}, cancelable: false);
+
+			if (result != DialogResult.OK)
+			{
+				ShowInfo("Error adding formula. Please check the OneMore.log file");
 			}
-
-			StoreFormula(table, cells,
-				dialog.Formula, dialog.Format, dialog.DecimalPlaces,
-				range, tagIndex);
-
-			var processor = new Processor(table);
-			processor.Execute(cells);
-
-			await one.Update(page);
 		}
 
 

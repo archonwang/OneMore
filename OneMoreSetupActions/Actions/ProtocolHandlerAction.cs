@@ -25,6 +25,10 @@ namespace OneMoreSetupActions
 		}
 
 
+		/// <summary>
+		/// Registers OneMoreProtocolHandler.exe as the Windows shell handler for the
+		/// onemore:// URL protocol under HKLM\Software\Classes\onemore.
+		/// </summary>
 		public override int Install()
 		{
 			logger.WriteLine();
@@ -130,7 +134,7 @@ namespace OneMoreSetupActions
 					}
 					else
 					{
-						logger.WriteLine("coult not get command value");
+						logger.WriteLine("could not get command value");
 						verified = FAILURE;
 					}
 				}
@@ -145,6 +149,10 @@ namespace OneMoreSetupActions
 		}
 
 
+		/// <summary>
+		/// Removes the onemore:// protocol handler registry tree from
+		/// HKLM\Software\Classes\onemore.
+		/// </summary>
 		public override int Uninstall()
 		{
 			logger.WriteLine();

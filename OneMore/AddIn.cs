@@ -65,17 +65,66 @@ namespace River.OneMoreAddIn
 		/// <summary>
 		/// Special handler to load third-party DLL references from nugets like GTranslate
 		/// which for some reason aren't found using the default path traversal.
+		/// Also handles satellite resource assemblies by searching culture subdirectories,
+		/// including same-language siblings so zh-CHS/zh-Hans fallbacks find zh-CN resources.
 		/// </summary>
 		/// <param name="sender"></param>
 		/// <param name="args"></param>
 		/// <returns></returns>
 		private System.Reflection.Assembly CustomAssemblyResolve(object sender, ResolveEventArgs args)
 		{
+			var asmName = new System.Reflection.AssemblyName(args.Name);
+
+			if (asmName.Name.EndsWith(".resources"))
+			{
+				// Satellite resource assemblies live in culture subdirectories, not the root bin dir.
+				// Walk the culture parent chain first (zh-CN → zh-Hans → zh), then scan any
+				// sibling directory sharing the same two-letter language code (handles zh-CHS → zh-CN).
+				var binDir = Path.GetDirectoryName(
+					new Uri(System.Reflection.Assembly.GetExecutingAssembly().CodeBase).LocalPath);
+
+				var culture = asmName.CultureInfo;
+				while (culture != null && culture != CultureInfo.InvariantCulture)
+				{
+					var p = Path.Combine(binDir, culture.Name, asmName.Name + ".dll");
+					if (File.Exists(p))
+					{
+						try { return System.Reflection.Assembly.LoadFrom(p); } catch { }
+					}
+
+					culture = culture.Parent;
+				}
+
+				var twoLetter = asmName.CultureInfo?.TwoLetterISOLanguageName;
+				if (twoLetter != null)
+				{
+					foreach (var dir in Directory.GetDirectories(binDir))
+					{
+						try
+						{
+							var folderCulture = CultureInfo.GetCultureInfo(
+								Path.GetFileName(dir));
+
+							if (folderCulture.TwoLetterISOLanguageName != twoLetter) continue;
+
+							var p = Path.Combine(dir, asmName.Name + ".dll");
+							if (File.Exists(p))
+							{
+								try { return System.Reflection.Assembly.LoadFrom(p); } catch { }
+							}
+						}
+						catch { /* unrecognized culture dir name, skip */ }
+					}
+				}
+
+				return null;
+			}
+
 			logger.Debug($"AssemblyResolve of '{args.Name}'");
 
 			var path = new Uri(Path.Combine(
 				Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().CodeBase),
-				args.Name.Substring(0, args.Name.IndexOf(',')) + ".dll"
+				asmName.Name + ".dll"
 				)).LocalPath;
 
 			try
@@ -156,6 +205,12 @@ namespace River.OneMoreAddIn
 		public static AddIn Self { get; private set; }
 
 
+		/// <summary>
+		/// Gets a value indicating whether telemetry collection is enabled for the session.
+		/// </summary>
+		public static bool Telemetry { get; set; } = false;
+
+
 		// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 		// IDTExtensibility2
@@ -182,53 +237,63 @@ namespace River.OneMoreAddIn
 			// from shutting down. Instead, use our ApplicationManager only as needed.
 
 			var cude = DescribeCustom(custom);
-			logger.WriteLine($"OnConnection(ConnectionMode:{ConnectMode},custom[{cude}])");
+			logger.WriteLine($"Startup: OnConnection(ConnectionMode:{ConnectMode},custom[{cude}])");
 		}
 
 
 		public void OnAddInsUpdate(ref Array custom)
 		{
 			var cude = DescribeCustom(custom);
-			logger.WriteLine($"OneAddInsUpdate(custom[{cude}])");
+			logger.WriteLine($"Startup: OneAddInsUpdate(custom[{cude}])");
 		}
 
 
 		public void OnStartupComplete(ref Array custom)
 		{
 			var cude = DescribeCustom(custom);
-			logger.WriteLine($"OnStartupComplete(custom[{cude}])");
+			logger.WriteLine($"Startup: OnStartupComplete(custom[{cude}])");
 
 			try
 			{
-				// hotkeys
-				Task.Run(async () => { await RegisterHotkeys(); });
+				Task.Run(async () =>
+				{
+					// hotkeys
+					await RegisterHotkeys();
 
-				factory = new CommandFactory(logger, ribbon, trash);
+					factory = new CommandFactory(logger, ribbon, trash);
 
-				// command listener for Refresh links
-				new CommandService(factory).Startup();
+					// theme colors (JSON load + registry check) - pay this once here
+					// instead of on the first dialog the user happens to open
+					_ = UI.ThemeManager.Instance;
 
-				// reminder task scanner
-				new Commands.ReminderService().Startup();
+					// command listener for Refresh links
+					new CommandService(factory).Startup();
 
-				// navigation listener
-				new Commands.NavigationService().Startup();
+					// reminder task scanner
+					new Commands.ReminderService().Startup();
 
-				// hashtags scanner
-				new Commands.HashtagService().Startup();
+					// navigation listener
+					new Commands.NavigationService(ribbon).Startup();
 
-				// update check
-				Task.Run(async () => { await SetGeneralOptions(); });
+					// hashtags scanner
+					new Commands.HashtagService().Startup();
 
-				logger.WriteLine($"ready");
+					// settings and update check
+					await SetGeneralOptions();
+
+					if (Telemetry)
+					{
+						await TelemetryClient.Warmup();
+					}
+
+					logger.WriteLine($"Startup: ready");
+				});
 			}
 			catch (Exception exc)
 			{
 				Logger.Current.WriteLine("error starting add-on", exc);
 				UI.MoreMessageBox.ShowError(null, Properties.Resources.StartupFailureMessage);
 			}
-
-			logger.End();
 		}
 
 
@@ -248,6 +313,23 @@ namespace River.OneMoreAddIn
 					logger.WriteLine("error checking for updates", exc);
 				}
 			}
+
+			if (!settings.Contains("telemetry"))
+			{
+				try
+				{
+					await factory.Run<Commands.TelemetryCommand>();
+					provider = new SettingsProvider();
+					settings = provider.GetCollection(nameof(GeneralSheet));
+				}
+				catch (Exception exc)
+				{
+					Logger.Current.WriteLine("error checking telemetry", exc);
+				}
+			}
+
+			Telemetry = settings.Get("telemetry", false);
+			logger.WriteLine("Startup: telemetry is " + (Telemetry ? "enabled" : "disabled"));
 		}
 
 
@@ -261,11 +343,11 @@ namespace River.OneMoreAddIn
 		public void OnBeginShutdown(ref Array custom)
 		{
 			var cude = DescribeCustom(custom);
-			logger.Start($"OnBeginShutdown(custom[{cude}])");
+			logger.WriteLine($"Shutdown: OnBeginShutdown(custom[{cude}])");
 
 			try
 			{
-				logger.WriteLine("shutting down UI");
+				logger.WriteLine("Shutdown: shutting down UI");
 
 				HotkeyManager.Unregister();
 
@@ -273,7 +355,7 @@ namespace River.OneMoreAddIn
 			}
 			catch (Exception exc)
 			{
-				logger.WriteLine("error shutting down UI", exc);
+				logger.WriteLine("Shutdown: error shutting down UI", exc);
 			}
 		}
 
@@ -281,13 +363,16 @@ namespace River.OneMoreAddIn
 		public void OnDisconnection(ext_DisconnectMode RemoveMode, ref Array custom)
 		{
 			var cude = DescribeCustom(custom);
-			logger.WriteLine($"OnDisconnection(RemoveMode:{RemoveMode},custom:[{cude}])");
+			logger.WriteLine($"Shutdown: OnDisconnection(RemoveMode:{RemoveMode},custom:[{cude}])");
+
+			AppDomain.CurrentDomain.AssemblyResolve -= CustomAssemblyResolve;
+			AppDomain.CurrentDomain.UnhandledException -= CatchUnhandledException;
 
 			try
 			{
 				if (trash.Count > 0)
 				{
-					logger.WriteLine($"disposing {trash.Count} streams");
+					logger.WriteLine($"Shutdown: disposing {trash.Count} streams");
 
 					foreach (var item in trash)
 					{
@@ -297,10 +382,10 @@ namespace River.OneMoreAddIn
 			}
 			catch (Exception exc)
 			{
-				logger.WriteLine("error disconnecting", exc);
+				logger.WriteLine("Shutdown: error disconnecting", exc);
 			}
 
-			logger.WriteLine("closing log");
+			logger.WriteLine("Shutdown: closing log");
 			logger.Dispose();
 			logger = null;
 
@@ -308,7 +393,7 @@ namespace River.OneMoreAddIn
 			trash = null;
 
 			GC.Collect();
-			GC.WaitForPendingFinalizers();
+			//GC.WaitForPendingFinalizers();
 
 			// this is a hack, modeless dialogs seem to keep OneNote open :-(
 			Environment.Exit(0);

@@ -121,7 +121,7 @@
     },
     {
       "name": "JsonKey",
-      "foreground": "Orange"
+      "foreground": "Blue"
     },
     {
       "name": "Keyword",
@@ -231,6 +231,10 @@
     {
       "name": "RegDelete",
       "foreground": "Gray"
+    },
+    {
+      "name": "Shebang",
+      "foreground": "OliveDrab"
     },
     {
       "name": "ShellKnownVariable",

@@ -1,0 +1,11 @@
+{
+  "ReportCommandCounts":        { "id": "d28bfcdb-0914-470c-a493-1d008e4d3ec1", "target": "command",         "heatCol": "Count" },
+  "ReportEventTypeCounts":      { "id": "4568d5ce-6d7b-486b-bd54-61c92e591706", "target": "event-type"      },
+  "ReportMoreCultureCounts":    { "id": "d6354d25-e074-48c9-b670-e856587e41ce", "target": "more-culture"    },
+  "ReportOneMoreVersionCounts": { "id": "d0af52de-849f-4ae1-96ae-3424b25e7a3a", "target": "onemore-version" },
+  "ReportOneNoteVersionCounts": { "id": "c8914fa8-4552-4f3a-ae0a-3cc3b8dd50cd", "target": "onenote-version" },
+  "ReportOSArchitectureCounts": { "id": "6d388d72-8c90-4604-a049-5add74dbfd3a", "target": "os-architecture" },
+  "ReportOSCultureCounts":      { "id": "a5eb96be-87d9-4f03-b399-5fa29ccd150f", "target": "os-culture"      },
+  "ReportOSVersionCounts":      { "id": "bc44aaa3-83d9-4316-8035-a955f31ee557", "target": "os-version"      },
+  "ReportStartTime":            { "id": "378965fa-1cb3-4075-83d6-cb236bb48c3d" }
+}

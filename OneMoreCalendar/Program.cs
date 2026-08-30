@@ -9,6 +9,7 @@ namespace OneMoreCalendar
 	using River.OneMoreAddIn;
 	using System;
 	using System.Globalization;
+	using System.Threading;
 	using System.Windows.Forms;
 
 
@@ -25,7 +26,16 @@ namespace OneMoreCalendar
 		{
 			Logger.SetApplication("OneMoreCalendar");
 			Logger.Current.WriteLine();
-			Logger.Current.WriteLine("Starting OneMoreCalendar");
+			Logger.Current.WriteLine($"Starting OneMoreCalendar {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+
+			AppDomain.CurrentDomain.UnhandledException += CatchUnhandledException;
+			Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
+			Application.ThreadException += CatchThreadException;
+
+			// must run before any Form/Control is constructed; complements the
+			// PerMonitorV2 DpiAwareness declared in App.config
+			AppContext.SetSwitch(
+				"Switch.System.Windows.Forms.EnableWindowsFormsHighDpiAutoResizing", true);
 
 			Application.EnableVisualStyles();
 			Application.SetCompatibleTextRenderingDefault(false);
@@ -43,6 +53,34 @@ namespace OneMoreCalendar
 			// do not allow dates later than today
 			MainForm = new CalendarForm(delta > 0 ? 0 : delta);
 			Application.Run(MainForm);
+		}
+
+
+		/// <summary>
+		/// Catch-all for exceptions raised on non-UI threads
+		/// </summary>
+		private static void CatchUnhandledException(object sender, UnhandledExceptionEventArgs e)
+		{
+			var msg = e.IsTerminating ? "Unhandled exception, terminating" : "Unhandled exception";
+
+			if (e.ExceptionObject is Exception exc)
+			{
+				Logger.Current.WriteLine(msg, exc);
+			}
+			else
+			{
+				Logger.Current.WriteLine($"{msg}: {e.ExceptionObject?.GetType().FullName}");
+			}
+		}
+
+
+		/// <summary>
+		/// Catch-all for exceptions raised during the WinForms message loop, including
+		/// those thrown by "async void" event handlers
+		/// </summary>
+		private static void CatchThreadException(object sender, ThreadExceptionEventArgs e)
+		{
+			Logger.Current.WriteLine("Unhandled thread exception", e.Exception);
 		}
 	}
 }

@@ -30,6 +30,9 @@ namespace River.OneMoreAddIn.Commands
 
 		public override async Task Execute(params object[] args)
 		{
+			using var guard = EnterOnce();
+			if (guard is null) { return; }
+
 			using var dialog = new RemoveSpacingDialog();
 			if (dialog.ShowDialog(owner) == DialogResult.OK)
 			{
@@ -41,6 +44,7 @@ namespace River.OneMoreAddIn.Commands
 				await RemoveSpacing();
 			}
 		}
+
 
 		private async Task RemoveSpacing()
 		{

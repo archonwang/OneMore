@@ -1,10 +1,17 @@
 <#
 .SYNOPSIS
-Update OneMore registry keys to point to the current development directories
-intead of the program files install path
+This is a helper script to flip the registry keys for OneMore add-in development
+between the install path and the development path. This is useful during development
+but is not intended to be used by end users to set deployed configuration.
+
+.PARAMETER Architecture
+The architecture of the add-in to register. This is only used to determine the path.
 
 .PARAMETER Reset
-Resets the registry settings back to the install path
+Resets the registry settings back to the install path.
+
+.COPYRIGHT
+Copyright © 2016 Steven M Cohn. All rights reserved.
 #>
 
 [CmdletBinding()]
@@ -160,14 +167,17 @@ Begin
         else
         {
             $script:root = Get-Location
-            $script:addin = Join-Path $root "OneMore\bin\$Architecture\Debug\River.OneMoreAddIn.dll"
+            #$script:addin = Join-Path $root "OneMore\bin\$Architecture\Debug\River.OneMoreAddIn.dll"
+            $script:addin = Join-Path $root "OneMore\bin\Debug\River.OneMoreAddIn.dll"
             if (!(Test-Path $addin))
             {
                 $arc = $Architecture -eq 'x86' ? 'x64' : 'x86'
-                $script:addin = Join-Path $root "OneMore\bin\$Architecture\Debug\River.OneMoreAddIn.dll"
+                #$script:addin = Join-Path $root "OneMore\bin\$Architecture\Debug\River.OneMoreAddIn.dll"
+                $script:addin = Join-Path $root "OneMore\bin\Debug\River.OneMoreAddIn.dll"
             }
 
-            $script:proto = Join-Path $root 'OneMoreProtocolHandler\bin\Debug\OneMoreProtocolHandler.exe'
+            #$script:proto = Join-Path $root 'OneMoreProtocolHandler\bin\Debug\OneMoreProtocolHandler.exe'
+            $script:proto = Join-Path $root 'OneMore\bin\Debug\OneMoreProtocolHandler.exe'
             if (!(Test-Path $addin))
             {
                 WriteBad "`nCannot find $addin"
@@ -226,7 +236,7 @@ Begin
     function SetAppID
     {
         WriteTitle 'AppID'
-        $0 = 'Registry::HKEY_CLASSES_ROOT\River.OneMoreAddIn.1\CLSID'
+        $0 = "Registry::HKEY_CLASSES_ROOT\AppID\$guid"
         EnsurePath $0
         Set-ItemProperty $0 -Name 'DllSurrogate' -Type String -Value ''
         WriteOK $0
@@ -327,6 +337,37 @@ Begin
         return $true
     }
 
+    function SetLaunchPermission
+    {
+        # ARM64 Windows restricts COM surrogate launch to admins by default; without an explicit
+        # LaunchPermission on the AppID, dllhost.exe cannot be started by a normal user and the
+        # add-in silently fails to load. This sets the same descriptor that the MSI installer
+        # writes via RegistryAction so that developer-mode setups (setregistry -reset) also get it.
+        #
+        # COM_RIGHTS_EXECUTE(0x1) | COM_RIGHTS_EXECUTE_LOCAL(0x2) | COM_RIGHTS_ACTIVATE_LOCAL(0x8) = 0x0b
+        # Principals: AU = Authenticated Users, SY = SYSTEM, BA = Administrators
+        WriteTitle 'LaunchPermission'
+        $sddl = 'O:BAG:BAD:(A;;0x0b;;;AU)(A;;0x0b;;;SY)(A;;0x0b;;;BA)'
+        $sd = [System.Security.AccessControl.RawSecurityDescriptor]::new($sddl)
+        $bytes = [byte[]]::new($sd.BinaryLength)
+        $sd.GetBinaryForm($bytes, 0)
+        $0 = "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Classes\AppID\$guid"
+        EnsurePath $0
+        Set-ItemProperty $0 -Name 'LaunchPermission' -Value $bytes -Type Binary
+        WriteOK $0
+        return $true
+    }
+
+    function SetEventLogSource
+    {
+        WriteTitle 'EventLog Source'
+        $0 = 'Registry::HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\EventLog\Application\OneMore'
+        EnsurePath $0
+        Set-ItemProperty $0 -Name 'TypesSupported' -Type DWord -Value 7
+        WriteOK $0
+        return $true
+    }
+
     function SetUser
     {
         WriteTitle 'User'
@@ -338,7 +379,7 @@ Begin
         $0 = 'Registry::HKEY_CURRENT_USER\SOFTWARE\Microsoft\Office\OneNote\AddIns\River.OneMoreAddIn'
         EnsurePath $0
         Set-ItemProperty $0 -Name 'LoadBehavior' -Type DWord -Value 3
-        Set-ItemProperty $0 -Name 'Description' -Type String -Value 'Extension for OneNote'
+        Set-ItemProperty $0 -Name 'Description' -Type String -Value 'Add-in for OneNote'
         Set-ItemProperty $0 -Name 'FriendlyName' -Type String -Value 'OneMoreAddIn'
         WriteOK $0
 
@@ -367,6 +408,8 @@ Process
 
     $ok = SetRoot
     $ok = SetAppID
+    $ok = SetLaunchPermission
+    $ok = SetEventLogSource
     $ok = SetProtocolHandler
     $ok = SetCLSID
 

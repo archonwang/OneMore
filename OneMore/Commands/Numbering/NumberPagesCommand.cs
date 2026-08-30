@@ -1,5 +1,5 @@
 ﻿//************************************************************************************************
-// Copyright © 2020 Steven M Cohn.  All rights reserved.
+// Copyright © 2020 Steven M Cohn. All rights reserved.
 //************************************************************************************************
 
 namespace River.OneMoreAddIn.Commands
@@ -23,7 +23,6 @@ namespace River.OneMoreAddIn.Commands
 			public int Level;
 		}
 
-
 		private OneNote one;
 		private XNamespace ns;
 		private RemovePageNumbersCommand cleaner;
@@ -37,6 +36,9 @@ namespace River.OneMoreAddIn.Commands
 
 		public override async Task Execute(params object[] args)
 		{
+			using var guard = EnterOnce();
+			if (guard is null) { return; }
+
 			using var dialog = new NumberPagesDialog();
 			if (dialog.ShowDialog(owner) != DialogResult.OK)
 			{

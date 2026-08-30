@@ -27,10 +27,15 @@ namespace River.OneMoreAddIn
 		private static bool designMode;
 		private static string appname = "OneMore";
 
+		private static readonly AsyncLocal<ILogger> mirror = new();
+		[ThreadStatic] private static bool mirrorGuard;
+
+		private static readonly AsyncLocal<string> preamble = new();
+
 		private readonly bool stdio;
+		private readonly object writeLock = new();
 		private bool debug;
 		private bool verbose;
-		private string preamble;
 		private string timeBar;
 		private bool isNewline;
 		private bool isDisposed;
@@ -39,7 +44,7 @@ namespace River.OneMoreAddIn
 		private Stopwatch clock;
 
 
-		private Logger()
+		protected Logger()
 		{
 			using var process = Process.GetCurrentProcess();
 			stdio = process.ProcessName.StartsWith("LINQPad");
@@ -48,7 +53,6 @@ namespace River.OneMoreAddIn
 				Path.GetTempPath(),
 				designMode ? $"{appname}-design.log" : $"{appname}.log");
 
-			preamble = string.Empty;
 			timeBar = "|";
 			writer = null;
 			isNewline = true;
@@ -158,7 +162,7 @@ namespace River.OneMoreAddIn
 
 			File.Delete(LogPath);
 
-			preamble = string.Empty;
+			preamble.Value = string.Empty;
 			isNewline = true;
 
 			if (EnsureWriter())
@@ -225,7 +229,7 @@ namespace River.OneMoreAddIn
 
 		public void End()
 		{
-			preamble = string.Empty;
+			preamble.Value = string.Empty;
 			writeHeader = true;
 		}
 
@@ -252,6 +256,16 @@ namespace River.OneMoreAddIn
 
 
 		/// <summary>
+		/// Sets a secondary logger that receives exception writes mirrored from this logger.
+		/// Pass null to clear. Used by CommandFactory to route CLI exception output.
+		/// </summary>
+		public static void SetMirror(ILogger value)
+		{
+			mirror.Value = value;
+		}
+
+
+		/// <summary>
 		/// Directly set verbose/debug logging flags, for use by GeneralSettings.
 		/// Consumer needs explict cast to Logger class
 		/// </summary>
@@ -264,14 +278,35 @@ namespace River.OneMoreAddIn
 		}
 
 
-		public void Start(string message = null)
+		public IDisposable Indent(string message = null)
 		{
 			if (message is not null)
 			{
 				WriteLine(message);
 			}
 
-			preamble = "..";
+			preamble.Value = "..";
+			return new EndScope(this);
+		}
+
+
+		/// <summary>
+		/// Closes the scope opened by Indent() or Diagnostic() when disposed, guaranteeing
+		/// End() runs on every exit path (normal return, early return, or exception).
+		/// </summary>
+		private sealed class EndScope : IDisposable
+		{
+			private readonly ILogger logger;
+
+			public EndScope(ILogger logger)
+			{
+				this.logger = logger;
+			}
+
+			public void Dispose()
+			{
+				logger.End();
+			}
 		}
 
 
@@ -290,9 +325,10 @@ namespace River.OneMoreAddIn
 		}
 
 
-		public void StartDiagnostic()
+		public IDisposable Diagnostic()
 		{
 			writeHeader = false;
+			return new EndScope(this);
 		}
 
 
@@ -346,127 +382,162 @@ namespace River.OneMoreAddIn
 		}
 
 
-		public void Write(string message)
+		public virtual void Write(string message)
 		{
-			if (EnsureWriter())
+			lock (writeLock)
 			{
-				if (isNewline && writeHeader)
+				if (EnsureWriter())
 				{
-					writer.Write(MakeHeader());
-				}
+					if (isNewline && writeHeader)
+					{
+						writer.Write(MakeHeader());
+					}
 
-				if (stdio)
-					Console.Write(message);
-				else
-					writer.Write(message);
+					if (stdio)
+						Console.Write(message);
+					else
+						writer.Write(message);
 
-				isNewline = false;
-			}
-		}
-
-
-		public void WriteLine()
-		{
-			if (EnsureWriter())
-			{
-				if (stdio)
-				{
-					Console.WriteLine();
-				}
-				else
-				{
-					writer.WriteLine();
+					isNewline = false;
 				}
 			}
 		}
 
 
-		public void WriteLine(string message)
+		public virtual void WriteLine()
 		{
-			if (EnsureWriter())
+			lock (writeLock)
 			{
-				if (isNewline && writeHeader)
+				if (EnsureWriter())
 				{
-					writer.Write(MakeHeader());
+					if (stdio)
+					{
+						Console.WriteLine();
+					}
+					else
+					{
+						writer.WriteLine();
+					}
 				}
-
-				if (stdio)
-				{
-					Console.WriteLine(message);
-				}
-				else
-				{
-					writer.WriteLine(message);
-					writer.Flush();
-				}
-
-				isNewline = true;
 			}
 		}
 
 
-		public void WriteLine(Exception exc)
+		public virtual void WriteLine(string message)
 		{
-			if (EnsureWriter())
+			lock (writeLock)
 			{
-				if (isNewline && writeHeader)
+				if (EnsureWriter())
 				{
-					writer.Write(MakeHeader());
+					if (isNewline && writeHeader)
+					{
+						writer.Write(MakeHeader());
+					}
+
+					if (stdio)
+					{
+						Console.WriteLine(message);
+					}
+					else
+					{
+						writer.WriteLine(message);
+						writer.Flush();
+					}
+
+					isNewline = true;
+				}
+			}
+		}
+
+
+		public virtual void WriteLine(Exception exc)
+		{
+			lock (writeLock)
+			{
+				if (EnsureWriter())
+				{
+					if (isNewline && writeHeader)
+					{
+						writer.Write(MakeHeader());
+					}
+
+					if (stdio)
+					{
+						Console.WriteLine(exc.FormatDetails());
+					}
+					else
+					{
+						writer.WriteLine(exc.FormatDetails());
+						writer.Flush();
+					}
+
+					isNewline = true;
 				}
 
-				if (stdio)
+				if (!mirrorGuard)
 				{
-					Console.WriteLine(exc.FormatDetails());
+					mirrorGuard = true;
+					try { mirror.Value?.WriteLine(exc); }
+					finally { mirrorGuard = false; }
 				}
-				else
-				{
-					writer.WriteLine(exc.FormatDetails());
-					writer.Flush();
-				}
-
-				isNewline = true;
 			}
 		}
 
 
 		public void WriteLine(string message, Exception exc)
 		{
-			WriteLine(message);
+			lock (writeLock)
+			{
+				WriteLine(message);
 
-			var wh = writeHeader;
-			writeHeader = false;
+				var wh = writeHeader;
+				writeHeader = false;
+				mirrorGuard = true;    // suppress mirror inside the composed call below
+				WriteLine(exc);        // file only
+				mirrorGuard = false;
+				writeHeader = wh;
 
-			WriteLine(exc);
-
-			writeHeader = wh;
+				var m = mirror.Value;
+				if (m != null)
+				{
+					m.WriteLine(message);
+					m.WriteLine(exc);
+				}
+			}
 		}
 
 
 		public void WriteLine(string message, XElement element)
 		{
-			WriteLine(message);
+			lock (writeLock)
+			{
+				WriteLine(message);
 
-			var wh = writeHeader;
-			writeHeader = false;
+				var wh = writeHeader;
+				writeHeader = false;
 
-			WriteLine(element);
+				WriteLine(element);
 
-			writeHeader = wh;
+				writeHeader = wh;
+			}
 		}
 
 
 		public void WriteLine(XElement element)
 		{
-			var wh = writeHeader;
-			writeHeader = false;
+			lock (writeLock)
+			{
+				var wh = writeHeader;
+				writeHeader = false;
 
-			WriteLine(element.ToString());
+				WriteLine(element.ToString());
 
-			writeHeader = wh;
+				writeHeader = wh;
+			}
 		}
 
 
-		public void WriteTime(string message, bool keepRunning = false)
+		public void WriteTime(string message, bool keepRunning = false, bool after = false)
 		{
 			if (clock is null)
 			{
@@ -479,7 +550,14 @@ namespace River.OneMoreAddIn
 				clock.Stop();
 			}
 
-			WriteLine($"{clock.Elapsed:mm\\:ss\\.ff} {message}");
+			if (after)
+			{
+				WriteLine($"{message} {clock.Elapsed:mm\\:ss\\.ff}");
+			}
+			else
+			{
+				WriteLine($"{clock.Elapsed:mm\\:ss\\.ff} {message}");
+			}
 		}
 
 
@@ -500,7 +578,12 @@ namespace River.OneMoreAddIn
 					encodingWithFallback.EncoderFallback = EncoderFallback.ReplacementFallback;
 					encodingWithFallback.DecoderFallback = DecoderFallback.ReplacementFallback;
 
-					writer = new StreamWriter(LogPath, true, encodingWithFallback);
+					// FileShare.ReadWrite lets the add-in and the CLI process both append to
+					// the same file concurrently; the default StreamWriter ctor uses
+					// FileShare.Read, which blocks a second writer on the same file
+					writer = new StreamWriter(
+						new FileStream(LogPath, FileMode.Append, FileAccess.Write, FileShare.ReadWrite),
+						encodingWithFallback);
 				}
 				catch
 				{
@@ -518,7 +601,7 @@ namespace River.OneMoreAddIn
 			{
 				return
 					$"{Thread.CurrentThread.ManagedThreadId:00}|" +
-					$"{DateTime.Now:hh:mm:ss.fff}{timeBar} {preamble}";
+					$"{DateTime.Now:HH:mm:ss.fff}{timeBar} {preamble.Value ?? string.Empty}";
 			}
 
 			return string.Empty;

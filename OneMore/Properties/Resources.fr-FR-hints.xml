@@ -90,7 +90,7 @@ Fichier OneNote (*.one)</preferred>
     <source>Page not found; it may have been renamed or moved</source>
     <preferred>Page non trouvée ; il a peut-être été renommé ou déplacé</preferred>
   </hint>
-  <hint name="FavoritesSheet_DeleteMessage">
+  <hint name="ManageFavorites_DeleteMessage">
     <source>Delete {0}?</source>
     <preferred>Supprimer {0} ?</preferred>
   </hint>
@@ -257,14 +257,6 @@ Appliquer à ce notebook</preferred>
   <data name="phrase_AllSectionInTheCurrentNotebook">
     <source>All sections in the current notebook</source>
     <preferred>Toutes les sections du notebook actuel</preferred>
-  </data>
-  <data name="phrase_scopeOptions">
-    <source>In all notebooks
-In this notebook
-In this section</source>
-    <preferred>Dans tous les notebooks
-Dans ce notebook
-Dans cette section</preferred>
   </data>
   <data name="Plugin_Unsuccessful">
     <source>Plugin did not complete successfully. See log file.</source>
@@ -508,7 +500,7 @@ Après le dernier groupe</preferred>
     <source>Selected notebooks...</source>
     <preferred>Notes de notebooks sélectionnés ...</preferred>
   </data>
-  <data name="SearchAndReplaceDialog_scopBox">
+  <data name="SearchAndReplaceDialog_scopeBox.Text">
     <source>This page
 This section
 This notebook
@@ -518,7 +510,7 @@ Cette section
 Ce notebook
 Tous les notebooks</preferred>
   </data>
-  <data name="SearchEngineDialog_DeleteMessage">
+  <data name="SearchEngineSheet_DeleteMessage">
     <source>Delete {0}?</source>
     <preferred>Supprimer {0} ?</preferred>
   </data>
@@ -649,10 +641,6 @@ Des notebooks</preferred>
   <data name="word_Font">
     <source>Font</source>
     <preferred>Police de caractères</preferred>
-  </data>
-  <data name="word_Index">
-    <source>word_Index</source>
-    <preferred>Index</preferred>
   </data>
   <data name="word_Notebook">
     <source>Notebook</source>

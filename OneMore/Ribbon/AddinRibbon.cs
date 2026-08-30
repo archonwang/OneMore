@@ -9,12 +9,6 @@
 
 namespace River.OneMoreAddIn
 {
-	using Microsoft.Office.Core;
-	using River.OneMoreAddIn.Commands;
-	using River.OneMoreAddIn.Helpers.Office;
-	using River.OneMoreAddIn.Ribbon;
-	using River.OneMoreAddIn.Settings;
-	using River.OneMoreAddIn.Styles;
 	using System;
 	using System.Diagnostics;
 	using System.Drawing;
@@ -22,8 +16,14 @@ namespace River.OneMoreAddIn
 	using System.IO;
 	using System.Linq;
 	using System.Runtime.InteropServices.ComTypes;
-	using System.Threading.Tasks;
 	using System.Xml.Linq;
+	using Microsoft.Office.Core;
+	using River.OneMoreAddIn.Commands;
+	using River.OneMoreAddIn.Commands.Favorites;
+	using River.OneMoreAddIn.Helpers.Office;
+	using River.OneMoreAddIn.Ribbon;
+	using River.OneMoreAddIn.Settings;
+	using River.OneMoreAddIn.Styles;
 	using Resx = Properties.Resources;
 
 
@@ -49,7 +49,7 @@ namespace River.OneMoreAddIn
 		/// <returns>XML starting at the customUI root element</returns>
 		public string GetCustomUI(string RibbonID)
 		{
-			logger.WriteLine("building ribbon");
+			logger.WriteLine("Startup: building ribbon");
 
 			try
 			{
@@ -92,15 +92,26 @@ namespace River.OneMoreAddIn
 				var ccommands = provider.GetCollection(nameof(ContextMenuSheet));
 				var searchers = provider.GetCollection(nameof(SearchEngineSheet));
 
-				if (ccommands.Count == 0 && searchers.Count == 0)
-				{
-					return root.ToString(SaveOptions.DisableFormatting);
-				}
-
 				// construct context menu UI...
 
 				var menu = new XElement(ns + "contextMenu",
 					new XAttribute("idMso", "ContextMenuText"));
+
+				// backward compat: old format stored styles as a boolean; if present and
+				// ctxStyleGallery is not yet in the ordered items list, add gallery here (old behavior)
+				if (ccommands.Get("styles", false))
+				{
+					var itemsEl = ccommands.Get<XElement>("items");
+					if (itemsEl == null || !itemsEl.Elements("item").Any(e => e.Value == "ctxStyleGallery"))
+					{
+						AddStyleContextMenu(menu);
+					}
+				}
+
+				if (ccommands.Count == 0 && searchers.Count == 0 && !menu.HasElements)
+				{
+					return root.ToString(SaveOptions.DisableFormatting);
+				}
 
 				if (ccommands.Count > 0)
 				{
@@ -165,7 +176,7 @@ namespace River.OneMoreAddIn
 
 		private void AddColorizerCommands(XElement root, SettingsCollection settings)
 		{
-			logger.WriteLine("building ribbon colorizer commands");
+			logger.WriteLine("Startup: building ribbon colorizer commands");
 
 			try
 			{
@@ -199,7 +210,7 @@ namespace River.OneMoreAddIn
 			}
 			catch (Exception exc)
 			{
-				logger.WriteLine("error building colorize menu", exc);
+				logger.WriteLine("Startup: error building colorize menu", exc);
 			}
 		}
 
@@ -212,7 +223,7 @@ namespace River.OneMoreAddIn
 				return;
 			}
 
-			logger.WriteLine("building ribbon language proofing commands");
+			logger.WriteLine("Startup: building ribbon language proofing commands");
 
 			try
 			{
@@ -248,7 +259,7 @@ namespace River.OneMoreAddIn
 			}
 			catch (Exception exc)
 			{
-				logger.WriteLine("error building ribbon proofing menu", exc);
+				logger.WriteLine("Startup: error building ribbon proofing menu", exc);
 			}
 		}
 
@@ -276,7 +287,7 @@ namespace River.OneMoreAddIn
 			}
 
 
-			logger.WriteLine("building ribbon groups");
+			logger.WriteLine("Startup: building ribbon groups");
 
 			var group = root.Descendants(ns + "group")
 				.FirstOrDefault(e => e.Attribute("id")?.Value == "ribOneMoreGroup");
@@ -320,10 +331,34 @@ namespace River.OneMoreAddIn
 		}
 
 
+		private void AddStyleContextMenu(XElement menu)
+		{
+			var styles = new ThemeProvider().Theme?.GetStyles();
+			if (styles is not null && styles.Any())
+			{
+				menu.Add(new XElement(ns + "gallery",
+					new XAttribute("id", "ctxStyleGallery"),
+					new XAttribute("image", "CustomStyles"),
+					new XAttribute("label", "Styles"),
+					new XAttribute("columns", "1"),
+					new XAttribute("itemWidth", TileFactory.StyleMenuItem_TileWidth),
+					new XAttribute("itemHeight", TileFactory.StyleMenuItem_TileHeight),
+					new XAttribute("showItemLabel", "false"),
+					new XAttribute("getItemCount", "GetStyleGalleryItemCount"),
+					new XAttribute("getItemID", "GetStyleGalleryItemId"),
+					new XAttribute("getItemImage", "GetStyleMenuItemImage"),
+					new XAttribute("getItemScreentip", "GetStyleGalleryItemScreentip"),
+					new XAttribute("onAction", "ApplyStyleCmd"),
+					new XAttribute("insertBeforeMso", "Cut")
+					));
+			}
+		}
+
+
 		private void AddContextMenuCommands(
 			SettingsCollection ccommands, XElement root, XElement menu)
 		{
-			logger.WriteLine("building context menu");
+			logger.WriteLine("Startup: building context menu");
 
 			var keysRoot = ccommands.Get<XElement>("items");
 			if (keysRoot == null)
@@ -335,6 +370,13 @@ namespace River.OneMoreAddIn
 
 			foreach (var key in keys.Select(e => e.Value))
 			{
+				// special case: styles gallery is built dynamically, not cloned from the ribbon
+				if (key == "ctxStyleGallery")
+				{
+					AddStyleContextMenu(menu);
+					continue;
+				}
+
 				// special case to hide Proofing menu if language set is only 1; because it
 				// may have changed since last time user added this to the context menu
 				if (key == "ribProofingMenu")
@@ -434,7 +476,7 @@ namespace River.OneMoreAddIn
 		private void AddContextMenuSearchers(
 			SettingsCollection ccommands, XElement menu)
 		{
-			logger.WriteLine("building context menu search engines");
+			logger.WriteLine("Startup: building context menu search engines");
 
 			engines = ccommands.Get<XElement>("engines");
 
@@ -503,13 +545,50 @@ namespace River.OneMoreAddIn
 			System.Threading.Thread.CurrentThread.CurrentCulture = AddIn.Culture;
 			System.Threading.Thread.CurrentThread.CurrentUICulture = AddIn.Culture;
 
-			return Task.Run(async () =>
-			{
-				await using var provider = new FavoritesProvider(ribbon);
-				var favorites = provider.LoadFavoritesMenu();
-				return favorites.ToString(SaveOptions.DisableFormatting);
+			return FavoritesMenu.LoadMenu().ToString(SaveOptions.DisableFormatting);
+		}
 
-			}).Result;
+
+		/// <summary>
+		/// Populates the Navigator dynamic menu: an "Open Navigator" entry, the
+		/// reading-list actions, and then the recently-visited-page history
+		/// </summary>
+		/// <param name="control"></param>
+		/// <returns></returns>
+		public string GetHistoryContent(IRibbonControl control)
+		{
+			DebugRibbon($"GetHistoryContent({control.Id})");
+
+			return HistoryMenu.LoadMenu().ToString(SaveOptions.DisableFormatting);
+		}
+
+
+		/// <summary>
+		/// Returns the Navigator button's own icon; used by the "Open Navigator" entry
+		/// inside its History dropdown, which cannot rely on GetRibbonImageByID's
+		/// id-based lookup since it has its own (distinct) control id
+		/// </summary>
+		/// <param name="control"></param>
+		/// <returns></returns>
+		public IStream GetNavigatorMenuImage(IRibbonControl control)
+		{
+			DebugRibbon($"GetNavigatorMenuImage({control.Id})");
+
+			try
+			{
+				if (Resx.ResourceManager.GetObject("ribNavigatorButton") is Bitmap res)
+				{
+					var stream = res.GetReadOnlyStream();
+					trash.Add((IDisposable)stream);
+					return stream;
+				}
+			}
+			catch (Exception exc)
+			{
+				logger.WriteLine(exc);
+			}
+
+			return null;
 		}
 
 

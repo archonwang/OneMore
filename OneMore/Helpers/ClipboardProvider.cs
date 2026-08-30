@@ -105,11 +105,22 @@ namespace River.OneMoreAddIn
 		/// conversion of other content.
 		/// </summary>
 		/// <returns>An Image or null if the clipboard does not contain an image</returns>
+		/// <remarks>
+		/// The returned Image takes ownership of the underlying stream; the caller MUST
+		/// Dispose() the Image when done. The (false, false) overload skips embedded color
+		/// validation, which has historically been the buggier GDI+ decode path for malformed
+		/// images planted on the clipboard by another process.
+		/// </remarks>
 		public static async Task<Image> GetImage()
 		{
 			return await SingleThreaded.Invoke(() =>
 			{
 				var data = Win.Clipboard.GetDataObject();
+				if (data is null)
+				{
+					return null;
+				}
+
 				var formats = data.GetFormats();
 				var format = formats.FirstOrDefault(f => f.Contains("PNG"));
 				format ??= formats.FirstOrDefault(f => f.Contains("JPG") || f.Contains("JPEG"));
@@ -119,7 +130,7 @@ namespace River.OneMoreAddIn
 				if (format is not null &&
 					data.GetData(format) is MemoryStream stream)
 				{
-					return Image.FromStream(stream);
+					return Image.FromStream(stream, false, false);
 				}
 
 				return null;
@@ -144,18 +155,25 @@ namespace River.OneMoreAddIn
 
 		/// <summary>
 		/// Initiates a paste operation by emitting a Ctrl+V keypress and delays the current
-		/// thread so that Windows and the active application have time to complete the paste
+		/// thread so that Windows and the active application have time to complete the paste.
+		/// Releases any held Shift or Alt modifier keys first so that hotkey-triggered callers
+		/// don't accidentally send Ctrl+Shift+V or Ctrl+Alt+V instead of plain Ctrl+V.
 		/// </summary>
-		/// <param name="delayBefore">
-		/// Adds a delay prior to the paste for cases where we need to wait for preceding
-		/// operations to stabilize
-		/// </param>
 		/// <returns></returns>
-		public static async Task Paste(bool delayBefore = false)
+		public static async Task Paste()
 		{
-			if (delayBefore)
+			// Release held modifier keys before simulating Ctrl+V. When invoked via a hotkey
+			// (e.g. Ctrl+Shift+V), the modifier keys are still physically down and would cause
+			// Windows to intercept the simulated Ctrl+V as the original hotkey sequence again.
+			var mods = Control.ModifierKeys;
+			if (mods.HasFlag(Keys.Shift))
 			{
-				await Task.Delay(200);
+				new InputSimulator().Keyboard.KeyUp(VirtualKeyCode.SHIFT);
+			}
+
+			if (mods.HasFlag(Keys.Alt))
+			{
+				new InputSimulator().Keyboard.KeyUp(VirtualKeyCode.MENU);
 			}
 
 			new InputSimulator().Keyboard
@@ -203,18 +221,19 @@ namespace River.OneMoreAddIn
 						{
 							Clipboard.SetDataObject(data, true, RetryTimes, RetryDelay);
 						}
-						catch (COMException ex)
-							when (ex.ErrorCode == CLIPBRD_E_CANT_OPEN)
+						catch (ExternalException ex)
 						{
 							success = false;
 							logger.WriteLine(
 								"error in RestoreState; clipboard possibly locked by another application", ex);
 						}
 					}
+
+					stash.Clear();
+					stashedImage = null;
 				}
 			});
 
-			stash.Clear();
 			return success;
 		}
 
@@ -269,8 +288,7 @@ namespace River.OneMoreAddIn
 						Clipboard.SetDataObject(data, true, RetryTimes, RetryDelay);
 						//Win.Clipboard.SetText(text, Win.TextDataFormat.Html);
 					}
-					catch (COMException ex)
-						when (ex.ErrorCode == CLIPBRD_E_CANT_OPEN)
+					catch (ExternalException ex)
 					{
 						success = false;
 						logger.WriteLine(
@@ -309,8 +327,7 @@ namespace River.OneMoreAddIn
 						Clipboard.SetDataObject(data, true, RetryTimes, RetryDelay);
 						//Win.Clipboard.SetText(text, Win.TextDataFormat.Text);
 					}
-					catch (COMException ex)
-						when (ex.ErrorCode == CLIPBRD_E_CANT_OPEN)
+					catch (ExternalException ex)
 					{
 						success = false;
 						logger.WriteLine(
@@ -362,9 +379,10 @@ namespace River.OneMoreAddIn
 					{
 						stashedImage = Win.Clipboard.GetImage();
 					}
-					catch
+					catch (Exception exc)
 					{
 						stashedImage = null;
+						logger.WriteLine("error stashing clipboard image", exc);
 					}
 				}
 
@@ -415,10 +433,10 @@ namespace River.OneMoreAddIn
 			// file now to properly calculate offsets
 			var body = Regex.Replace(html, @"(?<!\r)\n", "\r\n");
 
-			var index = html.IndexOf(StartFragmentLine);
+			var index = body.IndexOf(StartFragmentLine);
 			if (index > 0)
 			{
-				head = html.Substring(0, index).Trim();
+				head = body.Substring(0, index).Trim();
 				body = body.Substring(index + StartFragmentLine.Length).Trim();
 			}
 			else
@@ -448,7 +466,7 @@ namespace River.OneMoreAddIn
 			var headLen = Encoding.UTF8.GetByteCount(head) + NLCount;
 
 			builder.AppendLine(StartFragmentLine);
-			var startFragment = startHtml + headLen + StartFragmentLine.Length;
+			var startFragment = startHtml + headLen + StartFragmentLine.Length + NLCount;
 
 			builder.AppendLine(body);
 			var bodyLen = Encoding.UTF8.GetByteCount(body) + NLCount;
@@ -467,6 +485,31 @@ namespace River.OneMoreAddIn
 			builder.Replace("3333333333", endFragment.ToString("D10"));
 
 			return builder.ToString();
+		}
+
+
+		/// <summary>
+		/// Removes the preamble and postamble, returning just the raw HTML.
+		/// </summary>
+		/// <param name="html"></param>
+		/// <returns></returns>
+		public static string UnwrapHtml(string html)
+		{
+			var start = html.IndexOf(StartFragmentLine);
+			if (start < 0)
+			{
+				return html;
+			}
+
+			start += StartFragmentLine.Length;
+			var end = html.IndexOf(EndFragmentLine, start);
+
+			if (end < 0)
+			{
+				return html;
+			}
+
+			return html.Substring(start, end - start);
 		}
 	}
 }

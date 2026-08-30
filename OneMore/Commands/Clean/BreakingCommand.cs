@@ -1,5 +1,5 @@
 ﻿//************************************************************************************************
-// Copyright © 2021 Steven M Cohn.  All rights reserved.
+// Copyright © 2021 Steven M Cohn. All rights reserved.
 //************************************************************************************************
 
 namespace River.OneMoreAddIn.Commands
@@ -25,7 +25,6 @@ namespace River.OneMoreAddIn.Commands
 		// search for one space to be replaced by two
 		private const string TwoSpacePattern = @"(\w[\.?;])(\<[^>]+\>)?[\s]+(\<[^>]+\>)?(\w)";
 
-
 		public BreakingCommand()
 		{
 		}
@@ -33,6 +32,9 @@ namespace River.OneMoreAddIn.Commands
 
 		public override async Task Execute(params object[] args)
 		{
+			using var guard = EnterOnce();
+			if (guard is null) { return; }
+
 			using var dialog = new BreakingDialog();
 			if (dialog.ShowDialog(owner) != DialogResult.OK)
 			{

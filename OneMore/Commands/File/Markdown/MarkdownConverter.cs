@@ -6,6 +6,7 @@ namespace River.OneMoreAddIn.Commands
 {
 	using River.OneMoreAddIn.Models;
 	using River.OneMoreAddIn.Styles;
+	using System;
 	using System.Collections.Generic;
 	using System.Linq;
 	using System.Text.RegularExpressions;
@@ -55,9 +56,22 @@ namespace River.OneMoreAddIn.Commands
 
 
 		/// <summary>
+		/// Tags current lines with To Do tags if beginning with [ ] or [x] in all Outlines
+		/// </summary>
+		public void RewriteTodo()
+		{
+			foreach (var outline in page.BodyOutlines)
+			{
+				RewriteTodo(outline.Descendants(ns + "OE"));
+			}
+		}
+
+
+		/// <summary>
 		/// Applies standard OneNote styling all recognizable headings in the given Outline
 		/// </summary>
-		public MarkdownConverter RewriteHeadings(IEnumerable<XElement> paragraphs)
+		public MarkdownConverter RewriteHeadings(
+			IEnumerable<XElement> paragraphs, bool blankBeforeHeadings = false)
 		{
 			var headings = paragraphs
 				// candidate headings imported from markdown should have exactly one text run
@@ -75,7 +89,9 @@ namespace River.OneMoreAddIn.Commands
 					return c;
 				})
 				// shouldn't happen but...
-				.Where(c => c.Key != null);
+				.Where(c => c.Key != null)
+				// materialize before mutating sibling structure below
+				.ToList();
 
 			foreach (var heading in headings)
 			{
@@ -96,6 +112,14 @@ namespace River.OneMoreAddIn.Commands
 						// set any additional css on text run such as italics
 						stylizer.ApplyStyle(e);
 					});
+
+				// give the heading some breathing room from the preceding paragraph,
+				// unless it's already the first paragraph in its outline
+				if (blankBeforeHeadings && heading.Element.PreviousNode is not null)
+				{
+					heading.Element.AddBeforeSelf(
+						new XElement(ns + "OE", new XElement(ns + "T", new XCData(string.Empty))));
+				}
 			}
 
 			return this;
@@ -104,37 +128,38 @@ namespace River.OneMoreAddIn.Commands
 
 		private static StandardStyles? MatchHeading(Style style)
 		{
-			if (style.FontFamily == "Calibri")
+			// do not gate the rest of this routine by font family as that is not a reliable
+			// indicator of heading level in markdown since the default font was changed from
+			// Calibri to Aptos in OneNote starting in 2023 and users may have custom defaults
+
+			var standard = StandardStyles.PageTitle.GetDefaults();
+			if (style.FontSize == standard.FontSize && style.Color == Style.Automatic)
 			{
-				var standard = StandardStyles.PageTitle.GetDefaults();
-				if (style.FontSize == standard.FontSize && style.Color == Style.Automatic)
-				{
-					return StandardStyles.PageTitle;
-				}
+				return StandardStyles.PageTitle;
+			}
 
-				standard = StandardStyles.Heading1.GetDefaults();
-				if (style.FontSize == standard.FontSize && style.Color == standard.Color)
-				{
-					return StandardStyles.Heading1;
-				}
+			standard = StandardStyles.Heading1.GetDefaults();
+			if (style.FontSize == standard.FontSize && style.Color == standard.Color)
+			{
+				return StandardStyles.Heading1;
+			}
 
-				standard = StandardStyles.Heading2.GetDefaults();
-				if (style.FontSize == standard.FontSize && style.Color == standard.Color)
-				{
-					return StandardStyles.Heading2;
-				}
+			standard = StandardStyles.Heading2.GetDefaults();
+			if (style.FontSize == standard.FontSize && style.Color == standard.Color)
+			{
+				return StandardStyles.Heading2;
+			}
 
-				standard = StandardStyles.Heading3.GetDefaults();
-				if (style.FontSize == standard.FontSize && style.Color == standard.Color)
-				{
-					return style.IsItalic ? StandardStyles.Heading4 : StandardStyles.Heading3;
-				}
+			standard = StandardStyles.Heading3.GetDefaults();
+			if (style.FontSize == standard.FontSize && style.Color == standard.Color)
+			{
+				return style.IsItalic ? StandardStyles.Heading4 : StandardStyles.Heading3;
+			}
 
-				standard = StandardStyles.Heading5.GetDefaults();
-				if (style.Color == standard.Color)
-				{
-					return style.IsItalic ? StandardStyles.Heading6 : StandardStyles.Heading5;
-				}
+			standard = StandardStyles.Heading5.GetDefaults();
+			if (style.Color == standard.Color)
+			{
+				return style.IsItalic ? StandardStyles.Heading6 : StandardStyles.Heading5;
 			}
 
 			return null;
@@ -142,38 +167,315 @@ namespace River.OneMoreAddIn.Commands
 
 
 		/// <summary>
-		/// Tag current line with To Do tag if beginning with [ ] or [x]
+		/// Tags markdown task-list items (a bulleted/numbered OE beginning with [ ] or
+		/// [x]) with a To Do tag, dropping the bullet and indenting the paragraph one
+		/// level (unless it's already nested, e.g. a genuine markdown sub-list) to
+		/// preserve its visual position now that the bullet is gone. A bare "[ ] foo"/
+		/// "[x] foo" paragraph outside of a list is left as literal text, matching
+		/// CommonMark/GitHub, where task-list syntax only exists inside a list item.
 		/// All other :emojis: should be translated inline by Markdig
 		/// </summary>
 		/// <param name="paragraphs"></param>
 		public MarkdownConverter RewriteTodo(IEnumerable<XElement> paragraphs)
 		{
 			var boxpattern = new Regex(@"^\\?\[(?<x>x|\s)\]");
+			var converted = new List<XElement>();
 
-			foreach (var paragraph in paragraphs)
+			foreach (var paragraph in paragraphs.ToList())
 			{
-				var run = paragraph.Elements(ns + "T").FirstOrDefault();
+				var list = paragraph.Element(ns + "List");
+				if (list is null)
+				{
+					continue;
+				}
 
-				if (run is not null)
+				var run = paragraph.Elements(ns + "T").FirstOrDefault();
+				if (run is null)
+				{
+					continue;
+				}
+
+				var cdata = run.GetCData();
+				var wrapper = cdata.GetWrapper();
+				var text = FindLeadingText(wrapper.FirstNode);
+				if (text is null)
+				{
+					continue;
+				}
+
+				var match = boxpattern.Match(text.Value);
+				if (!match.Success)
+				{
+					continue;
+				}
+
+				text.Value = text.Value.Substring(match.Length);
+
+				// ensure TagDef exists
+				var index = page.AddTagDef("3", "To Do", 4);
+
+				// inject tag prior to run
+				run.AddBeforeSelf(new Tag(index, match.Groups["x"].Value == "x"));
+
+				// update run text
+				cdata.Value = wrapper.GetInnerXml();
+
+				// drop the bullet; this is now a Todo paragraph, not a list item
+				list.Remove();
+
+				// force OneNote to treat this as brand-new content rather than an
+				// incremental edit to a paragraph it may still internally associate
+				// with list membership from the original import
+				paragraph.Attribute("objectID")?.Remove();
+
+				converted.Add(paragraph);
+			}
+
+			if (converted.Any())
+			{
+				IndentConvertedTodos(converted);
+			}
+
+			return this;
+		}
+
+
+		/// <summary>
+		/// Structurally indents each converted task-list paragraph one level, unless
+		/// it's already nested inside another OE (e.g. a genuine markdown sub-list),
+		/// to preserve its original visual left offset now that its bullet is gone.
+		/// Consecutive converted paragraphs are nested as siblings under a single
+		/// shared OEChildren rather than staircased under one another.
+		/// </summary>
+		private void IndentConvertedTodos(List<XElement> converted)
+		{
+			var remaining = new HashSet<XElement>(converted);
+
+			foreach (var oe in converted)
+			{
+				if (!remaining.Contains(oe))
+				{
+					// already absorbed into an earlier run
+					continue;
+				}
+
+				remaining.Remove(oe);
+
+				if (oe.Ancestors(ns + "OE").Any())
+				{
+					// already indented (e.g. a genuine markdown sub-list); leave as-is
+					continue;
+				}
+
+				var parent = oe.Parent;
+				var siblings = parent.Elements(ns + "OE").ToList();
+				var position = siblings.IndexOf(oe);
+
+				var run = new List<XElement> { oe };
+
+				var next = position + 1;
+				while (next < siblings.Count && remaining.Contains(siblings[next]) &&
+					!siblings[next].Ancestors(ns + "OE").Any())
+				{
+					run.Add(siblings[next]);
+					remaining.Remove(siblings[next]);
+					next++;
+				}
+
+				var anchor = position > 0 ? siblings[position - 1] : null;
+				if (anchor is null)
+				{
+					anchor = new XElement(ns + "OE", new XElement(ns + "T", new XCData(string.Empty)));
+					oe.AddBeforeSelf(anchor);
+				}
+
+				var children = anchor.Element(ns + "OEChildren");
+				if (children is null)
+				{
+					children = new XElement(ns + "OEChildren");
+					anchor.Add(children);
+				}
+
+				foreach (var item in run)
+				{
+					item.Remove();
+					children.Add(item);
+				}
+			}
+		}
+
+
+		/// <summary>
+		/// Finds the leading text node of a CDATA wrapper, whether it's a direct child
+		/// or nested inside a wrapping element such as a &lt;span&gt; carrying the run's
+		/// font/style (as OneNote's HTML import produces for list-item text).
+		/// </summary>
+		private static XText FindLeadingText(XNode node)
+		{
+			while (node is XElement element)
+			{
+				node = element.FirstNode;
+			}
+
+			return node as XText;
+		}
+
+
+		/// <summary>
+		/// Applies the Code quickstyle to all paragraphs with Consolas font in all Outlines
+		/// </summary>
+		public void RewriteCode()
+		{
+			foreach (var outline in page.BodyOutlines)
+			{
+				RewriteCode(outline.Descendants(ns + "OE"));
+			}
+		}
+
+
+		/// <summary>
+		/// Applies the Code quickstyle to paragraphs with Consolas font in the given collection
+		/// </summary>
+		public MarkdownConverter RewriteCode(IEnumerable<XElement> paragraphs)
+		{
+			var codeParagraphs = paragraphs
+				.Where(e => e.Elements(ns + "T").Any())
+				.Select(e => new
+				{
+					Element = e,
+					Style = new Style(analyzer.CollectFrom(e))
+				})
+				.Where(c => c.Style.FontFamily?.IndexOf("Consolas", StringComparison.OrdinalIgnoreCase) >= 0)
+				.ToList();
+
+			if (!codeParagraphs.Any())
+			{
+				return this;
+			}
+
+			var quick = page.GetQuickStyle(StandardStyles.Code);
+
+			foreach (var para in codeParagraphs)
+			{
+				para.Element.Attributes().Where(a => a.Name == "style").Remove();
+				para.Element.SetAttributeValue("quickStyleIndex", quick.Index);
+			}
+
+			return this;
+		}
+
+
+		/// <summary>
+		/// Applies standard Lucida Console 9pt styling to all inline code spans
+		/// (backtick-delimited) in all Outlines on the page
+		/// </summary>
+		public void RewriteInlineCode()
+		{
+			foreach (var outline in page.BodyOutlines)
+			{
+				RewriteInlineCode(outline.Descendants(ns + "OE"));
+			}
+		}
+
+
+		/// <summary>
+		/// Applies standard Lucida Console 9pt styling to inline code spans
+		/// (backtick-delimited) in the given paragraph collection
+		/// </summary>
+		public MarkdownConverter RewriteInlineCode(IEnumerable<XElement> paragraphs)
+		{
+			var css = $"font-family:'{StyleBase.DefaultCodeFamily}';font-size:9.0pt";
+
+			foreach (var para in paragraphs.Where(e => e.Elements(ns + "T").Any()))
+			{
+				foreach (var run in para.Elements(ns + "T"))
 				{
 					var cdata = run.GetCData();
-					var wrapper = cdata.GetWrapper();
-					if (wrapper.FirstNode is XText text)
+					if (cdata == null ||
+						cdata.Value.IndexOf("font-family:Consolas",
+							StringComparison.OrdinalIgnoreCase) < 0)
 					{
-						var match = boxpattern.Match(text.Value);
-						if (match.Success)
+						continue;
+					}
+
+					var wrapper = cdata.GetWrapper();
+					var updated = false;
+
+					foreach (var span in wrapper.Descendants("span").ToList())
+					{
+						var attr = span.Attribute("style")?.Value;
+						if (attr != null &&
+							attr.IndexOf("font-family:Consolas",
+								StringComparison.OrdinalIgnoreCase) >= 0)
 						{
-							text.Value = text.Value.Substring(match.Length);
-
-							// ensure TagDef exists
-							var index = page.AddTagDef("3", "To Do", 4);
-
-							// inject tag prior to run
-							run.AddBeforeSelf(new Tag(index, match.Groups["x"].Value == "x"));
-
-							// update run text
-							cdata.Value = wrapper.GetInnerXml();
+							span.SetAttributeValue("style", css);
+							updated = true;
 						}
+					}
+
+					if (updated)
+					{
+						cdata.Value = wrapper.GetInnerXml();
+					}
+				}
+			}
+
+			return this;
+		}
+
+
+		/// <summary>
+		/// Collapses marker paragraphs inserted by OneMoreDig.RenderPreservingBlankLines
+		/// (OneMoreDig.BlankLineMarker) into genuinely empty OneNote paragraphs, in all
+		/// Outlines on the page
+		/// </summary>
+		public void RewriteBlankLines()
+		{
+			foreach (var outline in page.BodyOutlines)
+			{
+				RewriteBlankLines(outline.Descendants(ns + "OE"));
+			}
+		}
+
+
+		/// <summary>
+		/// Collapses marker paragraphs inserted by OneMoreDig.RenderPreservingBlankLines
+		/// (OneMoreDig.BlankLineMarker) into genuinely empty OneNote paragraphs, in the
+		/// given paragraph collection
+		/// </summary>
+		public MarkdownConverter RewriteBlankLines(IEnumerable<XElement> paragraphs)
+		{
+			foreach (var paragraph in paragraphs.ToList())
+			{
+				var run = paragraph.Elements(ns + "T").FirstOrDefault();
+				if (run is null)
+				{
+					continue;
+				}
+
+				var cdata = run.GetCData();
+				var wrapper = cdata.GetWrapper();
+				if (wrapper.Nodes().Count() == 1 &&
+					wrapper.FirstNode is XText text &&
+					text.Value == OneMoreDig.BlankLineMarker)
+				{
+					cdata.Value = string.Empty;
+
+					// OneNote's HTML importer sometimes nests the block immediately
+					// following this marker paragraph (e.g. a list) as its child instead
+					// of as its sibling; promote any such children back out to their
+					// correct flat position so later paragraph-only rewrites see them
+					var children = paragraph.Element(ns + "OEChildren");
+					if (children is not null)
+					{
+						var items = children.Elements().ToList();
+						foreach (var item in items)
+						{
+							item.Remove();
+						}
+
+						children.Remove();
+						paragraph.AddAfterSelf(items);
 					}
 				}
 			}
@@ -204,14 +506,40 @@ namespace River.OneMoreAddIn.Commands
 		public MarkdownConverter SpaceOutParagraphs(
 			IEnumerable<XElement> paragraphs, float spaceAfter)
 		{
+			static bool IsCodeParagraph(XElement element, string codeIndex)
+			{
+				return element.Attribute("quickStyleIndex")?.Value == codeIndex;
+			}
+
 			var after = $"{spaceAfter:0.0}";
 
-			var last = paragraphs.Last();
+			var paraList = paragraphs.ToList();
+			if (!paraList.Any())
+			{
+				return this;
+			}
 
-			var list = paragraphs
+			var last = paraList.Last();
+
+			var codeIndex = page.GetQuickStyle(StandardStyles.Code).Index.ToString();
+
+			// code paragraphs immediately followed by another code paragraph are interior
+			// lines of a fenced block and must not introduce spacing between them
+			var innerCodeParagraphs = new HashSet<XElement>();
+			for (var i = 0; i < paraList.Count - 1; i++)
+			{
+				if (IsCodeParagraph(paraList[i], codeIndex) && IsCodeParagraph(paraList[i + 1], codeIndex))
+				{
+					innerCodeParagraphs.Add(paraList[i]);
+				}
+			}
+
+			var list = paraList
 				.Where(e =>
 					// not the last paragraph in the Outline
 					e != last &&
+					// not an interior line of a code block
+					!innerCodeParagraphs.Contains(e) &&
 					// any paragraph that is not a List
 					((e.NextNode is not null && !e.Elements(ns + "List").Any()) ||
 					// any last item in a List
@@ -222,6 +550,11 @@ namespace River.OneMoreAddIn.Commands
 			foreach (var item in list)
 			{
 				item.SetAttributeValue("spaceAfter", after);
+			}
+
+			foreach (var item in innerCodeParagraphs)
+			{
+				item.SetAttributeValue("spaceAfter", "0.0");
 			}
 
 			return this;

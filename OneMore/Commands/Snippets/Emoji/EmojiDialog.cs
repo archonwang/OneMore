@@ -1,4 +1,4 @@
-﻿//************************************************************************************************
+//************************************************************************************************
 // Copyright © 2016 Steven M Cohn. All rights reserved.
 //************************************************************************************************
 
@@ -10,21 +10,34 @@ namespace River.OneMoreAddIn.Commands
 	using System.Collections.Generic;
 	using System.Drawing;
 	using System.Linq;
+	using System.Threading.Tasks;
 	using System.Windows.Forms;
 	using Resx = Properties.Resources;
 
 
 	/// <summary>
-	/// 
+	///
 	/// </summary>
 	/// <remarks>
-	/// Disposables taken care of in OnClosed.
+	/// Disposables taken care of in OnClosed. Has two views, a curated List (named emojis,
+	/// one image+name per row) and a Grid (every codepoint the installed Segoe UI Emoji
+	/// font supports across the full Unicode range, each captioned with a name derived
+	/// from Unicode data and searchable via the box above the grid); both support
+	/// multi-select, and selections made in either view are preserved across both.
 	/// </remarks>
 
 	internal partial class EmojiDialog : UI.MoreForm
 	{
+		private const int IconSize = 24;
+		private const int GridIconSize = 48;
+
 		private readonly Emojis emojis;
-		private readonly List<int> selections;
+		private readonly List<Emoji> listSelections;
+		private readonly List<Emoji> gridSelections;
+		private readonly Dictionary<string, ListViewItem> categoryStartItems = new();
+		private int quickWidth;
+		private UnicodeEmojis unicodeEmojis;
+		private UI.MoreLinkLabel activeCategoryLink;
 
 
 		public EmojiDialog()
@@ -39,25 +52,111 @@ namespace River.OneMoreAddIn.Commands
 				{
 					"introLabel",
 					"okButton=word_OK",
-					"cancelButton=word_Cancel"
+					"cancelButton=word_Cancel",
+					"listTab",
+					"gridTab",
+					"searchLabel=word_Search",
+					"generalLink",
+					"smileysLink",
+					"peopleLink",
+					"animalsLink",
+					"foodLink",
+					"travelLink",
+					"activitiesLink",
+					"objectsLink",
+					"symbolsLink",
+					"flagsLink"
 				});
 			}
 
-			// must be defined before initializing SelectedIndex
-			selections = new();
+			// must be defined before initializing the selected item
+			listSelections = new();
+			gridSelections = new();
 
 			emojis = new Emojis();
-			emojis.LoadImages();
 
-			emojiBox.ItemHeight = 26;
-			emojiBox.Items.AddRange(emojis.GetNames());
-			emojiBox.SelectedIndex = 0;
+			// the D3D11/Direct2D device must be created on this (UI) thread; touching the
+			// singleton here, before the background scan below ever calls into the shared
+			// IDWriteFactory from another thread, guarantees that's where it happens
+			_ = ColorGlyphRenderer.Instance;
+
+			// forces a tall enough row to comfortably fit the rendered icon; ListView has
+			// no direct RowHeight property, so this is the standard WinForms workaround
+			emojiBox.SmallImageList = new ImageList { ImageSize = new Size(1, IconSize + 2) };
+			emojiBox.GetCellImage = GetListCellImage;
+
+			var names = emojis.GetNames();
+			emojiBox.BeginUpdate();
+			for (var i = 0; i < names.Length; i++)
+			{
+				emojiBox.Items.Add(new ListViewItem(names[i]) { Tag = emojis[i] });
+			}
+			emojiBox.EndUpdate();
+
+			emojiBox.SetColumnProportions(1f);
+
+			if (emojiBox.Items.Count > 0)
+			{
+				emojiBox.Items[0].Selected = true;
+				emojiBox.Items[0].Focused = true;
+			}
+
+			gridBox.LargeImageList = new ImageList { ImageSize = new Size(GridIconSize + 8, GridIconSize + 8) };
+			gridBox.GetItemImage = GetGridItemImage;
+			gridBox.GetItemLabel = GetGridItemLabel;
+
+			searchPanel.BackColor = UI.ThemeManager.Instance.GetColor("ControlLightLight");
+
+			// generalLink.Active=true is set in the designer to match the grid's initial
+			// scroll position (top, i.e. General); keep this field in sync with it
+			activeCategoryLink = generalLink;
+
+			// building the grid (cheap, but population of a few thousand items still costs
+			// something) runs in the background so the dialog opens immediately on the
+			// List tab; the Grid tab populates whenever it's ready, even if the user has
+			// already switched to it
+			_ = LoadGridAsync();
+		}
+
+		private void EmojiDialog_Shown(object sender, System.EventArgs e)
+		{
+			quickWidth = Width;
+		}
+
+
+		private async Task LoadGridAsync()
+		{
+			try
+			{
+				var loaded = await Task.Run(() => new UnicodeEmojis());
+
+				if (IsDisposed || Disposing)
+				{
+					loaded.Dispose();
+					return;
+				}
+
+				unicodeEmojis = loaded;
+
+				// don't populate gridBox yet if the user hasn't switched to the Grid tab;
+				// DoTabSelected populates it instead, once it's actually visible and sized
+				// to its final dimensions - see the comment there for why that matters
+				if (tabs.SelectedTab == gridTab)
+				{
+					PopulateGrid();
+				}
+			}
+			catch (Exception exc)
+			{
+				Logger.Current.WriteLine("error loading emoji grid", exc);
+			}
 		}
 
 
 		protected override void OnClosed(EventArgs e)
 		{
 			emojis.Dispose();
+			unicodeEmojis?.Dispose();
 		}
 
 		private void OK(object sender, EventArgs e)
@@ -73,67 +172,77 @@ namespace River.OneMoreAddIn.Commands
 
 
 		/// <summary>
-		/// Gets collection of user selected emojis
+		/// Gets collection of user selected emojis from the currently active tab only
 		/// </summary>
 		/// <returns>A collection of IEmoji</returns>
 		public IEnumerable<IEmoji> GetEmojis()
 		{
 			// pre-dispose images so caller doesn't have to
 			emojis.Dispose();
+			unicodeEmojis?.Dispose();
 
-			foreach (int index in selections)
+			var selections = tabs.SelectedTab == gridTab ? gridSelections : listSelections;
+			foreach (var emoji in selections)
 			{
-				yield return emojis[index];
+				yield return emoji;
 			}
 		}
 
 
-		private void MeasureIconItemSIze(object sender, MeasureItemEventArgs e)
+		// supplies MoreListView with the dynamically rendered, theme-aware icon for a row;
+		// re-invoked on every paint so the icon's pre-filled background always matches
+		// whatever MoreListView itself is about to fill behind it (selected or not)
+		private Image GetListCellImage(ListViewItem item, int columnIndex)
 		{
-			e.ItemHeight = 26;
-		}
-
-
-		private void DrawIconItem(object sender, DrawItemEventArgs e)
-		{
-			if (DialogResult == DialogResult.OK)
+			if (DialogResult == DialogResult.OK || item.Tag is not Emoji emoji)
 			{
 				// double-click exit
-				return;
+				return null;
 			}
 
-			Brush brush;
+			return RenderEmojiIcon(emoji, item.Selected, IconSize);
+		}
 
-			if ((e.State & (DrawItemState.Selected | DrawItemState.Focus)) > 0)
+
+		// supplies MoreIconListView with the dynamically rendered, theme-aware icon for a
+		// grid cell; same rationale as GetListCellImage
+		private Image GetGridItemImage(ListViewItem item)
+		{
+			if (DialogResult == DialogResult.OK || item.Tag is not Emoji emoji)
 			{
-				e.Graphics.FillRectangle(SystemBrushes.HotTrack, e.Bounds);
-				brush = SystemBrushes.HighlightText;
-			}
-			else
-			{
-				e.Graphics.FillRectangle(SystemBrushes.Window, e.Bounds);
-				brush = SystemBrushes.ControlText;
+				// double-click exit
+				return null;
 			}
 
+			return RenderEmojiIcon(emoji, item.Selected, GridIconSize);
+		}
+
+
+		// supplies MoreIconListView with the small caption to draw below a grid cell's icon
+		private string GetGridItemLabel(ListViewItem item) =>
+			item.Tag is Emoji emoji ? emoji.Name : null;
+
+
+		private Image RenderEmojiIcon(Emoji emoji, bool selected, int sizePx)
+		{
 			try
 			{
-				e.Graphics.DrawImage(emojis[e.Index].Image, new Rectangle
-				{
-					X = e.Bounds.Location.X + 5,
-					Y = e.Bounds.Location.Y + 1,
-					Width = e.Bounds.Height - 2,
-					Height = e.Bounds.Height - 2
-				});
+				var manager = UI.ThemeManager.Instance;
 
-				e.Graphics.DrawString(
-					emojis[e.Index].Name, DefaultFont, brush,
-					e.Bounds.Location.X + 40, e.Bounds.Location.Y + 1);
+				var background = manager.GetColor(selected ? "Highlight" : "ListView");
+				var fallbackColor = emoji.Color is null
+					? manager.GetColor(selected ? "HighlightText" : "ControlText")
+					: ColorTranslator.FromHtml(emoji.Color);
+
+				return emoji.GetImage(selected, sizePx, background, fallbackColor);
 			}
 			catch
 			{
 				// closing?
+				return null;
 			}
 		}
+
 
 		private void DoubleClickItem(object sender, EventArgs e)
 		{
@@ -142,17 +251,181 @@ namespace River.OneMoreAddIn.Commands
 		}
 
 
-		private void DoSelectedIndexChanged(object sender, EventArgs e)
+		// grows the dialog to comfortably fit the grid the first time it's shown; never
+		// shrinks it back down when returning to the List tab
+		private void DoTabSelected(object sender, EventArgs e)
 		{
-			if (emojiBox.SelectedIndex > -1)
+			if (tabs.SelectedTab != gridTab)
 			{
-				// maintains a list of selection in the order in which they are selected...
-				// with one caveat: doesn't know when a user drags across multiple items
-				// with the mouse bottom-up
-
-				selections.AddRange(emojiBox.SelectedIndices.OfType<int>().Except(selections));
-				selections.RemoveRange(0, selections.Count - emojiBox.SelectedItems.Count);
+				// Compute center before the resize, then resize, then read the actual
+				// resulting Width to set Left — avoids integer-division drift between
+				// quickWidth and the real post-resize pixel width
+				var centerX = Left + Width / 2;
+				Width = quickWidth;
+				Left = centerX - Width / 2;
+				return;
 			}
+
+			var width = Math.Max(Width, 1180);
+			var height = Math.Max(Height, 900);
+
+			if (width != Width || height != Height)
+			{
+				var centerX = Left + Width / 2;
+				Size = new Size(width, height);
+				Left = centerX - Width / 2;
+			}
+
+			// gridBox's native LargeIcon layout (hit-testing, scroll extents) gets baked
+			// in based on the size and visibility it had when items were added. Adding
+			// them earlier - while this tab wasn't yet selected and the dialog was still
+			// at its small initial size - left clicks and scrolling silently out of sync
+			// with what was actually drawn. Populating here instead, after the resize
+			// above and only once this tab is actually showing, avoids that entirely.
+			if (unicodeEmojis != null && gridBox.Items.Count == 0)
+			{
+				PopulateGrid();
+			}
+
+			searchBox.Focus();
+		}
+
+
+		private void DoListSelectionChanged(object sender, EventArgs e)
+		{
+			UpdateSelections(emojiBox, listSelections);
+		}
+
+
+		private void DoGridSelectionChanged(object sender, EventArgs e)
+		{
+			UpdateSelections(gridBox, gridSelections);
+		}
+
+
+		// maintains a list of selections in the order in which they were selected... with
+		// one caveat: doesn't know when a user drags across multiple items with the mouse
+		// bottom-up
+		private static void UpdateSelections(ListView box, List<Emoji> selections)
+		{
+			if (box.SelectedIndices.Count > 0)
+			{
+				var current = box.SelectedItems.Cast<ListViewItem>().Select(i => (Emoji)i.Tag).ToList();
+				selections.AddRange(current.Except(selections));
+				selections.RemoveRange(0, selections.Count - current.Count);
+			}
+		}
+
+
+		// "General" covers any font-supported glyph that isn't part of one of Unicode's
+		// named emoji groups (Emoji.Category is null for those); it's not a real key in
+		// EmojiCategories.json, just the catch-all bucket this dialog presents
+		private const string GeneralCategory = "General";
+
+		// fixed display order for the category links in categoryPanel, and the order
+		// their emoji are grouped into within gridBox
+		private static readonly string[] CategoryOrder =
+		{
+			GeneralCategory,
+			"Smileys & Emotion",
+			"People & Body",
+			"Animals & Nature",
+			"Food & Drink",
+			"Travel & Places",
+			"Activities",
+			"Objects",
+			"Symbols",
+			"Flags"
+		};
+
+
+		// scrolls gridBox so the clicked category's first item lands at the top of the
+		// viewport; ListView.TopItem only supports Details/List view, so for a LargeIcon
+		// view like gridBox, the scroll delta is computed directly from the item's
+		// current bounds (already relative to the current scroll position) instead
+		private void DoCategoryLinkClicked(object sender, EventArgs e)
+		{
+			if (sender is not UI.MoreLinkLabel link ||
+				!categoryStartItems.TryGetValue((string)link.Tag, out var item))
+			{
+				return;
+			}
+
+			activeCategoryLink.Active = false;
+			link.Active = true;
+			activeCategoryLink = link;
+
+			var dy = item.Bounds.Top;
+			if (dy != 0)
+			{
+				Native.SendMessage(gridBox.Handle, Native.LVM_SCROLL, 0, dy);
+			}
+		}
+
+
+		// filters gridBox by name as the user types; only kicks in at 2+ characters so a
+		// single keystroke doesn't flash the grid down to near-nothing, but clearing the
+		// box back to empty always restores the full grid
+		private void FilterGridOnSearchChanged(object sender, EventArgs e)
+		{
+			var text = searchBox.Text;
+			if (text.Length == 0 || text.Length >= 2)
+			{
+				PopulateGrid(text);
+			}
+		}
+
+
+		// groups every emoji in unicodeEmojis into gridBox by category - General first,
+		// then the 9 Unicode groups in CategoryOrder - so each category link has one
+		// contiguous section to scroll to; unicodeEmojis is already codepoint-sorted, so
+		// a single bucketing pass preserves that order within each category. Called once
+		// the first time the Grid tab is shown (see DoTabSelected and LoadGridAsync), and
+		// again on every search box change to rebuild with a different filter - so unlike
+		// the first build, later calls may have selections to preserve.
+		private void PopulateGrid(string filter = null)
+		{
+			if (unicodeEmojis is null)
+			{
+				// background load not finished yet; the eventual LoadGridAsync completion
+				// calls this again once it's ready
+				return;
+			}
+
+			gridBox.BeginUpdate();
+			gridBox.Items.Clear();
+			categoryStartItems.Clear();
+
+			var buckets = CategoryOrder.ToDictionary(c => c, c => new List<Emoji>());
+			for (var i = 0; i < unicodeEmojis.Count; i++)
+			{
+				var emoji = unicodeEmojis[i];
+				if (string.IsNullOrEmpty(filter) || emoji.Name.ContainsICIC(filter))
+				{
+					buckets[emoji.Category ?? GeneralCategory].Add(emoji);
+				}
+			}
+
+			foreach (var category in CategoryOrder)
+			{
+				var bucket = buckets[category];
+				for (var i = 0; i < bucket.Count; i++)
+				{
+					var emoji = bucket[i];
+					var item = new ListViewItem(string.Empty)
+					{
+						Tag = emoji,
+						Selected = gridSelections.Contains(emoji)
+					};
+					gridBox.Items.Add(item);
+
+					if (i == 0)
+					{
+						categoryStartItems[category] = item;
+					}
+				}
+			}
+			gridBox.EndUpdate();
 		}
 	}
 }

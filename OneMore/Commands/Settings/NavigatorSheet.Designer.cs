@@ -32,6 +32,7 @@ namespace River.OneMoreAddIn.Settings
 			this.components = new System.ComponentModel.Container();
 			this.introBox = new River.OneMoreAddIn.UI.MoreMultilineLabel();
 			this.layoutPanel = new System.Windows.Forms.Panel();
+			this.elevateBox = new River.OneMoreAddIn.UI.MoreCheckBox();
 			this.hidePinnedBox = new River.OneMoreAddIn.UI.MoreCheckBox();
 			this.quickBox = new River.OneMoreAddIn.UI.MoreCheckBox();
 			this.advancedGroup = new River.OneMoreAddIn.UI.MoreGroupBox();
@@ -64,6 +65,7 @@ namespace River.OneMoreAddIn.Settings
 			// 
 			// layoutPanel
 			// 
+			this.layoutPanel.Controls.Add(this.elevateBox);
 			this.layoutPanel.Controls.Add(this.hidePinnedBox);
 			this.layoutPanel.Controls.Add(this.quickBox);
 			this.layoutPanel.Controls.Add(this.advancedGroup);
@@ -80,6 +82,23 @@ namespace River.OneMoreAddIn.Settings
 			this.layoutPanel.Size = new System.Drawing.Size(772, 416);
 			this.layoutPanel.TabIndex = 4;
 			// 
+			// elevateBox
+			// 
+			this.elevateBox.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(231)))), ((int)(((byte)(231)))), ((int)(((byte)(231)))));
+			this.elevateBox.Cursor = System.Windows.Forms.Cursors.Hand;
+			this.elevateBox.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(0)))), ((int)(((byte)(0)))));
+			this.elevateBox.Location = new System.Drawing.Point(7, 204);
+			this.elevateBox.Margin = new System.Windows.Forms.Padding(0, 0, 0, 5);
+			this.elevateBox.Name = "elevateBox";
+			this.elevateBox.Size = new System.Drawing.Size(400, 25);
+			this.elevateBox.StylizeImage = false;
+			this.elevateBox.TabIndex = 5;
+			this.elevateBox.Text = "Elevate Navigator when OneNote is elevated";
+			this.elevateBox.ThemedBack = null;
+			this.elevateBox.ThemedFore = null;
+			this.tooltip.SetToolTip(this.elevateBox, "Keep Navigator on top when OneNote has focus");
+			this.elevateBox.UseVisualStyleBackColor = true;
+			// 
 			// hidePinnedBox
 			// 
 			this.hidePinnedBox.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(231)))), ((int)(((byte)(231)))), ((int)(((byte)(231)))));
@@ -90,7 +109,7 @@ namespace River.OneMoreAddIn.Settings
 			this.hidePinnedBox.Name = "hidePinnedBox";
 			this.hidePinnedBox.Size = new System.Drawing.Size(264, 25);
 			this.hidePinnedBox.StylizeImage = false;
-			this.hidePinnedBox.TabIndex = 7;
+			this.hidePinnedBox.TabIndex = 2;
 			this.hidePinnedBox.Text = "Hide the My Reading List panel";
 			this.hidePinnedBox.ThemedBack = null;
 			this.hidePinnedBox.ThemedFore = null;
@@ -106,7 +125,7 @@ namespace River.OneMoreAddIn.Settings
 			this.quickBox.Name = "quickBox";
 			this.quickBox.Size = new System.Drawing.Size(171, 25);
 			this.quickBox.StylizeImage = false;
-			this.quickBox.TabIndex = 2;
+			this.quickBox.TabIndex = 3;
 			this.quickBox.Text = "Track Quick Notes";
 			this.quickBox.ThemedBack = null;
 			this.quickBox.ThemedFore = null;
@@ -226,11 +245,11 @@ namespace River.OneMoreAddIn.Settings
 			this.corrallBox.Cursor = System.Windows.Forms.Cursors.Hand;
 			this.corrallBox.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(0)))), ((int)(((byte)(0)))));
 			this.corrallBox.Location = new System.Drawing.Point(7, 174);
-			this.corrallBox.Margin = new System.Windows.Forms.Padding(0);
+			this.corrallBox.Margin = new System.Windows.Forms.Padding(0, 0, 0, 5);
 			this.corrallBox.Name = "corrallBox";
 			this.corrallBox.Size = new System.Drawing.Size(400, 25);
 			this.corrallBox.StylizeImage = false;
-			this.corrallBox.TabIndex = 3;
+			this.corrallBox.TabIndex = 4;
 			this.corrallBox.Text = "Restrict the Navigator window to the active screen";
 			this.corrallBox.ThemedBack = null;
 			this.corrallBox.ThemedFore = null;
@@ -272,5 +291,6 @@ namespace River.OneMoreAddIn.Settings
 		private UI.MoreCheckBox disabledBox;
 		private UI.MoreCheckBox quickBox;
 		private UI.MoreCheckBox hidePinnedBox;
+		private UI.MoreCheckBox elevateBox;
 	}
 }

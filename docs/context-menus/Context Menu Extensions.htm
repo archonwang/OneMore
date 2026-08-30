@@ -8,14 +8,15 @@
     content="OneMore is an add-in for OneNote with simple and powerful features that make OneNote a better OneNote">
   <meta name="author" content="Steven M Cohn">
   <meta name="generator" content="OneMore">
-  <title>OneMore - a OneNote add-in</title>
+  <title>OneMore: Context Menu Extensions</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha2/dist/css/bootstrap.min.css" rel="stylesheet"
     integrity="sha384-aFq/bzH65dt+w6FI2ooMVUpc+21e0SRygnTpmBvdBgSdnuTN7QbdgL+OapgHtvPp" crossorigin="anonymous">
   <link href="/nav.css" rel="stylesheet">
   <link href="/toc.css" rel="stylesheet">
+  <link href="/pagefind/pagefind-ui.css" rel="stylesheet">
 </head>
 
-<body>
+<body class="sidebar-layout">
   <svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
     <symbol id="book-half" viewBox="0 0 16 16">
       <path fill="currentColor" fill-rule="evenodd"
@@ -83,6 +84,7 @@
           <a class="nav-link" href="/context-menus/index.html" id="context-menus-section">Context Menus</a>
           <a class="nav-link" href="/developers/index.html" id="developers-section">Developers</a>
         </div>
+        <div id="search" class="d-flex flex-grow-1 mx-lg-3"></div>
         <div class="d-flex">
           <a class="nav-link nav-glyph py-2 px-lg-2" href="https://facebook.com/OneMoreAddIn" target="_blank" rel="noopener">
             <svg width="22px" height="22px" viewBox="0 0 512 512" id="fbglyph" xmlns="http://www.w3.org/2000/svg"
@@ -143,14 +145,14 @@
     </nav>
 
     <!-- Page Content -->
-    <div id="content" style="margin-left: 30px; margin-top:100px;">
+    <div id="content">
       <DIV style="DIRECTION: ltr">
 <DIV style="WIDTH: 8.333in; MARGIN-TOP: 0in; DIRECTION: ltr; MARGIN-LEFT: 0in">
 <DIV style="WIDTH: 3.385in; MARGIN-TOP: 0in; DIRECTION: ltr; MARGIN-LEFT: 0in">
 <P style='FONT-SIZE: 20pt; FONT-FAMILY: "Calibri Light"; MARGIN: 0in'>Context Menu Extensions</P></DIV>
 <DIV style="WIDTH: 2.413in; MARGIN-TOP: 0.042in; DIRECTION: ltr; MARGIN-LEFT: 0in">
-<P style="FONT-SIZE: 10pt; FONT-FAMILY: Calibri; COLOR: #767676; MARGIN: 0in">Sunday, February 19, 2023</P>
-<P style="FONT-SIZE: 10pt; FONT-FAMILY: Calibri; COLOR: #767676; MARGIN: 0in">9:50 PM</P></DIV>
+<P style="FONT-SIZE: 10pt; FONT-FAMILY: Calibri; COLOR: #767676; MARGIN: 0in">February 19, 2023</P>
+<P style="FONT-SIZE: 10pt; FONT-FAMILY: Calibri; COLOR: #767676; MARGIN: 0in">Last updated on December 28, 2023</P></DIV>
 <DIV style="WIDTH: 8.333in; MARGIN-TOP: 0.427in; DIRECTION: ltr; MARGIN-LEFT: 0in">
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">OneNote exposes different context menus when you right-click on different parts of its UI. OneMore extends some of these default context menus, adding its own commands to enhance functionality.</P>
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
@@ -185,6 +187,10 @@
     let pageID = '#' + window.location.pathname.match(/.*\/(.*).htm$/)[1];
     pageID = pageID.toLowerCase().replace(/%20| |\./g,'-')
     if ( $(pageID).length > 0) { $(pageID).addClass('active'); }
+  </script>
+  <script src="/pagefind/pagefind-ui.js"></script>
+  <script>
+    new PagefindUI({ element: "#search", showSubResults: true });
   </script>
 </body>
 

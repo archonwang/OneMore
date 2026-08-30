@@ -8,14 +8,15 @@
     content="OneMore is an add-in for OneNote with simple and powerful features that make OneNote a better OneNote">
   <meta name="author" content="Steven M Cohn">
   <meta name="generator" content="OneMore">
-  <title>OneMore - a OneNote add-in</title>
+  <title>OneMore: OneMore Calendar</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha2/dist/css/bootstrap.min.css" rel="stylesheet"
     integrity="sha384-aFq/bzH65dt+w6FI2ooMVUpc+21e0SRygnTpmBvdBgSdnuTN7QbdgL+OapgHtvPp" crossorigin="anonymous">
   <link href="/nav.css" rel="stylesheet">
   <link href="/toc.css" rel="stylesheet">
+  <link href="/pagefind/pagefind-ui.css" rel="stylesheet">
 </head>
 
-<body>
+<body class="sidebar-layout">
   <svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
     <symbol id="book-half" viewBox="0 0 16 16">
       <path fill="currentColor" fill-rule="evenodd"
@@ -83,6 +84,7 @@
           <a class="nav-link" href="/context-menus/index.html" id="context-menus-section">Context Menus</a>
           <a class="nav-link" href="/developers/index.html" id="developers-section">Developers</a>
         </div>
+        <div id="search" class="d-flex flex-grow-1 mx-lg-3"></div>
         <div class="d-flex">
           <a class="nav-link nav-glyph py-2 px-lg-2" href="https://facebook.com/OneMoreAddIn" target="_blank" rel="noopener">
             <svg width="22px" height="22px" viewBox="0 0 512 512" id="fbglyph" xmlns="http://www.w3.org/2000/svg"
@@ -129,32 +131,37 @@
             <li><a id="basics" href="Basics.htm">Basics</a></li>
 <li><a id="command-palette" href="Command Palette.htm">Command Palette</a></li>
 <li><a id="quick-palette" href="Quick Palette.htm">Quick Palette</a></li>
+<li><a id="favorites" href="Favorites.htm">Favorites</a></li>
+<li><a id="layouts" href="Layouts.htm">Layouts</a></li>
 <li><a id="navigator" href="Navigator.htm">Navigator</a></li>
 <li><a id="onemore-calendar" href="OneMore Calendar.htm">OneMore Calendar</a></li>
+<li><a id="onemore-cli" href="OneMore CLI.htm">OneMore CLI</a></li>
+<li><a id="onemore-user-data" href="OneMore User Data.htm">OneMore User Data</a></li>
 <li><a id="settings" href="Settings.htm">Settings</a></li>
 <li><a id="onenote-qat" href="OneNote QAT.htm">OneNote QAT</a></li>
 <li><a id="onenote-keyboard-shortcuts" href="OneNote Keyboard Shortcuts.htm">OneNote Keyboard Shortcuts</a></li>
+<li><a id="restore-a-notebook" href="Restore a Notebook.htm">Restore a Notebook</a></li>
           </ul>
         </div>
       </div>
     </nav>
 
     <!-- Page Content -->
-    <div id="content" style="margin-left: 30px; margin-top:100px;">
+    <div id="content">
       <DIV style="DIRECTION: ltr">
 <DIV style="WIDTH: 8.437in; MARGIN-TOP: 0in; DIRECTION: ltr; MARGIN-LEFT: 0in">
 <DIV style="WIDTH: 2.666in; MARGIN-TOP: 0in; DIRECTION: ltr; MARGIN-LEFT: 0in">
 <P lang=yo style='FONT-SIZE: 20pt; FONT-FAMILY: "Calibri Light"; MARGIN: 0in'>OneMore Calendar</P></DIV>
 <DIV style="WIDTH: 2.413in; MARGIN-TOP: 0.042in; DIRECTION: ltr; MARGIN-LEFT: 0in">
-<P style="FONT-SIZE: 10pt; FONT-FAMILY: Calibri; COLOR: #767676; MARGIN: 0in">Sunday, February 19, 2023</P>
-<P style="FONT-SIZE: 10pt; FONT-FAMILY: Calibri; COLOR: #767676; MARGIN: 0in">6:28 PM</P></DIV>
+<P style="FONT-SIZE: 10pt; FONT-FAMILY: Calibri; COLOR: #767676; MARGIN: 0in">February 19, 2023</P>
+<P style="FONT-SIZE: 10pt; FONT-FAMILY: Calibri; COLOR: #767676; MARGIN: 0in">Last updated on July 31, 2026</P></DIV>
 <DIV style="WIDTH: 8.437in; MARGIN-TOP: 0.427in; DIRECTION: ltr; MARGIN-LEFT: 0in">
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">The OneMore Calendar is a separate program accessible from the OneMore main menu. It displays a monthly calendar showing </P>
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">pages that were created and modified on each day.</P>
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
-<P style="MARGIN: 0in 0in 0in 0.375in"><IMG alt=Calendar src="OneMore%20Calendar_files/image001.png" width=711 height=473></P>
+<P style="MARGIN: 0in 0in 0in 0.375in"><IMG alt=Calendar src="/the-basics/OneMore%20Calendar_files/image001.png" width=711 height=473></P>
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
-<H1 lang=yo style="FONT-SIZE: 16pt; FONT-FAMILY: Calibri; COLOR: #1e4e79; MARGIN: 0in">Features</H1>
+<H1 lang=yo id=features style="FONT-SIZE: 16pt; FONT-FAMILY: Calibri; COLOR: #1e4e79; MARGIN: 0in">Features</H1>
 <UL style="MARGIN-BOTTOM: 0in; unicode-bidi: embed; MARGIN-TOP: 0in; DIRECTION: ltr" type=disc>
 <LI lang=yo style="MARGIN-BOTTOM: 0px; VERTICAL-ALIGN: middle; MARGIN-TOP: 0px"><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri">Click the month/year title to jump to a specific year</SPAN> 
 <LI lang=yo style="MARGIN-BOTTOM: 0px; VERTICAL-ALIGN: middle; MARGIN-TOP: 0px"><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri">Click the day number in the month view to jump to the detail view</SPAN> 
@@ -164,12 +171,12 @@
 <LI lang=yo style="MARGIN-BOTTOM: 0px; VERTICAL-ALIGN: middle; MARGIN-TOP: 0px"><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri">Optionally display deleted pages</SPAN> 
 <LI lang=yo style="MARGIN-BOTTOM: 0px; VERTICAL-ALIGN: middle; MARGIN-TOP: 0px"><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri">Light mode or dark mode</SPAN> </LI></UL>
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
-<H2 lang=yo style="FONT-SIZE: 14pt; FONT-FAMILY: Calibri; COLOR: #2e75b5; MARGIN: 0in">Reminders</H2>
+<H2 lang=yo id=reminders style="FONT-SIZE: 14pt; FONT-FAMILY: Calibri; COLOR: #2e75b5; MARGIN: 0in">Reminders</H2>
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">A bell icon is displayed next to pages that have at least one Reminder. This appears in both the month view and the list view.</P>
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
-<P style="MARGIN: 0in 0in 0in 0.375in"><IMG src="OneMore%20Calendar_files/image002.png" width=213 height=173></P>
+<P style="MARGIN: 0in 0in 0in 0.375in"><IMG src="/the-basics/OneMore%20Calendar_files/image002.png" width=213 height=173></P>
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
-<H1 lang=yo style="FONT-SIZE: 16pt; FONT-FAMILY: Calibri; COLOR: #1e4e79; MARGIN: 0in">Keyboard shorcuts</H1>
+<H1 lang=yo id=keyboard-shortcuts style="FONT-SIZE: 16pt; FONT-FAMILY: Calibri; COLOR: #1e4e79; MARGIN: 0in">Keyboard shortcuts</H1>
 <UL style="MARGIN-BOTTOM: 0in; unicode-bidi: embed; MARGIN-TOP: 0in; DIRECTION: ltr" type=disc>
 <LI lang=yo style="MARGIN-BOTTOM: 0px; VERTICAL-ALIGN: middle; MARGIN-TOP: 0px"><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri">Page up (or Ctrl+Left) - show previous month</SPAN> 
 <LI lang=yo style="MARGIN-BOTTOM: 0px; VERTICAL-ALIGN: middle; MARGIN-TOP: 0px"><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri">Page down (or Ctrl+Right) - show next month</SPAN> 
@@ -177,8 +184,8 @@
 <LI lang=yo style="MARGIN-BOTTOM: 0px; VERTICAL-ALIGN: middle; MARGIN-TOP: 0px"><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri">Alt+Tab - switch between month view and detail view</SPAN> 
 <LI lang=yo style="MARGIN-BOTTOM: 0px; VERTICAL-ALIGN: middle; MARGIN-TOP: 0px"><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri">F5 - refresh the current view</SPAN> </LI></UL>
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
-<H1 lang=yo style="FONT-SIZE: 16pt; FONT-FAMILY: Calibri; COLOR: #1e4e79; MARGIN: 0in">Command Line</H1>
-<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">You can run OneMoreCalendar.exe from the command line. The program accept one argument, the month and year to display. Of course, it shows the current month and year by default. But you can specify any date in the past, for example</P>
+<H1 lang=yo id=command-line style="FONT-SIZE: 16pt; FONT-FAMILY: Calibri; COLOR: #1e4e79; MARGIN: 0in">Command Line</H1>
+<P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">You can run OneMoreCalendar.exe from the command line. The program accepts one argument, the month and year to display. Of course, it shows the current month and year by default. But you can specify any date in the past, for example</P>
 <P lang=yo style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri; MARGIN: 0in">&nbsp;</P>
 <UL style="MARGIN-BOTTOM: 0in; unicode-bidi: embed; MARGIN-TOP: 0in; DIRECTION: ltr" type=disc>
 <LI lang=yo style="MARGIN-BOTTOM: 0px; VERTICAL-ALIGN: middle; MARGIN-TOP: 0px"><SPAN style="FONT-SIZE: 11.5pt; FONT-FAMILY: Calibri">.\OneMoreCalendar.exe "2025-02"</SPAN> 
@@ -204,6 +211,10 @@
     let pageID = '#' + window.location.pathname.match(/.*\/(.*).htm$/)[1];
     pageID = pageID.toLowerCase().replace(/%20| |\./g,'-')
     if ( $(pageID).length > 0) { $(pageID).addClass('active'); }
+  </script>
+  <script src="/pagefind/pagefind-ui.js"></script>
+  <script>
+    new PagefindUI({ element: "#search", showSubResults: true });
   </script>
 </body>
 

@@ -4,6 +4,8 @@
 
 namespace River.OneMoreAddIn.Commands
 {
+	using River.OneMoreAddIn.Models;
+	using System.Text.RegularExpressions;
 	using System.Threading.Tasks;
 	using System.Xml.Linq;
 	using Resx = Properties.Resources;
@@ -16,6 +18,9 @@ namespace River.OneMoreAddIn.Commands
 	/// </summary>
 	internal class InsertSnippetCommand : Command
 	{
+		private const string DateTimePattern = @"{=DATETIME\(([^""]+)\)}";
+		private const string BodyTag = "{SNIPPET_BODY}";
+
 
 		public InsertSnippetCommand()
 		{
@@ -31,7 +36,7 @@ namespace River.OneMoreAddIn.Commands
 
 			await using var one = new OneNote(out var page, out _);
 
-			if (!page.ConfirmBodyContext())
+			if (page is null || !page.ConfirmBodyContext())
 			{
 				ShowError(Resx.Error_BodyContext);
 				return;
@@ -44,14 +49,14 @@ namespace River.OneMoreAddIn.Commands
 			{
 				// assume Expand command and infer name from current word...
 
-				path = new Models.PageEditor(page).GetSelectedText();
+				path = new PageEditor(page).GetSelectedText();
 				if (!string.IsNullOrWhiteSpace(path))
 				{
 					snippet = await provider.LoadByName(path);
 					if (!string.IsNullOrEmpty(snippet))
 					{
 						// remove placeholder
-						var updated = new Models.PageEditor(page).EditSelected((s) =>
+						var updated = new PageEditor(page).EditSelected((s) =>
 						{
 							if (s is XText text)
 							{
@@ -85,21 +90,103 @@ namespace River.OneMoreAddIn.Commands
 			var clippy = new ClipboardProvider();
 			await clippy.StashState();
 
-			var success = await clippy.SetHtml(snippet);
-			if (success)
+			try
 			{
-				await ClipboardProvider.Paste(true);
+				snippet = await Expand(page, snippet);
+
+				await clippy.Clear();
+				var success = await clippy.SetHtml(snippet);
+				if (success)
+				{
+					await ClipboardProvider.Paste();
+				}
+				else
+				{
+					ShowInfo(Resx.Clipboard_locked);
+				}
 			}
-			else
+			finally
 			{
-				ShowInfo(Resx.Clipboard_locked);
+				var success = await clippy.RestoreState();
+				if (!success)
+				{
+					ShowInfo(Resx.Clipboard_norestore);
+				}
+			}
+		}
+
+
+		private async Task<string> Expand(Page page, string snippet)
+		{
+			// process datetime patterns
+			snippet = Regex.Replace(snippet, DateTimePattern, (m) =>
+			{
+				var format = m.Groups[1].Value;
+				try
+				{
+					return System.DateTime.Now.ToString(format);
+				}
+				catch
+				{
+					// invalid format, return default datetime formatted string
+					return System.DateTime.Now.ToString();
+				}
+			}, RegexOptions.IgnoreCase);
+
+			if (snippet.ContainsICIC(BodyTag))
+			{
+				snippet = await ExpandSnippetBody(page, snippet);
 			}
 
-			success = await clippy.RestoreState();
-			if (!success)
+			return snippet;
+		}
+
+
+		private async Task<string> ExpandSnippetBody(Page page, string snippet)
+		{
+			var range = new SelectionRange(page);
+			_ = range.GetSelection(true);
+			if (range.Scope != SelectionScope.TextCursor)
 			{
-				ShowInfo(Resx.Clipboard_norestore);
+				// selection range found so move it into snippet
+				var editor = new PageEditor(page)
+				{
+					// the extracted content will be selected=all, keep it that way
+					KeepSelected = true
+				};
+
+				var content = editor.ExtractSelectedContent(breakParagraph: true);
+
+				if (!content.HasElements)
+				{
+					ShowError(Resx.Error_BodyContext);
+					logger.WriteLine("error reading page content!");
+					return snippet;
+				}
+
+				editor.Deselect();
+				editor.FollowWithCurosr(content);
+
+				// copy the selected content to the clipboard where it can be transformed to HTML
+				await ClipboardProvider.Copy();
+
+				var html = await ClipboardProvider.GetHtml();
+				if (html is null)
+				{
+					logger.WriteLine("error reading clipboard HTML after copy");
+					return snippet;
+				}
+
+				html = ClipboardProvider.UnwrapHtml(html);
+
+				snippet = snippet.ReplaceIgnoreCase(BodyTag, html);
+
+				// recalculate preamble offsets
+				snippet = ClipboardProvider.WrapWithHtmlPreamble(
+					ClipboardProvider.UnwrapHtml(snippet));
 			}
+
+			return snippet;
 		}
 	}
 }

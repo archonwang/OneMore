@@ -11,6 +11,8 @@ namespace OneMoreCalendar
 	using System.Globalization;
 	using System.IO;
 	using System.Linq;
+	using System.Runtime.InteropServices;
+	using System.Threading;
 	using System.Threading.Tasks;
 	using System.Xml.Linq;
 
@@ -21,6 +23,10 @@ namespace OneMoreCalendar
 	/// </summary>
 	internal class OneNoteProvider
 	{
+		[DllImport("user32.dll")]
+		[return: MarshalAs(UnmanagedType.Bool)]
+		public static extern bool SetForegroundWindow(IntPtr hWnd);
+
 
 		/// <summary>
 		/// Export an EMF representation of the specified page to the TEMP folder
@@ -33,8 +39,16 @@ namespace OneMoreCalendar
 				Path.GetTempPath(),
 				Path.GetFileNameWithoutExtension(Path.GetRandomFileName()) + ".emf");
 
-			await using var one = new OneNote();
-			one.Export(pageID, path, OneNote.ExportFormat.EMF);
+			try
+			{
+				await using var one = new OneNote();
+				one.Export(pageID, path, OneNote.ExportFormat.EMF);
+			}
+			catch (Exception exc)
+			{
+				Logger.Current.WriteLine($"error exporting page {pageID}", exc);
+				throw;
+			}
 
 			return path;
 		}
@@ -55,8 +69,6 @@ namespace OneMoreCalendar
 			IEnumerable<string> notebookIDs,
 			bool created, bool modified, bool deleted)
 		{
-			await using var one = new OneNote();
-
 			var notebooks = await GetNotebooks(notebookIDs);
 			var ns = notebooks.GetNamespaceOfPrefix(OneNote.Prefix);
 
@@ -114,45 +126,53 @@ namespace OneMoreCalendar
 
 		private async Task<XElement> GetNotebooks(IEnumerable<string> ids)
 		{
-			// attempt optimal ways to load...
-
-			await using var one = new OneNote();
-
-			if (!ids.Any())
+			try
 			{
-				return await one.GetNotebooks(OneNote.Scope.Pages);
-			}
+				// attempt optimal ways to load...
 
-			var notebooks = await one.GetNotebooks();
-			var ns = notebooks.GetNamespaceOfPrefix(OneNote.Prefix);
-			if (ids.Count() == notebooks.Elements(ns + "Notebook").Count())
-			{
-				var found = ids.Count(i => notebooks
-					.Elements(ns + "Notebook")
-					.Any(e => e.Attribute("ID").Value == i));
+				await using var one = new OneNote();
 
-				if (found == ids.Count())
+				if (!ids.Any())
 				{
 					return await one.GetNotebooks(OneNote.Scope.Pages);
 				}
+
+				var notebooks = await one.GetNotebooks();
+				var ns = notebooks.GetNamespaceOfPrefix(OneNote.Prefix);
+				if (ids.Count() == notebooks.Elements(ns + "Notebook").Count())
+				{
+					var found = ids.Count(i => notebooks
+						.Elements(ns + "Notebook")
+						.Any(e => e.Attribute("ID").Value == i));
+
+					if (found == ids.Count())
+					{
+						return await one.GetNotebooks(OneNote.Scope.Pages);
+					}
+				}
+
+				// filter out unknown notebookIDs to avoid uncatchable exception!
+				var nids = notebooks.Elements(ns + "Notebook").Select(e => e.Attribute("ID").Value);
+				var knownIDs = ids.Where(i => nids.Contains(i));
+
+				var books = new XElement(ns + "Notebooks",
+					new XAttribute(XNamespace.Xmlns + OneNote.Prefix, ns)
+					);
+
+				foreach (var id in knownIDs)
+				{
+					var book = await one.GetNotebook(id, OneNote.Scope.Pages);
+					books.Add(book);
+				}
+
+				// return filtered list; otherwise return all notebooks
+				return books.Elements().Any() ? books : notebooks;
 			}
-
-			// filter out unknown notebookIDs to avoid uncatchable exception!
-			var nids = notebooks.Elements(ns + "Notebook").Select(e => e.Attribute("ID").Value);
-			var knownIDs = ids.Where(i => nids.Contains(i));
-
-			var books = new XElement(ns + "Notebooks",
-				new XAttribute(XNamespace.Xmlns + OneNote.Prefix, ns)
-				);
-
-			foreach (var id in knownIDs)
+			catch (Exception exc)
 			{
-				var book = await one.GetNotebook(id, OneNote.Scope.Pages);
-				books.Add(book);
+				Logger.Current.WriteLine("error fetching notebooks", exc);
+				throw;
 			}
-
-			// return filtered list; otherwise return all notebooks
-			return books.Elements().Any() ? books : notebooks;
 		}
 
 
@@ -162,12 +182,20 @@ namespace OneMoreCalendar
 		/// <returns></returns>
 		public async Task<IEnumerable<Notebook>> GetNotebooks()
 		{
-			await using var one = new OneNote();
-			var notebooks = await one.GetNotebooks();
-			var ns = notebooks.GetNamespaceOfPrefix(OneNote.Prefix);
+			try
+			{
+				await using var one = new OneNote();
+				var notebooks = await one.GetNotebooks();
+				var ns = notebooks.GetNamespaceOfPrefix(OneNote.Prefix);
 
-			return notebooks.Elements(ns + "Notebook")
-				.Select(e => new Notebook(e));
+				return notebooks.Elements(ns + "Notebook")
+					.Select(e => new Notebook(e));
+			}
+			catch (Exception exc)
+			{
+				Logger.Current.WriteLine("error fetching notebooks", exc);
+				throw;
+			}
 		}
 
 
@@ -175,12 +203,30 @@ namespace OneMoreCalendar
 		/// Gets the onenote:hyperlink and Web hyperlink for each page.
 		/// </summary>
 		/// <param name="pages">A collection of CalendarPages</param>
+		/// <param name="token">
+		/// A token that, when canceled, stops the fetch after the current page completes
+		/// </param>
+		/// <param name="setMaximum">Called once, up front, with the total number of pages</param>
+		/// <param name="stepCallback">
+		/// Called after each page is processed, whether it succeeded or failed
+		/// </param>
 		/// <returns></returns>
-		public async Task GetPageLinks(List<CalendarPage> pages)
+		public async Task GetPageLinks(
+			List<CalendarPage> pages,
+			CancellationToken token = default,
+			Action<int> setMaximum = null,
+			Func<CalendarPage, Task> stepCallback = null)
 		{
+			setMaximum?.Invoke(pages.Count);
+
 			await using var one = new OneNote();
 			foreach (var page in pages)
 			{
+				if (token.IsCancellationRequested)
+				{
+					break;
+				}
+
 				try
 				{
 					page.Hyperlink = one.GetHyperlink(page.PageID, string.Empty);
@@ -190,6 +236,11 @@ namespace OneMoreCalendar
 				{
 					Logger.Current.WriteLine("error getting page hyperlinks", exc);
 					page.Hyperlink = null;
+				}
+
+				if (stepCallback != null)
+				{
+					await stepCallback(page);
 				}
 			}
 		}
@@ -202,21 +253,29 @@ namespace OneMoreCalendar
 		/// <returns></returns>
 		public async Task<IEnumerable<int>> GetYears(IEnumerable<string> notebookIDs)
 		{
-			await using var one = new OneNote();
-			var notebooks = await GetNotebooks(notebookIDs);
-			var ns = notebooks.GetNamespaceOfPrefix(OneNote.Prefix);
+			try
+			{
+				await using var one = new OneNote();
+				var notebooks = await GetNotebooks(notebookIDs);
+				var ns = notebooks.GetNamespaceOfPrefix(OneNote.Prefix);
 
-			var pages = notebooks.Descendants(ns + "Page");
+				var pages = notebooks.Descendants(ns + "Page");
 
-			var years = pages
-				.Select(p => DateTime.Parse(
-					p.Attribute("dateTime").Value, DateTimeFormatInfo.CurrentInfo).Year)
-				.Union(pages.Select(p => DateTime.Parse(
-					p.Attribute("lastModifiedTime").Value, DateTimeFormatInfo.CurrentInfo).Year))
-				.Distinct()
-				.OrderByDescending(y => y);
+				var years = pages
+					.Select(p => DateTime.Parse(
+						p.Attribute("dateTime").Value, DateTimeFormatInfo.CurrentInfo).Year)
+					.Union(pages.Select(p => DateTime.Parse(
+						p.Attribute("lastModifiedTime").Value, DateTimeFormatInfo.CurrentInfo).Year))
+					.Distinct()
+					.OrderByDescending(y => y);
 
-			return years;
+				return years;
+			}
+			catch (Exception exc)
+			{
+				Logger.Current.WriteLine("error fetching years for calendar", exc);
+				throw;
+			}
 		}
 
 
@@ -227,11 +286,20 @@ namespace OneMoreCalendar
 		/// <returns></returns>
 		public async Task NavigateTo(string pageID)
 		{
-			await using var one = new OneNote();
-			var url = one.GetHyperlink(pageID, string.Empty);
-			if (!string.IsNullOrEmpty(url))
+			try
 			{
-				await one.NavigateTo(url);
+				await using var one = new OneNote();
+				var url = one.GetHyperlink(pageID, string.Empty);
+				if (!string.IsNullOrEmpty(url))
+				{
+					await one.NavigateTo(url);
+					SetForegroundWindow(one.WindowHandle);
+				}
+			}
+			catch (Exception exc)
+			{
+				Logger.Current.WriteLine($"error navigating to page {pageID}", exc);
+				throw;
 			}
 		}
 	}

@@ -36,8 +36,17 @@ namespace River.OneMoreAddIn.Commands
 
 		public override async Task Execute(params object[] args)
 		{
+			using var guard = EnterOnce();
+			if (guard is null) { return; }
+
 			await using var one = new OneNote(
-				out parentPage, out var ns, OneNote.PageDetail.Selection);
+			out parentPage, out var ns, OneNote.PageDetail.Selection);
+
+			if (parentPage is null)
+			{
+				ShowError(Resx.CrawlWebCommand_NoHyperlinks);
+				return;
+			}
 
 			var candidates = GetHyperlinks(parentPage);
 			if (!candidates.Any())

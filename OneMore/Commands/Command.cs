@@ -5,11 +5,15 @@
 namespace River.OneMoreAddIn
 {
 	using Microsoft.Office.Core;
+	using River.OneMoreAddIn.Cli;
 	using System;
 	using System.Collections.Generic;
+	using System.Linq;
+	using System.Threading;
 	using System.Threading.Tasks;
 	using System.Windows.Forms;
 	using System.Xml.Linq;
+	using Resx = Properties.Resources;
 
 
 	/// <summary>
@@ -18,14 +22,18 @@ namespace River.OneMoreAddIn
 	/// </summary>
 	internal abstract class Command
 	{
+		private static readonly HashSet<Type> activeCommandTypes = new();
 
 		// commands are injected with logger, ribbon, owner window, and the tash collector...
 
 		protected ILogger logger;
+		protected CliLogger cliLogger;
 		protected IRibbonUI ribbon;
 		protected IWin32Window owner;
 		protected CommandFactory factory;
 		protected List<IDisposable> trash;
+		protected bool runningFromCli;
+		protected Func<string, Task> progressReporter;
 
 
 		/// <summary>
@@ -37,6 +45,30 @@ namespace River.OneMoreAddIn
 			get;
 			protected set;
 		}
+
+
+		/// <summary>
+		/// Text output produced by a CLI command; populated during Execute and read by
+		/// CommandService to return through the named pipe to the CLI console process.
+		/// </summary>
+		public string CliOutput
+		{
+			get;
+			internal set;
+		}
+
+
+		/// <summary>
+		/// Cancellation token for the command, set by CommandFactory before Execute is called.
+		/// Defaults to CancellationToken.None for commands run outside of a cancellable CLI
+		/// batch (ribbon, Replay, the legacy protocol handler). Commands that loop internally
+		/// over many items may check this between iterations to support cancellation.
+		/// </summary>
+		public CancellationToken Cancellation
+		{
+			get;
+			private set;
+		} = CancellationToken.None;
 
 
 		/*
@@ -75,6 +107,17 @@ namespace River.OneMoreAddIn
 
 		// Setters used by CommandFactory...
 
+		public void RunFromCli()
+		{
+			runningFromCli = true;
+		}
+
+		public Command SetCancellation(CancellationToken value)
+		{
+			Cancellation = value;
+			return this;
+		}
+
 		public Command SetFactory(CommandFactory value)
 		{
 			factory = value;
@@ -84,6 +127,13 @@ namespace River.OneMoreAddIn
 		public Command SetLogger(ILogger value)
 		{
 			logger = value;
+			return this;
+		}
+
+
+		public Command SetCliLogger(CliLogger value)
+		{
+			cliLogger = value;
 			return this;
 		}
 
@@ -109,10 +159,37 @@ namespace River.OneMoreAddIn
 		}
 
 
+		public Command SetProgressReporter(Func<string, Task> value)
+		{
+			progressReporter = value;
+			return this;
+		}
+
+
+		/// <summary>
+		/// Reports incremental progress while a CLI command is running. No-op outside of a
+		/// CLI invocation, where no <see cref="progressReporter"/> is set.
+		/// </summary>
+		/// <param name="message">Text describing the current step</param>
+		protected async Task ReportProgress(string message)
+		{
+			if (progressReporter != null)
+			{
+				await progressReporter(message);
+			}
+		}
+
+
 		// MessageBox helpers...
 
 		protected void ShowError(string message)
 		{
+			if (runningFromCli)
+			{
+				logger?.WriteLine($"error: {message}");
+				return;
+			}
+
 			UI.MoreMessageBox.ShowError(owner, message);
 		}
 
@@ -130,6 +207,73 @@ namespace River.OneMoreAddIn
 			box.SetIcon(MessageBoxIcon.None);
 
 			UI.MoreMessageBox.Show(owner, message);
+		}
+
+
+		// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+		// shared helpers...
+
+		/// <summary>
+		/// Guards against the known OneNote COM Interop issue where the API can report
+		/// content from the wrong window when the same page is open in more than one
+		/// OneNote window (see GH #1563, #2444). Warns the user and lets them decide
+		/// whether to proceed with a possibly-incorrect selection.
+		/// </summary>
+		/// <param name="one">The active OneNote wrapper</param>
+		/// <param name="pageId">The ID of the page being acted upon</param>
+		/// <returns>True if the command should proceed, false if it should abort</returns>
+		protected async Task<bool> ConfirmSingleWindow(OneNote one, string pageId)
+		{
+			var windows = await one.GetWindows();
+			if (windows.Count(w => w.CurrentPageId == pageId) <= 1)
+			{
+				return true;
+			}
+
+			return UI.MoreMessageBox.ShowQuestion(owner, Resx.Command_multiWindowWarning)
+				== DialogResult.Yes;
+		}
+
+
+		/// <summary>
+		/// Acquires a re-entry guard scoped to this command's concrete type: only one
+		/// invocation of a given command type may hold the guard at a time. Returns null
+		/// if another invocation of the same type is already active - callers should
+		/// treat null as "bail out". Dispose the returned token to release the guard as
+		/// soon as this command's own UI is no longer pending, which is not necessarily
+		/// when Execute() itself returns: RunModeless leaves Execute() suspended for as
+		/// long as its dialog stays open when called from a thread with no message loop
+		/// of its own (see SearchCommand/SearchTitleCommand/CompleteHashtagCommand).
+		/// </summary>
+		protected IDisposable EnterOnce()
+		{
+			var type = GetType();
+			lock (activeCommandTypes)
+			{
+				if (!activeCommandTypes.Add(type))
+				{
+					return null;
+				}
+			}
+
+			return new Guard(type);
+		}
+
+
+		private sealed class Guard : IDisposable
+		{
+			private Type type;
+
+			public Guard(Type type) => this.type = type;
+
+			public void Dispose()
+			{
+				if (type is not null)
+				{
+					lock (activeCommandTypes) { activeCommandTypes.Remove(type); }
+					type = null;
+				}
+			}
 		}
 	}
 }

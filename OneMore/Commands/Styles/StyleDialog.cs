@@ -26,6 +26,17 @@ namespace River.OneMoreAddIn.Commands
 
 	internal partial class StyleDialog : MoreForm
 	{
+		private static readonly StyleType[] styleTypeOrder =
+		{
+			StyleType.Heading,
+			StyleType.PageTitle,
+			StyleType.Citation,
+			StyleType.Quote,
+			StyleType.Code,
+			StyleType.Paragraph,
+			StyleType.Character,
+		};
+
 		private Color pageColor;
 		private readonly Color originalColor;
 		private readonly bool darkMode;
@@ -144,6 +155,7 @@ namespace River.OneMoreAddIn.Commands
 					"fontLabel",
 					"styleTypeLabel",
 					"applyColorsBox",
+					"isCodeBox",
 					// options
 					"optionsGroup=word_Options",
 					"darkBox",
@@ -153,8 +165,21 @@ namespace River.OneMoreAddIn.Commands
 					"cancelButton=word_Cancel"
 				});
 
-				styleTypeBox.Items.Clear();
-				styleTypeBox.Items.AddRange(Resx.StyleDialog_styleTypeBox_Items.Split('\n'));
+				var localizedItems = Resx.StyleDialog_styleTypeBox_Items.Split('\n');
+				if (localizedItems.Length == styleTypeOrder.Length)
+				{
+					styleTypeBox.Items.Clear();
+					styleTypeBox.Items.AddRange(localizedItems);
+				}
+				else
+				{
+					// translation is out of sync with styleTypeOrder; fall back to the
+					// English designer items rather than crash on an out-of-range index
+					Logger.Current.WriteLine(
+						$"StyleDialog: styleTypeBox localization count mismatch for culture " +
+						$"{AddIn.Culture.Name} ({localizedItems.Length} vs {styleTypeOrder.Length} expected); " +
+						"using English fallback");
+				}
 			}
 
 			if (AddIn.Culture.NumberFormat.NumberDecimalSeparator != ".")
@@ -166,7 +191,7 @@ namespace River.OneMoreAddIn.Commands
 				}
 			}
 
-			styleTypeBox.SelectedIndex = (int)StyleType.Paragraph;
+			styleTypeBox.SelectedIndex = Array.IndexOf(styleTypeOrder, StyleType.Paragraph);
 			familyBox.SelectedIndex = familyBox.Items.IndexOf(StyleBase.DefaultFontFamily);
 			sizeBox.SelectedIndex = sizeBox.Items.IndexOf(StyleBase.DefaultFontSize.ToString());
 			spaceAfterSpinner.Value = 0;
@@ -298,7 +323,7 @@ namespace River.OneMoreAddIn.Commands
 			// nameBox may not be visible but oh well
 			nameBox.Text = selection.Name;
 
-			styleTypeBox.SelectedIndex = (int)selection.StyleType;
+			styleTypeBox.SelectedIndex = Array.IndexOf(styleTypeOrder, selection.StyleType);
 			familyBox.Text = selection.FontFamily;
 
 			// normalize number to remove ".0"
@@ -313,6 +338,7 @@ namespace River.OneMoreAddIn.Commands
 			subButton.Checked = selection.IsSubscript;
 
 			applyColorsBox.Checked = selection.ApplyColors;
+			isCodeBox.Checked = selection.IsCode;
 			ignoredBox.Checked = selection.Ignored;
 
 			if (double.TryParse(selection.SpaceAfter, NumberStyles.Any, CultureInfo.InvariantCulture, out var sa))
@@ -506,7 +532,7 @@ namespace River.OneMoreAddIn.Commands
 			{
 				if (eventing)
 				{
-					selection.StyleType = (StyleType)styleTypeBox.SelectedIndex;
+					selection.StyleType = styleTypeOrder[styleTypeBox.SelectedIndex];
 				}
 
 				switch (selection.StyleType)
@@ -515,13 +541,32 @@ namespace River.OneMoreAddIn.Commands
 						spaceAfterSpinner.Enabled = false;
 						spaceBeforeSpinner.Enabled = false;
 						spacingSpinner.Enabled = false;
+						isCodeBox.Enabled = isCodeBox.Checked = false;
 						break;
 
 					case StyleType.Paragraph:
-					case StyleType.Heading:
 						spaceAfterSpinner.Enabled = true;
 						spaceBeforeSpinner.Enabled = true;
 						spacingSpinner.Enabled = true;
+						isCodeBox.Enabled = true;
+						break;
+
+					case StyleType.Heading:
+					case StyleType.PageTitle:
+					case StyleType.Citation:
+					case StyleType.Quote:
+						spaceAfterSpinner.Enabled = true;
+						spaceBeforeSpinner.Enabled = true;
+						spacingSpinner.Enabled = true;
+						isCodeBox.Enabled = isCodeBox.Checked = false;
+						break;
+
+					case StyleType.Code:
+						spaceAfterSpinner.Enabled = true;
+						spaceBeforeSpinner.Enabled = true;
+						spacingSpinner.Enabled = true;
+						isCodeBox.Enabled = true;
+						isCodeBox.Checked = true;
 						break;
 				}
 			}
@@ -675,6 +720,12 @@ namespace River.OneMoreAddIn.Commands
 		}
 
 
+		private void ChangeIsCodeOption(object sender, EventArgs e)
+		{
+			selection.IsCode = isCodeBox.Checked;
+		}
+
+
 		private void ChangeIgnored(object sender, EventArgs e)
 		{
 			selection.Ignored = ignoredBox.Checked;
@@ -759,7 +810,7 @@ namespace River.OneMoreAddIn.Commands
 
 			namesBox.Items.Add(new GraphicStyle(new Style
 			{
-				Name = dialog.StyleName,
+				Name = dialog.Value,
 				Index = index
 			},
 			false));
@@ -800,7 +851,7 @@ namespace River.OneMoreAddIn.Commands
 				return;
 			}
 
-			style.Name = dialog.StyleName;
+			style.Name = dialog.Value;
 			index = namesBox.SelectedIndex;
 			namesBox.Items.RemoveAt(index);
 			namesBox.Items.Insert(index, style);

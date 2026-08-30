@@ -48,7 +48,7 @@ namespace River.OneMoreAddIn.Commands
 				AcceptButton = okButton;
 				CancelButton = okButton;
 
-				versionBox.Text = info.InstalledVersion;
+				versionBox.Text = $"{info.InstalledVersion}{AssemblyInfo.BuildTag} ({info.InstalledArchitecture})";
 				lastUpdatedBox.Text = FormatDate(info.InstalledDate);
 				url = info.InstalledUrl;
 			}
@@ -67,6 +67,7 @@ namespace River.OneMoreAddIn.Commands
 						"upCurrentVersionLabel",
 						"upLastUpdatedLabel=UpdateDialog_lastUpdatedLabel",
 						"upOKButton",
+						"upSkipButton",
 						"cancelButton=word_Cancel"
 					});
 				}
@@ -80,7 +81,7 @@ namespace River.OneMoreAddIn.Commands
 				upVersionBox.Text = info.UpdateVersion;
 				upDescriptionBox.Text = info.UpdateDescription;
 				upReleaseDateBox.Text = FormatDate(info.UpdateDate);
-				upCurrentVersionBox.Text = info.InstalledVersion;
+				upCurrentVersionBox.Text = $"{info.InstalledVersion}{AssemblyInfo.BuildTag} ({info.InstalledArchitecture})";
 				upLastUpdatedBox.Text = FormatDate(info.InstalledDate);
 				url = info.UpdateUrl;
 			}
@@ -133,6 +134,12 @@ namespace River.OneMoreAddIn.Commands
 		private void TimerTick(object sender, EventArgs e)
 		{
 			TopMost = true;
+		}
+
+		private void SkipRelease(object sender, EventArgs e)
+		{
+			DialogResult = upSkipButton.DialogResult;
+			Close();
 		}
 	}
 }

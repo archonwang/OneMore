@@ -24,7 +24,6 @@ namespace River.OneMoreAddIn.Commands
 			public List<XElement> Spaces;
 		}
 
-
 		private XNamespace ns;
 
 
@@ -35,6 +34,9 @@ namespace River.OneMoreAddIn.Commands
 
 		public override async Task Execute(params object[] args)
 		{
+			using var guard = EnterOnce();
+			if (guard is null) { return; }
+
 			await using var one = new OneNote(out var page, out ns);
 
 			var range = new Models.SelectionRange(page);

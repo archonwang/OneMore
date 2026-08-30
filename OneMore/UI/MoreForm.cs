@@ -4,9 +4,12 @@
 
 namespace River.OneMoreAddIn.UI
 {
+	using River.OneMoreAddIn.Settings;
 	using System;
 	using System.Diagnostics;
 	using System.Drawing;
+	using System.Threading.Tasks;
+	using System.Windows.Automation;
 	using System.Windows.Forms;
 
 
@@ -24,6 +27,11 @@ namespace River.OneMoreAddIn.UI
 
 		private ApplicationContext appContext;
 		private bool modeless = false;
+		private IntPtr oneNoteHandle = IntPtr.Zero;
+
+		private bool elevatedWithOneNote;
+		private int processId;
+		private int trackedId;
 
 
 		public MoreForm()
@@ -35,9 +43,26 @@ namespace River.OneMoreAddIn.UI
 
 
 		/// <summary>
-		/// 
+		/// Gets or sets the control that should be focused by default when the form is loaded.
 		/// </summary>
 		protected Control DefaultControl { get; set; }
+
+
+		/// <summary>
+		/// Gets or sets whether this form tracks the elevation of any ONENOTE window and,
+		/// based on user preference, will elevate this form as well.
+		/// </summary>
+		public bool ElevatedWithOneNote
+		{
+			get => elevatedWithOneNote;
+
+			set
+			{
+				elevatedWithOneNote = value;
+				processId = Process.GetCurrentProcess().Id;
+				trackedId = processId;
+			}
+		}
 
 
 		/// <summary>
@@ -45,6 +70,14 @@ namespace River.OneMoreAddIn.UI
 		/// overriden by the OnLoad method below...
 		/// </summary>
 		public bool ManualLocation { get; set; } = false;
+
+
+		/// <summary>
+		/// Opt-in: when true, this form's Size is saved when it closes and restored
+		/// when it next loads, keyed by the derived class's type name. Only meant for
+		/// forms with a sizable FormBorderStyle (Sizable / SizableToolWindow).
+		/// </summary>
+		protected bool RememberSize { get; set; } = false;
 
 
 		/// <summary>
@@ -59,6 +92,8 @@ namespace River.OneMoreAddIn.UI
 		/// </summary>
 		public int VerticalOffset { private get; set; }
 
+
+		// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 		/// <summary>
 		/// Determines if the main OneNote thread culture differs from our default design-time
@@ -100,10 +135,19 @@ namespace River.OneMoreAddIn.UI
 			StartPosition = FormStartPosition.Manual;
 			modeless = true;
 
+			// must happen before centering below, which reads Width/Height, and before
+			// OnLoad's own RestoreSize call, which runs too late here because OnLoad
+			// skips re-centering entirely for modeless forms (see OnLoad)
+			if (RememberSize)
+			{
+				RestoreSize();
+			}
+
 			var rect = new Native.Rectangle();
 			using (var one = new OneNote())
 			{
 				Native.GetWindowRect(one.WindowHandle, ref rect);
+				oneNoteHandle = one.WindowHandle;
 			}
 
 			var yoffset = (int)(Height * topDelta / 100.0);
@@ -113,6 +157,37 @@ namespace River.OneMoreAddIn.UI
 				(rect.Top + ((rect.Bottom - rect.Top) / 2)) - (Height / 2) - yoffset
 				);
 
+			RunModelessCore(closedAction);
+		}
+
+
+		/// <summary>
+		/// Runs the current form as a modeless window positioned at an explicit screen
+		/// location rather than centered over the OneNote window, e.g. for a popup that
+		/// must be anchored near a specific point on the page.
+		/// </summary>
+		/// <param name="location">The explicit screen location for the form</param>
+		/// <param name="closedAction">
+		/// An event handler to run when the modeless dialog is closed
+		/// </param>
+		public void RunModeless(Point location, EventHandler closedAction = null)
+		{
+			StartPosition = FormStartPosition.Manual;
+			modeless = true;
+			ManualLocation = true;
+			Location = location;
+
+			using (var one = new OneNote())
+			{
+				oneNoteHandle = one.WindowHandle;
+			}
+
+			RunModelessCore(closedAction);
+		}
+
+
+		private void RunModelessCore(EventHandler closedAction)
+		{
 			if (closedAction != null)
 			{
 				ModelessClosed += (sender, e) => { closedAction(sender, e); };
@@ -133,8 +208,61 @@ namespace River.OneMoreAddIn.UI
 
 		protected override void OnFormClosed(FormClosedEventArgs e)
 		{
+			if (RememberSize && WindowState == FormWindowState.Normal)
+			{
+				SaveSize();
+			}
+
 			base.OnFormClosed(e);
 			appContext?.Dispose();
+
+			if (modeless && oneNoteHandle != IntPtr.Zero)
+			{
+				// OneMore runs in dllhost.exe (COM surrogate), not ONENOTE.EXE, so closing
+				// this modeless dialog does not automatically hand foreground focus back to
+				// ONENOTE.EXE's window - it can be left on this (now-closing) dllhost window
+				// or nowhere in particular. Until the user manually reactivates OneNote (a
+				// click, or typing into it), HotkeyManager's WndProc gate - which only
+				// dispatches WM_HOTKEY when GetForegroundWindow() belongs to oneNotePID -
+				// silently swallows every hotkey press. This call is allowed to succeed
+				// without the AttachThreadInput dance that Elevate() needs, because this
+				// window is itself still the foreground window and just received the input
+				// (e.g. Escape) that's closing it - one of the documented exceptions to the
+				// SetForegroundWindow restriction.
+				Native.SetForegroundWindow(oneNoteHandle);
+			}
+
+			if (ElevatedWithOneNote)
+			{
+				// undo the AddAutomationFocusChangedEventHandler from OnShown; otherwise this
+				// (now disposed) form keeps receiving process-wide focus-change callbacks and
+				// Elevate() throws ObjectDisposedException on every one of them, silently, for
+				// as long as the process lives - this compounds quickly for dialogs that are
+				// shown and closed repeatedly, like CompleteHashtagDialog.
+				//
+				// This must NOT run inline here: Automation.RemoveAutomationFocusChangedEventHandler
+				// synchronizes with the UI Automation provider infrastructure and can block for
+				// several seconds. Since ModelessClosed (below) is what releases the owning
+				// command's re-entry guard and clears its static dialog reference, blocking here
+				// blocks that cleanup too - every hotkey/ribbon invocation in the meantime sees
+				// a stale, already-disposed dialog and silently no-ops via Elevate()'s IsDisposed
+				// check, making the dialog appear unable to reopen for however long this call
+				// happens to take. Run it fire-and-forget instead; OnFocusChanged's own IsDisposed
+				// guard already makes any straggling callback in the meantime harmless.
+				Task.Run(() =>
+				{
+					try
+					{
+						Automation.RemoveAutomationFocusChangedEventHandler(OnFocusChanged);
+					}
+					catch
+					{
+						// best-effort cleanup; a failure here just leaves a harmless
+						// (IsDisposed-guarded) stale handler registered
+					}
+				});
+			}
+
 			ModelessClosed?.Invoke(this, e);
 		}
 
@@ -224,6 +352,11 @@ namespace River.OneMoreAddIn.UI
 			//logger.WriteLine($"MoreForm.OnLoad try focus");
 			TryFocus();
 
+			if (RememberSize && !DesignMode)
+			{
+				RestoreSize();
+			}
+
 			// RunModeless has already set location so don't repeat that here and only set
 			// location if inheritor hasn't declined by setting it to zero. Also, we're doing
 			// this in OnLoad so it doesn't visually "jump" as it would if done in OnShown
@@ -289,6 +422,32 @@ namespace River.OneMoreAddIn.UI
 			//logger.WriteLine($"showing [{Text}]");
 			base.OnShown(e);
 			TryFocus();
+
+			if (ElevatedWithOneNote)
+			{
+				// Must not run inline here: Automation.AddAutomationFocusChangedEventHandler
+				// synchronizes with the UI Automation provider infrastructure and can block for
+				// several seconds - the same cost proven out on the RemoveAutomationFocus-
+				// ChangedEventHandler side in OnFormClosed below. Since OnShown runs before the
+				// message loop gets back around to painting this form's child controls, blocking
+				// here shows up as a multi-second delay between the window appearing and its
+				// controls actually painting. This is especially likely to contend with a
+				// still-in-flight background Remove from a just-closed dialog of the same kind
+				// (e.g. reopening this dialog in quick succession), since both sides now run
+				// off-thread instead of being serialized by one blocking the other.
+				Task.Run(() =>
+				{
+					try
+					{
+						Automation.AddAutomationFocusChangedEventHandler(OnFocusChanged);
+					}
+					catch
+					{
+						// best-effort; a failure here just means this form won't elevate
+						// automatically when ONENOTE regains focus
+					}
+				});
+			}
 		}
 
 
@@ -310,47 +469,156 @@ namespace River.OneMoreAddIn.UI
 
 
 		/// <summary>
+		/// Uses Windows Automation to track when a main ONENOTE window is focused or elevated
+		/// on top of other windows, and elevates this form. Typically used for NavigatorWindow.
+		/// </summary>
+		/// <param name="sender"></param>
+		/// <param name="e"></param>
+		private void OnFocusChanged(object sender, AutomationFocusChangedEventArgs e)
+		{
+			// defensive guard against any stale handler still registered on a disposed form,
+			// e.g. from a session predating the OnFormClosed cleanup added alongside this
+			if (IsDisposed)
+			{
+				return;
+			}
+
+			if (sender is AutomationElement element)
+			{
+				var pid = element.Current.ProcessId;
+				var process = Process.GetProcessById(pid);
+				var name = process.ProcessName;
+
+				// elevates this form notop of ONENOTE when ONENOTE is elevated, but also allows
+				// ONENOTE to be on top of this window when switching immediately from this
+				// window to ONENOTE
+
+				if (name == "ONENOTE" && trackedId != pid && trackedId != processId)
+				{
+					//logger.WriteLine($"focused tracking elevating");
+					Elevate();
+				}
+				else if (name != "ONENOTE" && pid != processId && TopMost)
+				{
+					// some other application took focus away from ONENOTE; let this
+					// window submerge along with ONENOTE instead of staying stuck on top
+					TopMost = false;
+				}
+
+				trackedId = pid;
+			}
+		}
+
+
+		/// <summary>
 		/// Modeless dialogs would appear behind the OneNote window by default
 		/// so this forces the dialog to the foreground
 		/// </summary>
 		/// <param name="keepTop">True to maintain this form as a TopMost form</param>
 		public void Elevate(bool keepTop = true)
 		{
-			if (DesignMode)
+			if (DesignMode || IsDisposed)
 			{
 				return;
 			}
 
 			//logger.WriteLine($"elevating [{Text}]");
 
-			// a bunch of hocus-pocus to force the form to the foreground...
-
-			//IntPtr HWND_TOPMOST = new(-1);
-			//Native.SetWindowPos(Handle, HWND_TOPMOST, 0, 0, 0, 0,
-			//	Native.SWP_NOMOVE | Native.SWP_NOSIZE);
-
-			//var location = Location;
-
-			//Native.SetForegroundWindow(Handle);
 			if (modeless)
 			{
 				BringToFront();
 			}
 
-			//Location = location;
+			// Temporarily share the input queue with the foreground thread so that
+			// SetForegroundWindow succeeds regardless of which process has foreground rights.
+			// This is needed because OneMore runs in dllhost.exe (COM surrogate), not ONENOTE.EXE,
+			// and by the time dialogs are shown the original COM call / WM_HOTKEY rights are gone.
+			try
+			{
+				var foreground = Native.GetForegroundWindow();
+				if (!IsDisposed && IsHandleCreated && foreground != IntPtr.Zero && foreground != Handle)
+				{
+					uint foregroundThread = Native.GetWindowThreadProcessId(foreground, out _);
+					uint currentThread = Native.GetCurrentThreadId();
 
-			// this is the trick needed to elevate a dialog to TopMost
+					bool attached = foregroundThread != currentThread &&
+						Native.AttachThreadInput(foregroundThread, currentThread, true);
+
+					Native.SetForegroundWindow(Handle);
+					Native.BringWindowToTop(Handle);
+
+					if (attached)
+					{
+						Native.AttachThreadInput(foregroundThread, currentThread, false);
+					}
+				}
+			}
+			catch (ObjectDisposedException)
+			{
+				// the dialog can close and dispose itself between the IsDisposed/IsHandleCreated
+				// checks above and the Handle access, racing with this call on another thread
+				return;
+			}
+
+			// TopMost toggle ensures the window appears above OneNote in z-order
 			TopMost = false;
 			TopMost = true;
 			TopMost = keepTop;
 
-			Select();
-			Focus();
+			if (!IsDisposed)
+			{
+				try
+				{
+					Select();
+					Focus();
+				}
+				catch
+				{
+					// swallow disposed exception
+				}
+			}
 		}
 
 
 		public virtual void OnThemeChange()
 		{
+		}
+
+
+		private void RestoreSize()
+		{
+			var settings = new SettingsProvider().GetCollection(GetType().Name);
+			if (!settings.Contains("width") || !settings.Contains("height"))
+			{
+				return;
+			}
+
+			var screen = Screen.FromControl(this);
+			var width = Math.Min(settings.Get("width", Width), screen.WorkingArea.Width);
+			var height = Math.Min(settings.Get("height", Height), screen.WorkingArea.Height);
+
+			if (MinimumSize.Width > 0)
+			{
+				width = Math.Max(width, MinimumSize.Width);
+			}
+
+			if (MinimumSize.Height > 0)
+			{
+				height = Math.Max(height, MinimumSize.Height);
+			}
+
+			Size = new Size(width, height);
+		}
+
+
+		private void SaveSize()
+		{
+			var provider = new SettingsProvider();
+			var settings = provider.GetCollection(GetType().Name);
+			settings.Add("width", Width);
+			settings.Add("height", Height);
+			provider.SetCollection(settings);
+			provider.Save();
 		}
 	}
 }

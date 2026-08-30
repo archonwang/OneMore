@@ -1,11 +1,13 @@
-﻿//************************************************************************************************
-// Copyright © 2021 Steven M Cohn.  All rights reserved.
+//************************************************************************************************
+// Copyright © 2021 Steven M Cohn. All rights reserved.
 //************************************************************************************************
 
 namespace River.OneMoreAddIn.Commands
 {
 	using System;
+	using System.Collections.Generic;
 	using System.Linq;
+	using System.Threading;
 	using System.Threading.Tasks;
 	using System.Windows.Forms;
 	using System.Xml.Linq;
@@ -17,7 +19,14 @@ namespace River.OneMoreAddIn.Commands
 	/// </summary>
 	internal class CopyFolderCommand : Command
 	{
-		private UI.ProgressDialog progress;
+		private const string SectionName = "Section";
+		private const string SectionGroupName = "SectionGroup";
+
+		private List<string> failures;
+		private int totalPages;
+		private string infoMessage;
+		private string sourceFolderId;
+		private string sourceNotebookId;
 
 		public CopyFolderCommand()
 		{
@@ -27,11 +36,50 @@ namespace River.OneMoreAddIn.Commands
 		public override async Task Execute(params object[] args)
 		{
 			await using var one = new OneNote();
+
+			// capture the source folder and notebook now, before the QuickFiling picker opens
+			// and while OneNote's UI is still guaranteed to reflect what the user was looking
+			// at when they invoked this command; once the picker is up and the copy is running
+			// on a background thread, OneNote's UI is no longer blocked so the "currently
+			// viewed" node could otherwise drift out from under a later read
+			sourceNotebookId = one.CurrentNotebookId;
+
+			var notebook = await one.GetNotebook(sourceNotebookId, OneNote.Scope.Sections);
+			var ns = one.GetNamespace(notebook);
+			sourceFolderId = FindCurrentFolderId(notebook, ns);
+
+			if (string.IsNullOrEmpty(sourceFolderId))
+			{
+				logger.WriteLine("could not determine current source folder");
+				ShowInfo(Resx.CopyFolderCommand_NoSourceFolder);
+				return;
+			}
+
 			one.SelectLocation(
 				Resx.SearchQF_Title, Resx.SearchQF_DescriptionCopy,
 				OneNote.Scope.SectionGroups, Callback);
 
 			await Task.Yield();
+		}
+
+
+		// finds the folder (SectionGroup) that OneNote currently has selected/active; a
+		// currently-viewed Section ascends to its nearest enclosing SectionGroup, but a
+		// currently-viewed SectionGroup with no Section of its own (a folder containing only
+		// nested folders) is itself the folder to copy
+		private static string FindCurrentFolderId(XElement notebook, XNamespace ns)
+		{
+			var section = notebook.Descendants(ns + SectionName)
+				.FirstOrDefault(e => e.Attribute("isCurrentlyViewed")?.Value == "true");
+
+			if (section is not null)
+			{
+				return section.FirstAncestor(ns + SectionGroupName)?.Attribute("ID")?.Value;
+			}
+
+			return notebook.Descendants(ns + SectionGroupName)
+				.FirstOrDefault(e => e.Attribute("isCurrentlyViewed")?.Value == "true")
+				?.Attribute("ID")?.Value;
 		}
 
 
@@ -43,42 +91,58 @@ namespace River.OneMoreAddIn.Commands
 				return;
 			}
 
-			logger.Start($"..target folder {targetId}");
+			using var indent = logger.Indent($"..target folder {targetId}");
 
+			infoMessage = null;
+			failures = new List<string>();
+			totalPages = 0;
+
+			// this can take a minute or more for a large folder; run modeless so the copy
+			// happens on a background thread and doesn't block OneNote's own UI thread while
+			// OneNote is waiting for this QuickFiling OnDialogClosed callback to return
+			var progress = new UI.ProgressDialog(async (dialog, token) =>
+				await CopyFolder(targetId, dialog, token));
+
+			progress.SetMessage(Resx.CopyFolderCommand_Preparing);
+			progress.RunModeless(ReportResult);
+
+			await Task.Yield();
+		}
+
+
+		private async Task CopyFolder(string targetId, UI.ProgressDialog dialog, CancellationToken token)
+		{
 			try
 			{
 				await using var one = new OneNote();
+
 				// user might choose a sectiongroup or a notebook; GetSection will get either
 				var target = await one.GetSection(targetId);
-				if (target == null)
+				if (target is null)
 				{
 					logger.WriteLine("invalid target section");
 					return;
 				}
 
-				// source folder will be in current notebook
-				var notebook = await one.GetNotebook(OneNote.Scope.Pages);
+				// source folder will be in the notebook that was current when invoked; look it
+				// up by the id captured in Execute (before the QuickFiling picker opened)
+				var notebook = await one.GetNotebook(sourceNotebookId, OneNote.Scope.Pages);
 				var ns = one.GetNamespace(notebook);
 
-				// use current page to ascend back to closest folder to handle nesting...
-				var element = notebook.Descendants(ns + "Page")
-					.FirstOrDefault(e => e.Attribute("ID").Value == one.CurrentPageId);
+				var folder = notebook.Descendants(ns + SectionGroupName)
+					.FirstOrDefault(e => e.Attribute("ID")?.Value == sourceFolderId);
 
-				var folder = element.FirstAncestor(ns + "SectionGroup");
-				if (folder == null)
+				if (folder is null)
 				{
-					logger.WriteLine("error finding ancestor folder");
+					logger.WriteLine("could not locate source folder in notebook");
+					infoMessage = Resx.CopyFolderCommand_NoSourceFolder;
 					return;
 				}
 
-				if (folder.DescendantsAndSelf().Any(e => e.Attribute("ID").Value == targetId))
+				if (folder.DescendantsAndSelf().Any(e => e.Attribute("ID")?.Value == targetId))
 				{
 					logger.WriteLine("cannot copy a folder into itself or one of its children");
-
-					UI.MoreMessageBox.Show(owner,
-						Resx.CopyFolderCommand_InvalidTarget,
-						MessageBoxButtons.OK, MessageBoxIcon.Information);
-
+					infoMessage = Resx.CopyFolderCommand_InvalidTarget;
 					return;
 				}
 
@@ -93,29 +157,27 @@ namespace River.OneMoreAddIn.Commands
 				target.Add(clone);
 				one.UpdateHierarchy(target);
 
-				// re-fetch target to find newly assigned ID values
+				// re-fetch target to find the newly copied folder and its assigned ID values;
+				// match by name rather than diffing IDs before/after UpdateHierarchy since
+				// OneNote may reassign IDs of more than just the new element on update, which
+				// can make an ID-diff pick the wrong element (or none at all)
 				var upTarget = await one.GetSection(targetId);
+				var folderName = folder.Attribute("name").Value;
 
-				var cloneID = upTarget.Elements()
-					.Where(e => !e.Attributes().Any(a => a.Name == "isRecycleBin"))
-					.Select(e => e.Attribute("ID").Value)
-					.Except(
-						target.Elements()
-							.Where(e => e.Attributes().Any(a => a.Name == "ID")
-								&& !e.Attributes().Any(a => a.Name == "isRecycleBin"))
-							.Select(e => e.Attribute("ID").Value)
-					).FirstOrDefault();
+				clone = upTarget.Elements()
+					.FirstOrDefault(e => e.Attribute("name")?.Value == folderName);
 
-				clone = upTarget.Elements().FirstOrDefault(e => e.Attribute("ID").Value == cloneID);
-
-				using (progress = new UI.ProgressDialog())
+				if (clone is null)
 				{
-					progress.SetMaximum(folder.Descendants(ns + "Page").Count());
-					progress.Show();
-
-					// now with a new SectionGroup with a valid ID, copy all pages into it
-					await CopyPages(folder, clone, one, ns);
+					logger.WriteLine($"could not locate newly copied folder '{folderName}' in target");
+					return;
 				}
+
+				totalPages = folder.Descendants(ns + "Page").Count();
+				dialog.SetMaximum(totalPages);
+
+				// now with a new SectionGroup with a valid ID, copy all pages into it
+				await CopyPages(folder, clone, one, ns, dialog, token);
 			}
 			catch (Exception exc)
 			{
@@ -123,7 +185,51 @@ namespace River.OneMoreAddIn.Commands
 			}
 			finally
 			{
-				logger.End();
+				dialog.Close();
+			}
+		}
+
+
+		// runs on the UI thread after the modeless progress dialog closes
+		private void ReportResult(object sender, EventArgs e)
+		{
+			if (sender is UI.ProgressDialog dialog)
+			{
+				// otherwise MoreMessageBox window could appear behind the progress dialog
+				dialog.Visible = false;
+			}
+
+			// route the report dialog through HotkeyManager's own dedicated, persistent
+			// message-pump thread rather than showing it synchronously from deep inside
+			// this ModelessClosed callback - itself nested inside the background copy
+			// thread's marshaled Invoke() call into ProgressDialog.Close(). Starting a
+			// brand-new modal dialog underneath an already-nested cross-thread Invoke
+			// dispatch leaves it fighting OneNote for foreground/activation and losing:
+			// it briefly appears then gets torn down (HandleDestroyed, no FormClosing)
+			// before the user ever sees it. Marshaling onto HotkeyManager's clean,
+			// already-running message loop avoids that nesting entirely.
+			if (!string.IsNullOrEmpty(infoMessage))
+			{
+				HotkeyManager.InvokeOnMessageThread(() => UI.MoreMessageBox.Show(owner,
+					infoMessage, MessageBoxButtons.OK, MessageBoxIcon.Information));
+
+				return;
+			}
+
+			if (failures.Count > 0)
+			{
+				const int maxListed = 20;
+				var listed = failures.Take(maxListed).ToList();
+				if (failures.Count > maxListed)
+				{
+					listed.Add(string.Format(Resx.CopyFolderCommand_AndMore, failures.Count - maxListed));
+				}
+
+				HotkeyManager.InvokeOnMessageThread(() => UI.MoreMessageBox.Show(owner,
+					string.Format(Resx.CopyFolderCommand_PartialFailure, failures.Count, totalPages) +
+					Environment.NewLine + Environment.NewLine + string.Join(Environment.NewLine, listed),
+					MessageBoxButtons.OK, MessageBoxIcon.Warning,
+					widthScale: 1.5f, heightScale: 2.5f));
 			}
 		}
 
@@ -136,7 +242,7 @@ namespace River.OneMoreAddIn.Commands
 				ns + folder.Name.LocalName,
 				folder.Attributes().Where(a => a.Name.LocalName != "ID"));
 
-			foreach (var group in folder.Elements(ns + "SectionGroup"))
+			foreach (var group in folder.Elements(ns + SectionName))
 			{
 				var s = new XElement(ns + group.Name.LocalName,
 					group.Attributes().Where(a => a.Name.LocalName != "ID"));
@@ -145,7 +251,7 @@ namespace River.OneMoreAddIn.Commands
 				CloneFolder(group, ns, s);
 			}
 
-			foreach (var group in folder.Elements(ns + "Section"))
+			foreach (var group in folder.Elements(ns + SectionGroupName))
 			{
 				var s = new XElement(ns + group.Name.LocalName,
 					group.Attributes().Where(a => a.Name.LocalName != "ID"));
@@ -158,15 +264,28 @@ namespace River.OneMoreAddIn.Commands
 		}
 
 
-		private async Task CopyPages(XElement root, XElement clone, OneNote one, XNamespace ns)
+		private async Task CopyPages(
+			XElement root, XElement clone, OneNote one, XNamespace ns,
+			UI.ProgressDialog dialog, CancellationToken token)
 		{
+			if (token.IsCancellationRequested)
+			{
+				return;
+			}
+
 			var cloneID = clone.Attribute("ID").Value;
 
 			foreach (var element in root.Elements(ns + "Page"))
 			{
+				if (token.IsCancellationRequested)
+				{
+					logger.WriteLine("..copy cancelled by user");
+					return;
+				}
+
 				// get the page to copy
 				var page = await one.GetPage(element.Attribute("ID").Value);
-				progress.SetMessage(page.Title);
+				dialog.SetMessage(page.Title);
 
 				// create a new page to get a new ID
 				one.CreatePage(cloneID, out var newPageId);
@@ -177,29 +296,54 @@ namespace River.OneMoreAddIn.Commands
 				// remove all objectID values and let OneNote generate new IDs
 				page.Root.Descendants().Attributes("objectID").Remove();
 
-				await one.Update(page);
-				progress.Increment();
+				var ok = await one.Update(page);
+				if (!ok)
+				{
+					var hinfo = one.GetPageHierarchyInfo(element.Attribute("ID").Value);
+					var path = $"{hinfo.Path}/{page.Title}";
+
+					logger.WriteLine($"..failed to copy page content for '{path}'");
+					failures.Add(page.Title);
+				}
+
+				dialog.Increment();
+			}
+
+			if (token.IsCancellationRequested)
+			{
+				return;
 			}
 
 			// recurse...
 
-			// NOTE that these find target sections by name, so the names must be unique otherwise
-			// this will copy all pages into the first occurance with a matching name!
+			// NOTE that OneNote does not allow duplicate section names at the same level in the
+			// hierarchy. We take advantage of that, otherwise this will copy all pages into the
+			// first occurance with a matching name!
 
-			foreach (var section in root.Elements(ns + "SectionGroup").Elements(ns + "Section"))
+			foreach (var section in root.Elements(ns + SectionName))
 			{
-				var cloneSection = clone.Elements(ns + "SectionGroup").Elements(ns + "Section")
+				if (token.IsCancellationRequested)
+				{
+					return;
+				}
+
+				var cloneSection = clone.Elements(ns + SectionName)
 					.FirstOrDefault(e => e.Attribute("name").Value == section.Attribute("name").Value);
 
-				await CopyPages(section, cloneSection, one, ns);
+				await CopyPages(section, cloneSection, one, ns, dialog, token);
 			}
 
-			foreach (var section in root.Elements(ns + "Section"))
+			foreach (var group in root.Elements(ns + SectionGroupName))
 			{
-				var cloneSection = clone.Elements(ns + "Section")
-					.FirstOrDefault(e => e.Attribute("name").Value == section.Attribute("name").Value);
+				if (token.IsCancellationRequested)
+				{
+					return;
+				}
 
-				await CopyPages(section, cloneSection, one, ns);
+				var cloneGroup = clone.Elements(ns + SectionGroupName)
+					.FirstOrDefault(e => e.Attribute("name").Value == group.Attribute("name").Value);
+
+				await CopyPages(group, cloneGroup, one, ns, dialog, token);
 			}
 		}
 	}

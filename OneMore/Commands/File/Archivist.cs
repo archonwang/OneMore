@@ -7,6 +7,7 @@ namespace River.OneMoreAddIn.Commands
 	using River.OneMoreAddIn.Models;
 	using System;
 	using System.Collections.Generic;
+	using System.Globalization;
 	using System.IO;
 	using System.Linq;
 	using System.Text;
@@ -24,7 +25,6 @@ namespace River.OneMoreAddIn.Commands
 		private readonly string home;
 		private Dictionary<string, OneNote.HyperlinkInfo> map;
 
-
 		public Archivist(OneNote one) : this(one, null)
 		{
 		}
@@ -37,6 +37,9 @@ namespace River.OneMoreAddIn.Commands
 		}
 
 
+		public bool Interactive { get; set; } = true;
+
+
 		public async Task BuildHyperlinkMap(
 			OneNote.Scope scope, UI.ProgressDialog progress, CancellationToken token)
 		{
@@ -47,13 +50,13 @@ namespace River.OneMoreAddIn.Commands
 				token,
 				async (count) =>
 				{
-					progress.SetMaximum(count);
-					progress.SetMessage($"Scanning {count} page references");
+					progress?.SetMaximum(count);
+					progress?.SetMessage($"Scanning {count} page references");
 					await Task.Yield();
 				},
 				async () =>
 				{
-					progress.Increment();
+					progress?.Increment();
 					await Task.Yield();
 				});
 		}
@@ -105,8 +108,11 @@ namespace River.OneMoreAddIn.Commands
 				var fmt = format.ToString();
 				logger.WriteLine($"error publishig page as {fmt}", exc);
 
-				UI.MoreMessageBox.ShowError(null,
-					string.Format(Resx.SaveAs_Error, fmt) + "\n\n" + exc.Message);
+				if (Interactive)
+				{
+					UI.MoreMessageBox.ShowError(null,
+						string.Format(Resx.SaveAs_Error, fmt) + "\n\n" + exc.Message);
+				}
 
 				return false;
 			}
@@ -123,7 +129,8 @@ namespace River.OneMoreAddIn.Commands
 		/// <param name="hpath"></param>
 		/// <param name="bookScope"></param>
 		public async Task<string> ExportHTML(
-			Page page, string filename, string hpath = null, bool bookScope = false)
+			Page page, string filename, string hpath = null, bool bookScope = false,
+			DateTime? hierarchyModified = null)
 		{
 			// expand C:\folder\name.htm --> C:\folder\name\name.htm
 			var name = Path.GetFileNameWithoutExtension(filename);              // "name"
@@ -135,12 +142,15 @@ namespace River.OneMoreAddIn.Commands
 			{
 				if (await Export(page.PageId, filename, OneNote.ExportFormat.HTML))
 				{
+					InjectHeadingAnchors(filename);
+
 					if (map != null)
 					{
 						RewirePageLinks(page, filename, hpath, bookScope);
 					}
 
 					ArchiveAttachments(page, filename, path);
+					UpdatePageDates(page, filename, hierarchyModified);
 				}
 			}
 
@@ -149,6 +159,81 @@ namespace River.OneMoreAddIn.Commands
 
 
 		#region ExportHtml
+
+		// matches exported <H1>..<H6> headings so an id/anchor can be injected; deliberately
+		// scoped to headings only (not every <P>) since that's the confirmed failure case and
+		// keeps slug collisions/markup bloat manageable across a large wiki
+		private static readonly Regex HeadingPattern = new(
+			@"<(?<tag>H[1-6])(?<attrs>\s[^>]*)?>(?<text>.*?)</\k<tag>>",
+			RegexOptions.Singleline | RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+		/// <summary>
+		/// Injects a slug-based id attribute into every exported heading so that paragraph-level
+		/// onenote: links (see RewirePageLinks) have something to anchor to. OneNote's HTML
+		/// export does not preserve per-paragraph object IDs, so the slug is derived from the
+		/// heading's own text rather than any GUID.
+		/// </summary>
+		/// <param name="filename">The exported HTML file to patch in place</param>
+		private void InjectHeadingAnchors(string filename)
+		{
+			var text = File.ReadAllText(filename);
+			var updated = InjectHeadingAnchorsInHtml(text);
+
+			if (!string.Equals(text, updated, StringComparison.Ordinal))
+			{
+				try
+				{
+					File.WriteAllText(filename, updated);
+				}
+				catch (Exception exc)
+				{
+					logger.WriteLine($"error writing {filename}", exc);
+				}
+			}
+		}
+
+
+		/// <summary>
+		/// Pure text transform behind InjectHeadingAnchors(filename), split out for testability.
+		/// </summary>
+		internal static string InjectHeadingAnchorsInHtml(string html)
+		{
+			var counts = new Dictionary<string, int>();
+
+			return HeadingPattern.Replace(html, match =>
+			{
+				var attrs = match.Groups["attrs"].Value;
+				if (Regex.IsMatch(attrs, @"\bid\s*=", RegexOptions.IgnoreCase))
+				{
+					// defensive: OneNote export doesn't emit id attrs today, but don't clobber
+					// one if it ever does
+					return match.Value;
+				}
+
+				var raw = match.Groups["text"].Value;
+				var plain = raw.Contains('<') ? raw.ToXmlWrapper().Value : raw;
+				var slug = plain.ToSlug();
+				if (string.IsNullOrEmpty(slug))
+				{
+					return match.Value;
+				}
+
+				if (counts.TryGetValue(slug, out var n))
+				{
+					counts[slug] = ++n;
+					slug = $"{slug}-{n}";
+				}
+				else
+				{
+					counts[slug] = 1;
+				}
+
+				var tag = match.Groups["tag"].Value;
+				return $"<{tag} id=\"{slug}\"{attrs}>{raw}</{tag}>";
+			});
+		}
+
+
 		private void RewirePageLinks(Page page, string filename, string hpath, bool bookScope)
 		{
 			/*
@@ -175,9 +260,10 @@ namespace River.OneMoreAddIn.Commands
 			//  <u> = entire URI
 			//  <s> = section ID
 			//  <p> = page ID
+			//  <o> = object ID (present only for paragraph-level links)
 			//  <n> = page name
 			var matches = Regex.Matches(text,
-				@"<a\s+href=""(?<u>onenote:[^;]*?[#;]section-id=(?<s>{[^}]*?})(?:&amp;page-id=(?<p>{[^}]*?}))?[^""]*?)"">(?<n>.*?)</a>",
+				@"<a\s+href=""(?<u>onenote:[^;]*?[#;]section-id=(?<s>{[^}]*?})(?:&amp;page-id=(?<p>{[^}]*?}))?(?:&amp;object-id=(?<o>{[^}]*?}))?[^""]*?)"">(?<n>.*?)</a>",
 				RegexOptions.Singleline);
 
 			var updated = false;
@@ -212,17 +298,11 @@ namespace River.OneMoreAddIn.Commands
 
 					if (item != null)
 					{
-						//var name = groups["n"].Value;
-						//if (name.Contains('<'))
-						//{
-						//	// strip html from the name to get raw text
-						//	name = name.ToXmlWrapper().Value;
-						//}
-
 						var name = HttpUtility.UrlDecode(PathHelper.CleanFileName(item.Name));
 
 						//logger.WriteLine();
 						var fpath = bookScope ? item.FullPath : item.FullPath.Substring(item.FullPath.IndexOf('/') + 1);
+						fpath = string.Join("/", fpath.Split('/').Select(PathHelper.CleanFileName));
 						//logger.WriteLine($"name {name} fpath:{fpath} FullPath:{item.FullPath}");
 
 						var absolute = new Uri(Path.Combine(home, Path.Combine(fpath, $"{name}.htm")));
@@ -230,6 +310,24 @@ namespace River.OneMoreAddIn.Commands
 
 						var relative = HttpUtility.UrlDecode(pageUri.MakeRelativeUri(absolute).ToString());
 						//logger.WriteLine($"relative {relative}");
+
+						if (groups["o"].Success)
+						{
+							// paragraph-level link; try to resolve to the matching heading's
+							// anchor by slugging the link's own display text (object-id GUIDs
+							// cannot be correlated to exported HTML, see TechNote - Hyperlinks)
+							var linkText = groups["n"].Value;
+							if (linkText.Contains('<'))
+							{
+								linkText = linkText.ToXmlWrapper().Value;
+							}
+
+							var slug = linkText.ToSlug();
+							if (!string.IsNullOrEmpty(slug))
+							{
+								relative = $"{relative}#{slug}";
+							}
+						}
 
 						builder.Append(text.Substring(index, uri.Index - index));
 						builder.Append(relative);
@@ -319,7 +417,7 @@ namespace River.OneMoreAddIn.Commands
 					continue;
 				}
 
-				var target = Path.Combine(path, name);
+				var target = Path.Combine(path, PathHelper.CleanFileName(name));
 
 				try
 				{
@@ -357,6 +455,54 @@ namespace River.OneMoreAddIn.Commands
 			}
 		}
 
+		private void UpdatePageDates(Page page, string filename, DateTime? hierarchyModified)
+		{
+			var text = File.ReadAllText(filename);
+
+			// the date/time stamp lines at the top of the page are styled with color #767676;
+			// the first such paragraph is the created date, the second is the created time
+			var matches = Regex.Matches(text,
+				@"<P[^>]*style=(['""])(?<style>[^'""]*COLOR:\s*#767676[^'""]*)\1[^>]*>.*?</P>",
+				RegexOptions.Singleline | RegexOptions.IgnoreCase);
+
+			if (matches.Count < 2)
+			{
+				return;
+			}
+
+			var dateMatch = matches[0];
+			var timeMatch = matches[1];
+
+			var created = DateTime.Parse(
+				page.Root.Attribute("dateTime").Value, CultureInfo.InvariantCulture)
+				.ToLocalTime();
+
+			var modifiedRaw = hierarchyModified ?? DateTime.Parse(
+				page.Root.Attribute("lastModifiedTime").Value, CultureInfo.InvariantCulture);
+
+			var modified = modifiedRaw.ToLocalTime();
+
+			var dateReplacement =
+				$"<P style=\"{dateMatch.Groups["style"].Value}\">{created:MMMM d, yyyy}</P>";
+
+			var timeReplacement = created.Date == modified.Date
+				? $"<P style=\"{timeMatch.Groups["style"].Value}\">&nbsp;</P>"
+				: $"<P style=\"{timeMatch.Groups["style"].Value}\">Last updated on {modified:MMMM d, yyyy}</P>";
+
+			// replace the later match first so the earlier match's index stays valid
+			text = text.Remove(timeMatch.Index, timeMatch.Length).Insert(timeMatch.Index, timeReplacement);
+			text = text.Remove(dateMatch.Index, dateMatch.Length).Insert(dateMatch.Index, dateReplacement);
+
+			try
+			{
+				File.WriteAllText(filename, text);
+			}
+			catch (Exception exc)
+			{
+				logger.WriteLine($"error writing {filename}", exc);
+			}
+		}
+
 		#endregion ExportHtml
 
 
@@ -384,8 +530,11 @@ namespace River.OneMoreAddIn.Commands
 			catch (Exception exc)
 			{
 				logger.WriteLine("error publishig page as Markdown", exc);
-				UI.MoreMessageBox.ShowError(null,
-					string.Format(Resx.SaveAs_Error, "Markdown") + "\n\n" + exc.Message);
+				if (Interactive)
+				{
+					UI.MoreMessageBox.ShowError(null,
+						string.Format(Resx.SaveAs_Error, "Markdown") + "\n\n" + exc.Message);
+				}
 			}
 		}
 
@@ -420,8 +569,11 @@ namespace River.OneMoreAddIn.Commands
 			catch (Exception exc)
 			{
 				logger.WriteLine("error publishig page as XML", exc);
-				UI.MoreMessageBox.ShowError(null,
-					string.Format(Resx.SaveAs_Error, "XML") + "\n\n" + exc.Message);
+				if (Interactive)
+				{
+					UI.MoreMessageBox.ShowError(null,
+						string.Format(Resx.SaveAs_Error, "XML") + "\n\n" + exc.Message);
+				}
 			}
 		}
 
@@ -462,7 +614,7 @@ namespace River.OneMoreAddIn.Commands
 				// preferredName is used as the output file name
 				if (!string.IsNullOrEmpty(name))
 				{
-					var target = Path.Combine(path, name);
+					var target = Path.Combine(path, PathHelper.CleanFileName(name));
 
 					try
 					{

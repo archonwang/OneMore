@@ -17,7 +17,62 @@ namespace River.OneMoreAddIn
 		public const int DEVICECAPS_DESKTOPHORZRES = 118;
 
 		public const UInt32 LVM_FIRST = 0x1000;
+		public const UInt32 LVM_SETBKCOLOR = (LVM_FIRST + 1);
 		public const UInt32 LVM_SCROLL = (LVM_FIRST + 20);
+		public const UInt32 LVM_GETHEADER = (LVM_FIRST + 31);
+		public const UInt32 LVM_SETTEXTCOLOR = (LVM_FIRST + 36);    // 0x1024
+		public const UInt32 LVM_SETTEXTBKCOLOR = (LVM_FIRST + 38);  // 0x1026
+
+		public const int WM_NOTIFY = 0x004E;
+		public const int NM_CUSTOMDRAW = -12;
+		public const int CDDS_PREPAINT = 0x00000001;
+		public const int CDDS_ITEMPREPAINT = 0x00010001;
+		public const int CDRF_DODEFAULT = 0x00000000;
+		public const int CDRF_SKIPDEFAULT = 0x00000004;
+		public const int CDRF_NOTIFYITEMDRAW = 0x00000020;
+
+		[StructLayout(LayoutKind.Sequential)]
+		public struct NMHDR
+		{
+			public IntPtr hwndFrom;
+			public IntPtr idFrom;
+			public int code;
+		}
+
+		[StructLayout(LayoutKind.Sequential)]
+		public struct RECT
+		{
+			public int Left, Top, Right, Bottom;
+		}
+
+
+		/// <summary>
+		/// Contains information about a combo box.
+		/// https://learn.microsoft.com/en-us/windows/win32/api/winuser/ns-winuser-comboboxinfo
+		/// </summary>
+		[StructLayout(LayoutKind.Sequential)]
+		public struct COMBOBOXINFO
+		{
+			public int cbSize;
+			public RECT rcItem;
+			public RECT rcButton;
+			public int stateButton;    // 2 = pressed
+			public IntPtr hwndCombo;
+			public IntPtr hwndEdit;
+			public IntPtr hwndList;
+		}
+
+		[StructLayout(LayoutKind.Sequential)]
+		public struct NMCUSTOMDRAW
+		{
+			public NMHDR hdr;
+			public int dwDrawStage;
+			public IntPtr hdc;
+			public RECT rc;
+			public IntPtr dwItemSpec;
+			public int uItemState;
+			public IntPtr lItemlParam;
+		}
 
 		public const int LVS_OWNERDRAWFIXED = 0x0400;
 
@@ -56,8 +111,11 @@ namespace River.OneMoreAddIn
 		public const int IDC_HAND = 32649;
 		public const int IDC_SIZENS = 32645;
 
+		public const int SW_RESTORE = 9;
 		public const uint SWP_NOSIZE = 0x0001;
 		public const uint SWP_NOMOVE = 0x0002;
+		public const uint SWP_NOZORDER = 0x0004;
+		public const uint SWP_NOACTIVATE = 0x0010;
 
 		public const int TVIF_STATE = 0x8;
 		public const int TVIS_STATEIMAGEMASK = 0xF000;
@@ -182,6 +240,26 @@ namespace River.OneMoreAddIn
 
 
 		/// <summary>
+		/// Contains information about a GUI thread, including the caret's owning window
+		/// and its bounding rectangle in that window's client coordinates.
+		/// https://learn.microsoft.com/en-us/windows/win32/api/winuser/ns-winuser-guithreadinfo
+		/// </summary>
+		[StructLayout(LayoutKind.Sequential)]
+		public struct GUITHREADINFO
+		{
+			public int cbSize;
+			public uint flags;
+			public IntPtr hwndActive;
+			public IntPtr hwndFocus;
+			public IntPtr hwndCapture;
+			public IntPtr hwndMenuOwner;
+			public IntPtr hwndMoveSize;
+			public IntPtr hwndCaret;
+			public Rectangle rcCaret;
+		}
+
+
+		/// <summary>
 		/// Contains basic information about a physical font. All sizes are specified in logical
 		/// units; that is, they depend on the current mapping mode of the display context.
 		/// https://learn.microsoft.com/en-us/windows/win32/api/wingdi/ns-wingdi-textmetricw
@@ -239,6 +317,9 @@ namespace River.OneMoreAddIn
 			int idObject, int idChild, uint dwEventThread, uint dwmsEventTime);
 
 
+		public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+
+
 		// = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 		// Functions...
 
@@ -249,6 +330,24 @@ namespace River.OneMoreAddIn
 			string pszExtra, [Out] StringBuilder pszOut, ref uint pcchOut);
 
 
+		// https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-attachthreadinput
+		[DllImport("user32.dll")]
+		[return: MarshalAs(UnmanagedType.Bool)]
+		public static extern bool AttachThreadInput(uint idAttach, uint idAttachTo, bool fAttach);
+
+
+		// https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-bringwindowtotop
+		[DllImport("user32.dll")]
+		[return: MarshalAs(UnmanagedType.Bool)]
+		public static extern bool BringWindowToTop(IntPtr hWnd);
+
+
+		// https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-clienttoscreen
+		[DllImport("user32.dll")]
+		[return: MarshalAs(UnmanagedType.Bool)]
+		public static extern bool ClientToScreen(IntPtr hWnd, ref Point lpPoint);
+
+
 		// https://learn.microsoft.com/en-us/windows/win32/api/shlwapi/nf-shlwapi-colorhlstorgb
 		[DllImport("shlwapi.dll")]
 		public static extern int ColorHLSToRGB(int H, int L, int S);
@@ -257,6 +356,30 @@ namespace River.OneMoreAddIn
 		// https://learn.microsoft.com/en-us/windows/win32/api/wingdi/nf-wingdi-deleteobject
 		[DllImport("gdi32.dll", CharSet = CharSet.Auto, SetLastError = true)]
 		public static extern bool DeleteObject(IntPtr hObject);
+
+
+		// https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-destroycursor
+		[DllImport("user32.dll", SetLastError = true)]
+		[return: MarshalAs(UnmanagedType.Bool)]
+		public static extern bool DestroyCursor(IntPtr hCursor);
+
+
+		// https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-enumwindows
+		// Enumerates top-level windows in Z-order, front (topmost) to back.
+		[DllImport("user32.dll")]
+		[return: MarshalAs(UnmanagedType.Bool)]
+		public static extern bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam);
+
+
+		// https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getcurrentthreadid
+		[DllImport("kernel32.dll")]
+		public static extern uint GetCurrentThreadId();
+
+
+		// https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getcomboboxinfo
+		[DllImport("user32.dll")]
+		[return: MarshalAs(UnmanagedType.Bool)]
+		public static extern bool GetComboBoxInfo(IntPtr hwndCombo, ref COMBOBOXINFO pcbi);
 
 
 		// https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getcursorpos
@@ -277,6 +400,11 @@ namespace River.OneMoreAddIn
 		// https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getparent
 		[DllImport("user32.dll")]
 		public static extern IntPtr GetParent(IntPtr hWnd);
+
+
+		// https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getguithreadinfo
+		[DllImport("user32.dll")]
+		public static extern bool GetGUIThreadInfo(uint idThread, ref GUITHREADINFO lpgui);
 
 
 		// https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getsystemmenu
@@ -322,6 +450,16 @@ namespace River.OneMoreAddIn
 
 
 		// https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-releasecapture
+		// https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-lockwindowupdate
+		// unlike WM_SETREDRAW (per-window only), this suppresses drawing for the given
+		// window AND all its child windows, so it can batch updates to multiple hosted
+		// child controls (see MoreListViewEx) into a single visible repaint; pass
+		// IntPtr.Zero to unlock. Only one window may be locked system-wide at a time -
+		// always unlock in a finally block.
+		[DllImport("user32.dll")]
+		public static extern bool LockWindowUpdate(IntPtr hWndLock);
+
+
 		[DllImport("user32.dll")]
 		public static extern bool ReleaseCapture();
 
@@ -347,6 +485,10 @@ namespace River.OneMoreAddIn
 		public static extern bool SendMessage(IntPtr hWnd, UInt32 m, int wParam, int lParam);
 
 
+		[DllImport("user32.dll")]
+		public static extern IntPtr SendMessage(IntPtr hWnd, UInt32 m, IntPtr wParam, IntPtr lParam);
+
+
 		// https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-registerhotkey
 		[DllImport("user32", SetLastError = true)]
 		public static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
@@ -363,8 +505,68 @@ namespace River.OneMoreAddIn
 		public static extern bool SetProcessDPIAware();
 
 
-		// https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setwindowpos
+		// https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setprocessdpiawarenesscontext
 		[DllImport("user32.dll")]
+		public static extern bool SetProcessDpiAwarenessContext(IntPtr dpiContext);
+
+		public static readonly IntPtr DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 = new IntPtr(-4);
+
+
+		// https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setthreaddpiawarenesscontext
+		[DllImport("user32.dll")]
+		public static extern IntPtr SetThreadDpiAwarenessContext(IntPtr dpiContext);
+
+
+		/// <summary>
+		/// Forces the calling thread into a specific DPI awareness context for the duration
+		/// of a using block, then restores whatever context was previously in effect. Use
+		/// this around GetWindowRect/SetWindowPos/Screen.* calls that must see real physical
+		/// pixels regardless of the process's ambient DPI awareness, which (e.g. inside the
+		/// shared dllhost.exe COM surrogate) is not always reliably per-monitor-aware.
+		/// </summary>
+		internal readonly struct ThreadDpiAwarenessScope : IDisposable
+		{
+			private readonly IntPtr previous;
+
+			public ThreadDpiAwarenessScope(IntPtr context)
+			{
+				try
+				{
+					previous = SetThreadDpiAwarenessContext(context);
+				}
+				catch (EntryPointNotFoundException)
+				{
+					// Windows older than 10 1607; nothing to restore
+					previous = IntPtr.Zero;
+				}
+			}
+
+			public void Dispose()
+			{
+				if (previous != IntPtr.Zero)
+				{
+					try
+					{
+						SetThreadDpiAwarenessContext(previous);
+					}
+					catch (EntryPointNotFoundException)
+					{
+						// can't happen if the constructor succeeded, but stay defensive
+					}
+				}
+			}
+		}
+
+
+		// https://learn.microsoft.com/en-us/windows/win32/api/shellscalingapi/nf-shellscalingapi-setprocessdpiawareness
+		[DllImport("shcore.dll")]
+		public static extern int SetProcessDpiAwareness(int value);
+
+		public const int PROCESS_PER_MONITOR_DPI_AWARE = 2;
+
+
+		// https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setwindowpos
+		[DllImport("user32.dll", SetLastError = true)]
 		public static extern bool SetWindowPos(
 			IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
 
@@ -374,6 +576,18 @@ namespace River.OneMoreAddIn
 		public static extern IntPtr SetWinEventHook(
 			uint eventMin, uint eventMax, IntPtr hmodWinEventProc,
 			WinEventDelegate lpfnWinEventProc, uint idProcess, uint idThread, uint dwFlags);
+
+
+		// https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-showwindow
+		[DllImport("user32.dll")]
+		public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+
+		// https://learn.microsoft.com/en-us/windows/win32/api/shlwapi/nf-shlwapi-strcmplogicalw
+		// Compares two strings using the same "natural" digit-run-aware algorithm that
+		// Windows Explorer uses to sort file names, e.g. "2" < "10", "0" < "00" < "000".
+		[DllImport("shlwapi.dll", CharSet = CharSet.Unicode)]
+		public static extern int StrCmpLogicalW(string psz1, string psz2);
 
 
 		// https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-switchtothiswindow

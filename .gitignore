@@ -290,5 +290,13 @@ __pycache__/
 *.xsd.cs
 
 OneNote_RecycleBin/
+specs/
+CC-Session-Logs/
+design_handoff_*/
 /docs/OneMore Wiki.zip
-/OneMoreSetup/OneMoreSetup.vdproj.json
+*.clean.json
+*.clean.vdproj
+*.vdproj.json
+OneMoreSetup/installer.md
+.claude/settings.local.json
+settings.local.json

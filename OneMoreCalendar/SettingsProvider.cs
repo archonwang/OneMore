@@ -1,5 +1,5 @@
 ﻿//************************************************************************************************
-// Copyright © 2021 Steven M Cohn.  All rights reserved.
+// Copyright © 2021 Steven M Cohn. All rights reserved.
 //************************************************************************************************
 
 namespace OneMoreCalendar
@@ -39,6 +39,7 @@ namespace OneMoreCalendar
 				}
 				catch (Exception exc)
 				{
+					Logger.Current.WriteLine($"error reading {path}", exc);
 					MessageBox.Show($"error reading {path}\n{exc.Message}");
 				}
 			}
@@ -99,9 +100,9 @@ namespace OneMoreCalendar
 			get
 			{
 				var element = root.Elements("theme").FirstOrDefault();
-				if (element != null)
+				if (element is not null && Enum.TryParse<ThemeMode>(element.Value, out var mode))
 				{
-					return (ThemeMode)Enum.Parse(typeof(ThemeMode), element.Value);
+					return mode;
 				}
 
 				return ThemeMode.System;
@@ -206,8 +207,16 @@ namespace OneMoreCalendar
 
 		public void Save()
 		{
-			PathHelper.EnsurePathExists(Path.GetDirectoryName(path));
-			root.Save(path, SaveOptions.None);
+			try
+			{
+				PathHelper.EnsurePathExists(Path.GetDirectoryName(path));
+				root.Save(path, SaveOptions.None);
+			}
+			catch (Exception exc)
+			{
+				Logger.Current.WriteLine($"error saving {path}", exc);
+				throw;
+			}
 		}
 	}
 }

@@ -206,15 +206,12 @@ namespace River.OneMoreAddIn.Models
 		/// <param name="def"></param>
 		public void AddQuickStyleDef(XElement def)
 		{
-			var tagdef = Root.Elements(Namespace + "TagDef").LastOrDefault();
-			if (tagdef is null)
-			{
+			var anchor = Root.Elements(Namespace + "QuickStyleDef").LastOrDefault()
+				?? Root.Elements(Namespace + "TagDef").LastOrDefault();
+			if (anchor is null)
 				Root.AddFirst(def);
-			}
 			else
-			{
-				tagdef.AddAfterSelf(def);
-			}
+				anchor.AddAfterSelf(def);
 		}
 
 
@@ -396,10 +393,15 @@ namespace River.OneMoreAddIn.Models
 			if (size is null)
 			{
 				// this size is close to OneNote defaults when a new Outline is created
-				outline.AddFirst(new XElement(Namespace + "Size",
+				var newSize = new XElement(Namespace + "Size",
 					new XAttribute("width", "300.0"),
 					new XAttribute("height", "14.0")
-					));
+					);
+
+				// Size must follow Position per PageObject schema
+				var position = outline.Element(Namespace + "Position");
+				if (position is null) outline.AddFirst(newSize);
+				else position.AddAfterSelf(newSize);
 			}
 
 			return container;
@@ -499,7 +501,11 @@ namespace River.OneMoreAddIn.Models
 				if (sibling is null)
 				{
 					quick.Index = 0;
-					Root.AddFirst(quick.ToElement(Namespace));
+					var tagdef = Root.Elements(Namespace + "TagDef").LastOrDefault();
+					if (tagdef is null)
+						Root.AddFirst(quick.ToElement(Namespace));
+					else
+						tagdef.AddAfterSelf(quick.ToElement(Namespace));
 				}
 				else
 				{
@@ -578,7 +584,7 @@ namespace River.OneMoreAddIn.Models
 
 			black = Office.IsBlackThemeEnabled();
 
-			var color = Root.Element(Namespace + "PageSettings").Attribute("color")?.Value;
+			var color = Root.Element(Namespace + "PageSettings")?.Attribute("color")?.Value;
 			if (string.IsNullOrEmpty(color) || color == "automatic")
 			{
 				automatic = true;
@@ -665,16 +671,30 @@ namespace River.OneMoreAddIn.Models
 			// there always seems to be two MediaIndex elements, one for the media file and one
 			// for the citation; only when the recording is complete will the first instance be
 			// accompanied by a MediaFile element, so we need to check all unique IDs
+			//
+			// content pasted from the web can include whole MediaIndex elements duplicated
+			// verbatim - same timeIndex and mediaID - each appearing active but with no
+			// MediaFile; that duplication is impossible for a genuine in-progress recording,
+			// so we discard any (timeIndex, mediaID) pair that repeats and only look for
+			// activity among what remains. A genuine in-progress recording will only ever
+			// produce exactly one such active MediaIndex
 
 			var empty = Guid.Empty.ToString("B");
 
 			var mediaIDs = Root
 				.Descendants(Namespace + "MediaIndex")
-				.Elements(Namespace + "MediaReference")
-				.Attributes("mediaID")
-				.Select(a => a.Value)
-				.Where(a => a != empty)
+				.Select(index => new
+				{
+					TimeIndex = (string)index.Attribute("timeIndex"),
+					MediaID = (string)index.Element(Namespace + "MediaReference")?.Attribute("mediaID")
+				})
+				.Where(p => !string.IsNullOrEmpty(p.MediaID) && p.MediaID != empty)
+				.GroupBy(p => new { p.TimeIndex, p.MediaID })
+				.Where(g => g.Count() == 1)
+				.Select(g => g.Key.MediaID)
 				.Distinct();
+
+			var activeCount = 0;
 
 			foreach (var mediaID in mediaIDs)
 			{
@@ -685,13 +705,20 @@ namespace River.OneMoreAddIn.Models
 				if (file is null)
 				{
 					// MediaFile element exists only after recording has stopped
-					return true;
+					activeCount++;
 				}
 			}
 
-			return false;
+			return activeCount == 1;
 		}
 
+		/*
+OneNote let's users record audio and video on a page. Only one recording can be active at a time. 
+
+This ticket describes a case where there are multiple "active" media elements on the page at the same time, which should be impossible. The user copied the content from the Web and pasted it onto their page. This copied content contained multiple rogue active media elements.
+
+The fix is to ignore multiple active media elements.
+		 */
 
 		/// <summary>
 		/// Determines if the page is configured for right-to-left text or the Windows
@@ -765,12 +792,10 @@ namespace River.OneMoreAddIn.Models
 					);
 
 				// add into schema sequence...
-				var after = Root.Elements(Namespace + "XPSFile").LastOrDefault();
-				if (after is null)
-				{
-					after = Root.Elements(Namespace + "QuickStyleDef").LastOrDefault();
-					after ??= Root.Elements(Namespace + "TagDef").LastOrDefault();
-				}
+				var after = Root.Elements(Namespace + "Meta").LastOrDefault()
+					?? Root.Elements(Namespace + "XPSFile").LastOrDefault()
+					?? Root.Elements(Namespace + "QuickStyleDef").LastOrDefault()
+					?? Root.Elements(Namespace + "TagDef").LastOrDefault();
 
 				if (after is null)
 				{
@@ -822,6 +847,22 @@ namespace River.OneMoreAddIn.Models
 				block.Elements(ns + "OE").FirstOrDefault()?
 					.ReplaceNodes(new XElement(ns + "T", new XCData(title)));
 			}
+		}
+
+
+		/// <summary>
+		/// Guards against a OneNote save-time normalization defect where a local style
+		/// attribute that looks redundant with its QuickStyleDef gets stripped, silently
+		/// falling back to the QuickStyleDef's color, which can be invisible against the
+		/// page background. Pins an explicit, contrasting color onto any at-risk local
+		/// style so the text stays visible and the local style is no longer identical to
+		/// its QuickStyleDef.
+		/// </summary>
+		public void StabilizeTextColors()
+		{
+			var background = GetPageColor(out _, out _);
+			var contrast = GetBestTextColor();
+			ColorStabilizer.Stabilize(Root, Namespace, background, contrast);
 		}
 	}
 }

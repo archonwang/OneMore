@@ -5,9 +5,12 @@
 namespace River.OneMoreAddIn.Commands
 {
 	using River.OneMoreAddIn.Models;
+	using River.OneMoreAddIn.Settings;
+	using River.OneMoreAddIn.Styles;
 	using River.OneMoreAddIn.UI;
 	using System.Collections.Generic;
 	using System.IO;
+	using System.Text.RegularExpressions;
 	using System.Threading.Tasks;
 	using System.Xml.Linq;
 	using Resx = Properties.Resources;
@@ -68,22 +71,33 @@ namespace River.OneMoreAddIn.Commands
 			};
 
 			var text = reader.ReadTextFrom(paragraphs, range.Scope != SelectionScope.Range);
+
+			// solves the ``` end of code block being on a new line, which markdown doesn't like;
+			// also strips trailing <br> when selection ends at the fence (ReadTextFrom strips EOL)
+			text = Regex.Replace(text, @"<br>([\n\r]+|$)", "$1");
+
 			logger.Verbose("preview raw text:");
 			logger.Verbose(text);
 
 			var title = editor.AllContent
-				? $"<p style=\"font-family:Calibri;font-size:20pt\">{page.Title}</p>"
+				? $"<p style=\"font-family:{StyleBase.DefaultFontFamily};font-size:20pt\">{page.Title}</p>"
 				: string.Empty;
 
+			var markdownSettings = new SettingsProvider().GetCollection(nameof(MarkdownSheet));
+			var gfmLineBreaks = markdownSettings.Get("gfmLineBreaks", false);
+			var singleSpacing = markdownSettings.Get("singleSpacing", false);
+			var blankBeforeHeadings = markdownSettings.Get("blankBeforeHeadings", false);
+
 			var filepath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-			var body = title + OneMoreDig.ConvertMarkdownToHtml(filepath, text);
+			var body = title + OneMoreDig.ConvertMarkdownToHtml(
+				filepath, text, gfmLineBreaks, singleSpacing, blankBeforeHeadings);
 
 			filepath = Path.Combine(
 				Path.GetDirectoryName(filepath),
 				Path.GetFileNameWithoutExtension(filepath)) + ".htm";
 
 			logger.WriteLine($"markdown preview saved to {filepath}");
-			File.WriteAllText(filepath, body);
+			File.WriteAllText(filepath, $"<html><body>{body}</body></html>");
 
 			await SingleThreaded.Invoke(() =>
 			{

@@ -1,5 +1,5 @@
 ﻿//************************************************************************************************
-// Copyright © 2023 Steven M Cohn.  All rights reserved.
+// Copyright © 2023 Steven M Cohn. All rights reserved.
 //************************************************************************************************
 
 namespace River.OneMoreAddIn.Commands
@@ -25,16 +25,27 @@ namespace River.OneMoreAddIn.Commands
 
 		public override async Task Execute(params object[] args)
 		{
-			if (new SettingsProvider()
-				.GetCollection(nameof(NavigatorSheet)).Get("disabled", false))
+			using var guard = EnterOnce();
+			if (guard is null) { return; }
+
+			var settings = new SettingsProvider().GetCollection(nameof(NavigatorSheet));
+			if (settings.Get("disabled", false))
 			{
-				ShowInfo(Resx.NavigatorWindow_disabled);
-				return;
+				// the tracking service is off but the reading list is independent of it,
+				// so still let the user get to their pinned pages rather than blocking
+				// the whole window
+				using var provider = new NavigationProvider();
+				var pinned = await provider.ReadPinned();
+				if (pinned.Count == 0)
+				{
+					ShowInfo(Resx.NavigatorWindow_disabled);
+					return;
+				}
 			}
 
 			if (window == null)
 			{
-				window = new NavigatorWindow();
+				window = new NavigatorWindow(ribbon);
 				window.FormClosed += CloseNavigatorWindow;
 				window.RunModeless();
 				return;
@@ -50,13 +61,14 @@ namespace River.OneMoreAddIn.Commands
 				window.WindowState = FormWindowState.Normal;
 			}
 
+			await window.RefreshPageHeadings();
 			window.Elevate(false);
 
 			await Task.Yield();
 		}
 
 
-		private void CloseNavigatorWindow(object sender, FormClosedEventArgs e)
+		private static void CloseNavigatorWindow(object sender, FormClosedEventArgs e)
 		{
 			window.Dispose();
 			window = null;

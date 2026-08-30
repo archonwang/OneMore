@@ -21,6 +21,8 @@ namespace River.OneMoreAddIn.Commands
 		private string query;
 
 		private static HashtagDialog dialog;
+		private static IDisposable pauseHandle;
+
 
 		public HashtagCommand()
 		{
@@ -31,56 +33,89 @@ namespace River.OneMoreAddIn.Commands
 
 		public override async Task Execute(params object[] args)
 		{
-			if (!await ConfirmReady())
-			{
-				return;
-			}
-
 			if (dialog != null)
 			{
-				// single instance
+				// Single instance. Checked first, independent of the re-entry guard below:
+				// RunModeless can block synchronously for the dialog's entire lifetime when
+				// invoked with no message loop already running, so a guard held across that
+				// call would make every repeated invocation while the dialog is open bail
+				// out below instead of ever reaching this elevate.
 				dialog.Elevate();
 				return;
 			}
 
-			var converter = new LegacyTaggingConverter();
-			await converter.UpgradeLegacyTags();
+			using var guard = EnterOnce();
+			if (guard is null) { return; }
 
-			// get page moreID...
-
-			await using var one = new OneNote(out var page, out var ns);
-
-			var moreID = page.Root.Elements(ns + "Meta")
-				.Where(e => e.Attribute("name").Value == MetaNames.PageID)
-				.Select(e => e.Attribute("content").Value)
-				.FirstOrDefault();
-
-			// dialog...
-
-			dialog = new HashtagDialog(moreID);
-			dialog.FormClosed += Dialog_FormClosed;
-
-			dialog.RunModeless(async (sender, e) =>
+			try
 			{
-				var d = sender as HashtagDialog;
-				if (d.DialogResult == DialogResult.OK)
+				if (!await ConfirmReady())
 				{
-					command = d.Command;
-					selectedPages = d.SelectedPages;
-					query = d.Query;
-
-					var msg = command switch
-					{
-						HashtagDialog.Commands.Copy => Resx.SearchQF_DescriptionCopy,
-						HashtagDialog.Commands.Move => Resx.SearchQF_DescriptionMove,
-						_ => Resx.SearchQF_DescriptionIndex
-					};
-
-					await using var one = new OneNote();
-					one.SelectLocation(Resx.SearchQF_Title, msg, OneNote.Scope.Sections, Callback);
+					return;
 				}
-			},
-			20);
+
+				if (dialog != null)
+				{
+					// single instance
+					dialog.Elevate();
+					return;
+				}
+
+				var converter = new LegacyTaggingConverter();
+				await converter.UpgradeLegacyTags();
+
+				// get page moreID...
+
+				await using var one = new OneNote(out var page, out var ns);
+
+				var moreID = page.Root.Elements(ns + "Meta")
+					.Where(e => e.Attribute("name").Value == MetaNames.PageID)
+					.Select(e => e.Attribute("content").Value)
+					.FirstOrDefault();
+
+				// dialog...
+
+				dialog = new HashtagDialog(moreID);
+				dialog.FormClosed += Dialog_FormClosed;
+
+				// signal the background scanner to use a longer inter-page delay while this
+				// dialog is open, so its DB reads and OneNote COM calls aren't starved
+				pauseHandle = HashtagServicePause.Hold();
+
+				// release the guard now, BEFORE calling RunModeless, since that call may not
+				// return until the dialog closes - dialog is already non-null by this point,
+				// so a repeated invocation from here on correctly reaches the elevate branch
+				// above instead of bailing out here
+				guard.Dispose();
+
+				dialog.RunModeless(async (sender, e) =>
+				{
+					var d = sender as HashtagDialog;
+					if (d.DialogResult == DialogResult.OK)
+					{
+						command = d.Command;
+						selectedPages = d.SelectedPages;
+						query = d.Query;
+
+						var msg = command switch
+						{
+							HashtagDialog.Commands.Copy => Resx.SearchQF_DescriptionCopy,
+							HashtagDialog.Commands.Move => Resx.SearchQF_DescriptionMove,
+							_ => Resx.SearchQF_DescriptionIndex
+						};
+
+						await using var one = new OneNote();
+						one.SelectLocation(Resx.SearchQF_Title, msg, OneNote.Scope.Sections, Callback);
+					}
+				},
+				20);
+			}
+			finally
+			{
+				// redundant on the success path (already released above); still needed to
+				// clear the guard if something threw during setup, before that release ran
+				guard.Dispose();
+			}
 		}
 
 
@@ -122,6 +157,9 @@ namespace River.OneMoreAddIn.Commands
 
 		private void Dialog_FormClosed(object sender, FormClosedEventArgs e)
 		{
+			pauseHandle?.Dispose();
+			pauseHandle = null;
+
 			if (dialog != null)
 			{
 				dialog.FormClosed -= Dialog_FormClosed;
@@ -139,7 +177,7 @@ namespace River.OneMoreAddIn.Commands
 				return;
 			}
 
-			logger.Start($"..{command} {selectedPages.Count()} pages");
+			using var indent = logger.Indent($"..{command} {selectedPages.Count()} pages");
 
 			try
 			{
@@ -166,10 +204,6 @@ namespace River.OneMoreAddIn.Commands
 			catch (Exception exc)
 			{
 				logger.WriteLine(exc);
-			}
-			finally
-			{
-				logger.End();
 			}
 		}
 

@@ -24,6 +24,9 @@ namespace River.OneMoreAddIn.Commands
 
 		public override async Task Execute(params object[] args)
 		{
+			using var guard = EnterOnce();
+			if (guard is null) { return; }
+
 			using var dialog = new SettingsDialog(args[0] as IRibbonUI);
 			dialog.ShowDialog(owner);
 

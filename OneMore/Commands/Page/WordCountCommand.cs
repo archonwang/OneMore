@@ -6,6 +6,7 @@ namespace River.OneMoreAddIn.Commands
 {
 	using Chinese;
 	using River.OneMoreAddIn.Models;
+	using System.Collections.Generic;
 	using System.Linq;
 	using System.Text.RegularExpressions;
 	using System.Threading.Tasks;
@@ -21,22 +22,28 @@ namespace River.OneMoreAddIn.Commands
 	/// Word because Word counts things like URLs as a single word but OneMore separates the
 	/// individual words in the URL. For example, Word reports one word in
 	/// "https://github.com/OneMore" whereas OneMore counts it as four words.
+	/// Contractions and hyphenated compounds, e.g. "He's" or "one-two-three", are each counted
+	/// as a single word, matching Word's behavior.
 	/// </remarks>
 	internal class WordCountCommand : Command
 	{
 		private const string CJKPattern = @"\p{IsCJKUnifiedIdeographs}+";
+		private const string WordPattern = @"[\w]+(?:['’-][\w]+)*";
 
 		private const string HeaderShading = "#DEEBF6";
 		private const string Header2Shading = "#F2F2F2";
 		private const string HeaderCss = "font-family:'Segoe UI Light';font-size:10.0pt";
+
+		private static readonly Regex CJKRegex = new(CJKPattern);
+		private static readonly Regex WordRegex = new(WordPattern);
 
 		private OneNote one;
 		private XNamespace ns;
 		private OneNote.Scope scope;
 		private int grandTotal;
 		private int grandTotalPages;
+		private int grandTotalParagraphs;
 		private int heading2Index;
-		private Regex regex;
 		private UI.ProgressDialog progress;
 
 
@@ -47,8 +54,6 @@ namespace River.OneMoreAddIn.Commands
 
 		public override async Task Execute(params object[] args)
 		{
-			regex = new Regex(CJKPattern);
-
 			await using (one = new OneNote())
 			{
 				scope = args.Length > 0 && args[0] is OneNote.Scope ascope
@@ -59,11 +64,17 @@ namespace River.OneMoreAddIn.Commands
 				{
 					// words on the current page...
 
-					var (count, wholePage) = await WordsOnPage(one.CurrentPageId);
+					var (count, wholePage, paragraphs) = await WordsOnPage(one.CurrentPageId);
 
 					if (wholePage)
 					{
-						ShowInfo(string.Format(Resx.WordCountCommand_Count, count));
+						ShowInfo(string.Format(Resx.WordCountCommand_Count, count)
+							+ "\n\n" + string.Format(Resx.WordCountCommand_Paragraphs, paragraphs));
+					}
+					else if (paragraphs > 0)
+					{
+						ShowInfo(string.Format(Resx.WordCountCommand_Selected, count)
+							+ "\n\n" + string.Format(Resx.WordCountCommand_SelectedParagraphs, paragraphs));
 					}
 					else
 					{
@@ -80,7 +91,7 @@ namespace River.OneMoreAddIn.Commands
 		}
 
 
-		private async Task<(int, bool)> WordsOnPage(string pageID)
+		private async Task<(int count, bool wholePage, int paragraphs)> WordsOnPage(string pageID)
 		{
 			var page = await one.GetPage(pageID,
 				// only use Selection for current page,
@@ -89,9 +100,18 @@ namespace River.OneMoreAddIn.Commands
 					? OneNote.PageDetail.Selection
 					: OneNote.PageDetail.Basic);
 
-			var runs = scope == OneNote.Scope.Self
-				? new SelectionRange(page).GetSelections(defaulToAnytIfNoRange: true)
-				: page.Root.Descendants(ns + "T");
+			IEnumerable<XElement> runs;
+			SelectionRange selectionRange = null;
+
+			if (scope == OneNote.Scope.Self)
+			{
+				selectionRange = new SelectionRange(page);
+				runs = selectionRange.GetSelections(defaulToAnytIfNoRange: true);
+			}
+			else
+			{
+				runs = page.Root.Descendants(ns + "T");
+			}
 
 			var count = 0;
 
@@ -103,17 +123,7 @@ namespace River.OneMoreAddIn.Commands
 					var text = cdata.GetWrapper().Value.Trim();
 					if (text.Length > 0)
 					{
-						//logger.WriteLine($"counting '{text}'");
-
-						if (regex.IsMatch(text))
-						{
-							// works well for Chinese but is questionable for JP and KO
-							count += ChineseTokenizer.SplitWords(text).Count();
-						}
-						else
-						{
-							count += Regex.Matches(text, @"[\w]+").Count;
-						}
+						count += CountWords(text);
 					}
 				}
 			}
@@ -121,13 +131,65 @@ namespace River.OneMoreAddIn.Commands
 			// presume whole page if any non-selected runs were included
 			var wholePage = runs.Any(e => e.Attribute("selected") is null);
 
-			return (count, wholePage);
+			var pageNs = page.Namespace;
+			var paragraphs = 0;
+			if (wholePage)
+			{
+				paragraphs = page.BodyOutlines
+					.Descendants(pageNs + "OE")
+					.Where(e => !e.Ancestors(pageNs + "Table").Any())
+					.Count(e => e.Elements(pageNs + "T")
+						.SelectMany(t => t.DescendantNodes().OfType<XCData>())
+						.Any(cd => cd.GetWrapper().Value.Trim().Length > 0));
+			}
+			else if (!wholePage && selectionRange?.SingleParagraph == false)
+			{
+				paragraphs = runs
+					.Select(t => t.Parent)
+					.Where(oe => oe?.Name.LocalName == "OE")
+					.Distinct()
+					.Count(oe => oe.Elements(pageNs + "T")
+						.SelectMany(t => t.DescendantNodes().OfType<XCData>())
+						.Any(cd => cd.GetWrapper().Value.Trim().Length > 0));
+			}
+
+			return (count, wholePage, paragraphs);
+		}
+
+
+		/// <summary>
+		/// Counts the words in a single run of text, treating internal apostrophes and hyphens
+		/// (e.g. "He's", "one-two-three") as part of a single word rather than as separators.
+		/// </summary>
+		internal static int CountWords(string text)
+		{
+			if (string.IsNullOrEmpty(text))
+			{
+				return 0;
+			}
+
+			if (CJKRegex.IsMatch(text))
+			{
+				var count = 0;
+
+				// count each CJK run via dictionary segmentation
+				foreach (Match m in CJKRegex.Matches(text))
+				{
+					count += ChineseTokenizer.SplitWords(m.Value).Count();
+				}
+
+				// count non-CJK content in the same run (Latin, numbers, etc.)
+				var nonCjk = CJKRegex.Replace(text, " ");
+				return count + WordRegex.Matches(nonCjk).Count;
+			}
+
+			return WordRegex.Matches(text).Count;
 		}
 
 
 		private async Task ReportWordCounts(OneNote.Scope scope)
 		{
-			grandTotal = grandTotalPages = 0;
+			grandTotal = grandTotalPages = grandTotalParagraphs = 0;
 
 			one.CreatePage(one.CurrentSectionId, out var pageId);
 			var page = await one.GetPage(pageId);
@@ -204,7 +266,7 @@ namespace River.OneMoreAddIn.Commands
 			container.Add(new Paragraph(string.Format(
 				Resx.WordCounts_Section, name)).SetQuickStyle(heading2Index));
 
-			var table = new Table(ns, 1, 2)
+			var table = new Table(ns, 1, 3)
 			{
 				HasHeaderRow = true,
 				BordersVisible = true
@@ -212,13 +274,16 @@ namespace River.OneMoreAddIn.Commands
 
 			table.SetColumnWidth(0, 400);
 			table.SetColumnWidth(1, 80);
+			table.SetColumnWidth(2, 80);
 
 			var row = table[0];
 			row.SetShading(HeaderShading);
 			row[0].SetContent(new Paragraph(Resx.word_Page).SetStyle(HeaderCss));
 			row[1].SetContent(new Paragraph(Resx.word_Words).SetStyle(HeaderCss).SetAlignment("center"));
+			row[2].SetContent(new Paragraph(Resx.word_Paragraphs).SetStyle(HeaderCss).SetAlignment("center"));
 
 			var total = 0;
+			var totalParagraphs = 0;
 			var pages = 0;
 
 			section.Elements(ns + "Page")
@@ -235,13 +300,16 @@ namespace River.OneMoreAddIn.Commands
 
 				row[0].SetContent(new Paragraph(name));
 
-				var (count, _) = await WordsOnPage(child.Attribute("ID").Value);
+				var (count, _, paragraphs) = await WordsOnPage(child.Attribute("ID").Value);
 
 				pages++;
 				total += count;
+				totalParagraphs += paragraphs;
 				grandTotal += count;
+				grandTotalParagraphs += paragraphs;
 
 				row[1].SetContent(new Paragraph(count.ToString("n0")).SetAlignment("center"));
+				row[2].SetContent(new Paragraph(paragraphs.ToString("n0")).SetAlignment("center"));
 			});
 
 			grandTotalPages += pages;
@@ -251,6 +319,7 @@ namespace River.OneMoreAddIn.Commands
 
 			row[0].SetContent(new Paragraph(text).SetStyle(HeaderCss).SetAlignment("right"));
 			row[1].SetContent(new Paragraph(total.ToString("n0")).SetAlignment("center"));
+			row[2].SetContent(new Paragraph(totalParagraphs.ToString("n0")).SetAlignment("center"));
 
 			container.Add(
 				new Paragraph(table.Root),
@@ -261,13 +330,14 @@ namespace River.OneMoreAddIn.Commands
 
 		private void ReportGrandTotal(XElement container)
 		{
-			var table = new Table(ns, 1, 2)
+			var table = new Table(ns, 1, 3)
 			{
 				BordersVisible = true
 			};
 
 			table.SetColumnWidth(0, 400);
 			table.SetColumnWidth(1, 80);
+			table.SetColumnWidth(2, 80);
 
 			var row = table[0];
 			var text = string.Format(Resx.WordCounts_NotebookTotal, grandTotalPages);
@@ -275,6 +345,7 @@ namespace River.OneMoreAddIn.Commands
 			row[0].ShadingColor = Header2Shading;
 			row[0].SetContent(new Paragraph(text).SetStyle(HeaderCss).SetAlignment("right"));
 			row[1].SetContent(new Paragraph(grandTotal.ToString("n0")).SetAlignment("center"));
+			row[2].SetContent(new Paragraph(grandTotalParagraphs.ToString("n0")).SetAlignment("center"));
 
 			container.Add(new Paragraph(table.Root));
 		}

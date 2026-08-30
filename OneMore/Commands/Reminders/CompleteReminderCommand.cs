@@ -25,6 +25,12 @@ namespace River.OneMoreAddIn.Commands
 		public override async Task Execute(params object[] args)
 		{
 			await using var one = new OneNote(out var page, out var ns);
+
+			if (!await ConfirmSingleWindow(one, page.PageId))
+			{
+				return;
+			}
+
 			var paragraph = page.Root.Descendants(ns + "T")
 				.Where(e => e.Attribute("selected")?.Value == "all")
 				.Select(e => e.Parent)
@@ -44,14 +50,7 @@ namespace River.OneMoreAddIn.Commands
 				return;
 			}
 
-			var objectID = paragraph.Attribute("objectID").Value;
-			var reminder = reminders.Find(r => r.ObjectId == objectID);
-			if (reminder is null)
-			{
-				// second-chance for multi-client users
-				var uri = one.GetHyperlink(page.PageId, objectID);
-				reminder = reminders.Find(r => r.ObjectUri == uri);
-			}
+			var reminder = await new ReminderLocator(one, page, reminders).Resolve(paragraph);
 
 			if (reminder is null)
 			{

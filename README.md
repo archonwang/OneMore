@@ -4,13 +4,14 @@ OneMore is an add-in for OneNote with simple and powerful features that make One
 
 * Download the [latest release](https://github.com/stevencohn/OneMore/releases/latest)
 * Read the [installation instructions](https://onemoreaddin.com/get-started/How%20to%20Install%20OneMore.htm)
-* See the new [OneNote Wiki](https://onemoreaddin.com/) for a full user guide
+* See the new [OneMore Wiki](https://onemoreaddin.com/) for a full user guide
 
 # [![version](https://img.shields.io/github/v/release/stevencohn/OneMore?display_name=tag&color=7E5C81)](https://github.com/stevencohn/OneMore/releases/latest) [![downloads](https://img.shields.io/github/downloads/stevencohn/OneMore/total?color=blue)](https://github.com/stevencohn/OneMore/releases/latest) [![platform](https://img.shields.io/badge/platform-windows%20%7C%20onenote%20desktop-649BC1)](https://onemoreaddin.com/get-started/How%20to%20Install%20OneNote.htm) [![GitHub license](https://img.shields.io/badge/license-mpl--2.0-BF6A48)](https://github.com/stevencohn/OneMore/blob/main/LICENSE) [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://onemoreaddin.com/developers/Setup.htm) ![](https://tokei.rs/b1/github/project-jedi/jcl)
 
 
 # Highlights
 - Quickly access all OneMore commands from the almighty [Command Palette](https://onemoreaddin.com/the-basics/Basics.htm)!
+- Automate over 40 OneMore commands from the command-line using [the OneMore CLI Runner](https://onemoreaddin.com/the-basics/OneMore%20CLI.htm)
 - Type and search for [inline #hashtags](https://onemoreaddin.com/commands/Search%20and%20Tag%20Commands.htm)
 - Use the [Navigator window](https://onemoreaddin.com/the-basics/Navigator.htm) to keep track of visited pages, a personalized reading list, and navigate the headings of the current page.
 - Integrating with the [ribbon bar](https://onemoreaddin.com/the-basics/Basics.htm), extends <a href="https://onemoreaddin.com/context-menus/Context%20Menu%20Extensions.htm">context menus</a>, and provides customized <a href="https://onemoreaddin.com/the-basics/OneNote%20Keyboard%20Shortcuts.htm">keyboard shortcuts</a>
@@ -30,10 +31,10 @@ OneMore is an add-in for OneNote with simple and powerful features that make One
 | ![screenshot](OneMore/Properties/Images/Screenshot.png) | ![Calendar](OneMore/Properties/Images/Calendar.png) |
 _Click an image to enlarge_
 
-## 💁 Features - Over 160 commands and growing!
+## 💁 Features - Over 240 commands and growing!
 *Want more from OneMore? OneMore has more...*
 
-See the 📓 **[OneNote Wiki](https://onemoreaddin.com/)** for a full user guide, setup instructions,
+See the 📓 **[OneMore Wiki](https://onemoreaddin.com/)** for a full user guide, setup instructions,
 and description of each command.
 
 

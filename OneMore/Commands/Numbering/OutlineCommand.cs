@@ -1,5 +1,5 @@
 ﻿//************************************************************************************************
-// Copyright © 2020 Steven M Cohn.  All rights reserved.
+// Copyright © 2020 Steven M Cohn. All rights reserved.
 //************************************************************************************************
 
 namespace River.OneMoreAddIn.Commands
@@ -31,6 +31,9 @@ namespace River.OneMoreAddIn.Commands
 
 		public override async Task Execute(params object[] args)
 		{
+			using var guard = EnterOnce();
+			if (guard is null) { return; }
+
 			using var dialog = new OutlineDialog();
 			if (dialog.ShowDialog(owner) != DialogResult.OK)
 			{
@@ -43,7 +46,7 @@ namespace River.OneMoreAddIn.Commands
 				return;
 			}
 
-			headings = page.GetHeadings(one);
+			headings = page.GetHeadings(one, secondary: dialog.Secondary);
 			if (dialog.CleanupNumbering)
 			{
 				RemoveOutlineNumbering();

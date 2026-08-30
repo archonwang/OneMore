@@ -161,6 +161,25 @@ namespace River.OneMoreAddIn
 
 
 		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="s"></param>
+		/// <param name="oldValue"></param>
+		/// <param name="newValue"></param>
+		/// <returns></returns>
+		public static string ReplaceIgnoreCase(this string s, string oldValue, string newValue)
+		{
+			int index = s.IndexOf(oldValue, StringComparison.OrdinalIgnoreCase);
+			while (index >= 0)
+			{
+				s = s.Remove(index, oldValue.Length).Insert(index, newValue);
+				index = s.IndexOf(oldValue, index + newValue.Length, StringComparison.OrdinalIgnoreCase);
+			}
+			return s;
+		}
+
+
+		/// <summary>
 		/// OneMore Extension >> Escapes only a select few special character in a URL. Needed
 		/// for the Copy Link to Page command so the pasted link can be clicked and properly 
 		/// navigate back to the source page.
@@ -337,6 +356,39 @@ namespace River.OneMoreAddIn
 
 
 		/// <summary>
+		/// OneMore Extension >> Remove icon and symbol characters from the beginning of a
+		/// string. This can be used when needing a sortable string regardless of decorations.
+		/// </summary>
+		/// <param name="input">Any Unicode string.</param>
+		/// <returns>The string without leading icons and symbols.</returns>
+		public static string TrimLeadingIcons(this string input)
+		{
+			int i = 0;
+			while (i < input.Length &&
+				char.GetUnicodeCategory(input, i) == UnicodeCategory.OtherSymbol)
+			{
+				i += char.IsSurrogatePair(input, i) ? 2 : 1;  // advance by 1 or 2 chars
+			}
+
+			return input.Substring(i);
+		}
+
+
+		/// <summary>
+		/// OneMore Extension >> Remove characters that are invalid in XML 1.0, such as vertical
+		/// tab (0x0B), that would cause ArgumentException when serializing CDATA sections.
+		/// Legal XML chars: #x9, #xA, #xD, #x20–#xD7FF, #xE000–#xFFFD.
+		/// </summary>
+		private static readonly Regex invalidXmlCharPattern =
+			new(@"[^\x09\x0A\x0D\x20-퟿-�]", RegexOptions.Compiled);
+
+		public static string StripInvalidXmlChars(this string s)
+		{
+			return s == null ? null : invalidXmlCharPattern.Replace(s, string.Empty);
+		}
+
+
+		/// <summary>
 		/// OneMore Extension >> Build an XML wrapper with the specified content, ensuring the
 		/// content is propertly formed XML
 		/// </summary>
@@ -346,7 +398,17 @@ namespace River.OneMoreAddIn
 		{
 			// OneNote doesn't like &nbsp; inside CDATAs but &#160; is OK
 			// and is the same as \u00A0 but 1-byte
-			var value = s.Replace("&nbsp;", "&#160;");
+			var value = s.StripInvalidXmlChars().Replace("&nbsp;", "&#160;");
+
+			// escape any & that is not already part of a valid XML entity reference
+			// (e.g. "R&D", "Ben & Jerry's", or HTML entities like "&copy;") \u2014 anything
+			// not matching amp/lt/gt/apos/quot/numeric becomes &amp; so the parser
+			// treats it as literal text rather than throwing on EntityName.
+			// Do not try SecurityElement.Escape as it's too aggressive — it would also
+			// escape < and >, destroying the HTML markup we want to preserve.
+			value = Regex.Replace(value,
+				@"&(?!(?:amp|lt|gt|apos|quot|#\d+|#x[0-9a-fA-F]+);)",
+				"&amp;");
 
 			// XElement doesn't like <br> so replace with <br/>
 			value = Regex.Replace(value, @"\<\s*br\s*\>", "<br/>");
@@ -354,8 +416,8 @@ namespace River.OneMoreAddIn
 			// quote unquote language attribute, e.g., lang=yo to lang="yo" (or two part en-US)
 			value = Regex.Replace(value, @"(\s)lang=([\w\-]+)([\s/>])", "$1lang=\"$2\"$3");
 
-			// escape &
-			//value = System.Security.SecurityElement.Escape(value);
+			// remove &#N;/&#xN; entity refs whose code point is illegal in XML 1.0
+			value = StripInvalidXmlEntityRefs(value);
 
 			try
 			{
@@ -366,6 +428,49 @@ namespace River.OneMoreAddIn
 				Logger.Current.WriteLine($"error wrapping /{value}/");
 				throw;
 			}
+		}
+
+
+		/// <summary>
+		/// OneMore Extension >> Convert text to a lowercase, hyphen-separated slug suitable
+		/// for use as an HTML id/anchor fragment.
+		/// </summary>
+		/// <param name="s"></param>
+		/// <returns>The slug, or an empty string if the input has no sluggable content</returns>
+		public static string ToSlug(this string s)
+		{
+			if (string.IsNullOrWhiteSpace(s))
+			{
+				return string.Empty;
+			}
+
+			var decoded = HttpUtility.HtmlDecode(s);
+			return Regex.Replace(decoded.ToLowerInvariant(), @"[^a-z0-9]+", "-").Trim('-');
+		}
+
+
+		// Matches &#N; (decimal) and &#xN; (hex) numeric character entity references
+		private static readonly Regex invalidXmlEntityRefPattern =
+			new(@"&#(\d+);|&#x([0-9a-fA-F]+);", RegexOptions.Compiled);
+
+		private static bool IsValidXmlCodePoint(int cp) =>
+			cp == 0x9 || cp == 0xA || cp == 0xD ||
+			(cp >= 0x20 && cp <= 0xD7FF) ||
+			(cp >= 0xE000 && cp <= 0xFFFD) ||
+			(cp >= 0x10000 && cp <= 0x10FFFF);
+
+		// strip &#N; / &#xN; entity refs whose code point is illegal in XML 1.0.
+		// these survive the &amp; escaping step in ToXmlWrapper and cause XElement.Parse to throw.
+		private static string StripInvalidXmlEntityRefs(string s)
+		{
+			return invalidXmlEntityRefPattern.Replace(s, m =>
+			{
+				var cp = m.Groups[1].Success
+					? int.Parse(m.Groups[1].Value)
+					: Convert.ToInt32(m.Groups[2].Value, 16);
+
+				return IsValidXmlCodePoint(cp) ? m.Value : string.Empty;
+			});
 		}
 
 

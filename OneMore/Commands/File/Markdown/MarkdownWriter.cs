@@ -5,6 +5,9 @@
 // mask this definition to debug raw markdown processing to ILogger instead of a file/folder
 #define WriteToDisk
 
+// unmask this definition to allow debug logging
+//#define DBGLOG
+
 namespace River.OneMoreAddIn.Commands
 {
 	using River.OneMoreAddIn.Models;
@@ -74,12 +77,16 @@ namespace River.OneMoreAddIn.Commands
 		/// page as a template for tag and style references.
 		/// </summary>
 		/// <param name="content"></param>
-		public async Task Copy(XElement content)
+		/// <param name="includeTitle">True to prepend the page title as an H1 heading</param>
+		public async Task Copy(XElement content, bool includeTitle = true)
 		{
 			using var stream = new MemoryStream();
 			using (writer = new StreamWriter(stream))
 			{
-				await writer.WriteLineAsync($"# {page.Title}");
+				if (includeTitle)
+				{
+					await writer.WriteLineAsync($"# {page.Title}");
+				}
 
 				if (content.Name.LocalName == "Page")
 				{
@@ -99,9 +106,11 @@ namespace River.OneMoreAddIn.Commands
 				using var reader = new StreamReader(stream);
 				var text = await reader.ReadToEndAsync();
 
+#if DBGLOG
 				logger.Debug("markdown - - - - - - - -");
 				logger.Debug(text);
 				logger.Debug("end markdown - - - - - -");
+#endif
 
 				var clippy = new ClipboardProvider();
 				var success = await clippy.SetText(text, true);
@@ -110,7 +119,9 @@ namespace River.OneMoreAddIn.Commands
 					MoreMessageBox.ShowError(null, Resx.Clipboard_locked);
 				}
 
+#if DBGLOG
 				logger.Debug("copied");
+#endif
 			}
 		}
 
@@ -131,11 +142,13 @@ namespace River.OneMoreAddIn.Commands
 			{
 				saveAttachments = true;
 
-				writer.WriteLine($"# {page.Title}");
+				if (page.Title?.Length > 0)
+				{
+					writer.WriteLine($"# {page.Title}");
+				}
 
 				page.Root.Elements(ns + "Outline")
 					.Elements(ns + "OEChildren")
-					.Elements()
 					.ForEach(e => Write(e));
 
 				// page level Images outside of any Outline
@@ -152,7 +165,7 @@ namespace River.OneMoreAddIn.Commands
 
 
 		/// <summary>
-		/// 
+		///
 		/// </summary>
 		/// <param name="container">typically an OEChildren with elements and OEChildren</param>
 		/// <param name="prefix">prefix used to indent markdown lines</param>
@@ -166,15 +179,32 @@ namespace River.OneMoreAddIn.Commands
 			// Tag, List, and T, so startOfLine can be handled locally rather than recursively.
 			var startOfLine = true;
 
+#if DBGLOG
 			logger.Debug($"Write({container.Name.LocalName}, prefix:[{prefix}], depth:{depth}, contained:{contained})");
-
-			foreach (var element in container.Elements())
+#endif
+			// For OE containers: ensure the List element (bullet/number marker) is processed
+			// before any Tag elements so output order is "- [x] text" not "[x] - text"
+			IEnumerable<XElement> children = container.Elements();
+			if (container.Name.LocalName == "OE"
+				&& container.Elements(ns + "List").Any()
+				&& container.Elements(ns + "Tag").Any())
 			{
+				var listElem = container.Element(ns + "List");
+				children = children
+					.Where(e => !ReferenceEquals(e, listElem))
+					.Prepend(listElem);
+			}
+
+			var elements = children.ToList();
+			for (int ei = 0; ei < elements.Count; ei++)
+			{
+				var element = elements[ei];
 				var n = element.Name.LocalName;
+#if DBGLOG
 				var m = $"- [prefix:[{prefix}] depth:{depth} start:{startOfLine} contained:{contained} element {n}";
 				logger.Debug(n == "T" ? $"{m} [{element.Value}]" : m);
-
-				switch (element.Name.LocalName)
+#endif
+				switch (n)
 				{
 					case "OEChildren":
 						Write(element, $"{Indent}{prefix}", depth + 1, contained);
@@ -182,6 +212,28 @@ namespace River.OneMoreAddIn.Commands
 
 					case "OE":
 						{
+							// Detect a run of consecutive code-block OEs and emit as a fenced block
+							if (IsCodeBlockOE(element))
+							{
+								var codeLines = new List<XElement> { element };
+								while (ei + 1 < elements.Count
+									&& elements[ei + 1].Name.LocalName == "OE"
+									&& IsCodeBlockOE(elements[ei + 1]))
+								{
+									ei++;
+									codeLines.Add(elements[ei]);
+								}
+
+								if (!contained) writer.WriteLine();
+								writer.WriteLine("```");
+								foreach (var codeLine in codeLines)
+								{
+									writer.WriteLine(GetCodeText(codeLine));
+								}
+								writer.WriteLine("```");
+								break;
+							}
+
 							if (!contained) // not in table cell
 							{
 								writer.WriteLine("  ");
@@ -205,17 +257,20 @@ namespace River.OneMoreAddIn.Commands
 
 					case "Tag":
 						{
-							// should always be startOfLine
 							var context = DetectQuickStyle(element);
-							if (context is not null)
+							// Only write line prefix at start of line; when a List element has already
+							// been processed first (Tag+List reordering above), the list marker wrote
+							// the prefix so we must not write it again.
+							if (startOfLine)
 							{
-								Stylize(depth > 0
-									? prefix /*new String(Quote[0], depth)*/
-									: string.Empty);
-							}
-							else
-							{
-								writer.Write(prefix);
+								if (context is not null)
+								{
+									Stylize(depth > 0 ? prefix : string.Empty);
+								}
+								else
+								{
+									writer.Write(prefix);
+								}
 							}
 
 							WriteTag(element);
@@ -235,7 +290,7 @@ namespace River.OneMoreAddIn.Commands
 							if (context is not null)
 							{
 								Stylize(depth > 0 && startOfLine
-									? prefix /*new String(Quote[0], depth)*/
+									? prefix
 									: string.Empty);
 
 								startOfLine = false;
@@ -295,7 +350,42 @@ namespace River.OneMoreAddIn.Commands
 				}
 			}
 
+#if DBGLOG
 			logger.Debug("out");
+#endif
+		}
+
+
+		private bool IsCodeBlockOE(XElement oe)
+		{
+			// Check the OE itself then its parent (OEChildren) for a code quickstyle.
+			// Only OE-level code style indicates a standalone code block; a code style
+			// on an inner T is inline code handled by DetectQuickStyle in the T case.
+			if (!oe.GetAttributeValue("quickStyleIndex", out int index, -1))
+			{
+				if (oe.Parent is null
+					|| !oe.Parent.GetAttributeValue("quickStyleIndex", out index, -1))
+				{
+					return false;
+				}
+			}
+
+			var quick = quickStyles.FirstOrDefault(q => q.Index == index);
+			return quick?.Name?.ToLower().Contains("code") == true;
+		}
+
+
+		private string GetCodeText(XElement oe)
+		{
+			// concatenate all T runs — a code OE can have multiple runs when
+			// syntax-highlighting or other formatting splits the CData across elements.
+			var runs = oe.Elements(ns + "T").ToList();
+			if (!runs.Any()) return string.Empty;
+			return string.Concat(runs.Select(t =>
+			{
+				var cdata = t.GetCData();
+				return cdata?.GetWrapper().Value ?? string.Empty;
+			})).TrimEnd();
 		}
 
 
@@ -318,8 +408,9 @@ namespace River.OneMoreAddIn.Commands
 					QuickStyleIndex = index
 				};
 
-				var quick = quickStyles.First(q => q.Index == index);
-				if (quick != null)
+				// FirstOrDefault so missing index returns null instead of throwing
+				var quick = quickStyles.FirstOrDefault(q => q.Index == index);
+				if (quick is not null)
 				{
 					var name = quick.Name.ToLower();
 
@@ -342,7 +433,8 @@ namespace River.OneMoreAddIn.Commands
 			writer.Write(prefix);
 			if (contexts.Count == 0) return;
 			var context = contexts.Peek();
-			var quick = quickStyles.First(q => q.Index == context.QuickStyleIndex);
+			var quick = quickStyles.FirstOrDefault(q => q.Index == context.QuickStyleIndex);
+			if (quick is null) return;
 			switch (quick.Name)
 			{
 				case "PageTitle":
@@ -380,7 +472,8 @@ namespace River.OneMoreAddIn.Commands
 				case 71:    // to do prio 2
 				case 94:    // discuss person a/b
 				case 95:    // discuss manager
-					var check = element.Attribute("completed").Value == "true" ? "x" : " ";
+					// guard against missing completed attribute
+					var check = element.Attribute("completed")?.Value == "true" ? "x" : " ";
 					writer.Write($"[{check}] ");
 					break;
 
@@ -409,26 +502,45 @@ namespace River.OneMoreAddIn.Commands
 		{
 			cdata.Value = cdata.Value
 				.Replace("<br>", "  ") // usually followed by NL so leave it there
-				.Replace("[", "\\[")   // escape to prevent confusion with md links
 				.TrimEnd();
 
 			var wrapper = cdata.GetWrapper();
+
+			// Escape markdown-significant characters in text nodes only, before span and
+			// anchor processing so href attribute values are never inadvertently escaped.
+			// New XText nodes created by anchor replacement below are not revisited.
+			foreach (var textNode in wrapper.DescendantNodes().OfType<XText>().ToList())
+			{
+				textNode.Value = textNode.Value
+					.Replace("[", "\\[")
+					.Replace("|", "\\|")
+					.Replace("*", "\\*")
+					.Replace("_", "\\_")
+					.Replace("~", "\\~")
+					.Replace("`", "\\`");
+			}
+
 			foreach (var span in wrapper.Descendants("span").ToList())
 			{
 				var text = span.Value;
 				var att = span.Attribute("style");
 				// span might only have a lang attribute
-				if (att != null)
+				if (att is not null)
 				{
-					var style = new Style(span.Attribute("style").Value);
+					var style = new Style(att.Value);
+					if (StyleBase.IsMonospaceFont(style.FontFamily))
+						text = $"`{text}`";
 					if (style.IsStrikethrough) text = $"~~{text}~~";
 					if (style.IsItalic) text = $"*{text}*";
 					if (style.IsBold) text = $"**{text}**";
+					if (style.IsUnderline) text = $"<u>{text}</u>";
+					if (style.IsSuperscript) text = $"<sup>{text}</sup>";
+					if (style.IsSubscript) text = $"<sub>{text}</sub>";
 				}
 				span.ReplaceWith(new XText(text));
 			}
 
-			foreach (var anchor in wrapper.Elements("a"))
+			foreach (var anchor in wrapper.Elements("a").ToList())
 			{
 				var href = anchor.Attribute("href")?.Value;
 				if (!string.IsNullOrEmpty(href))
@@ -445,17 +557,18 @@ namespace River.OneMoreAddIn.Commands
 				}
 			}
 
-			// escape directives
+			// escape remaining directives (| and [ already escaped in text nodes above)
 			var raw = wrapper.GetInnerXml()
-				.Replace("&lt;", "\\<")
-				.Replace("|", "\\|");
+				.Replace("&lt;", "\\<");
 
 			if (startOfLine && raw.Length > 0 && raw.StartsWith("#"))
 			{
 				writer.Write("\\");
 			}
 
+#if DBGLOG
 			logger.Debug($"text [{raw}]");
+#endif
 			writer.Write(raw);
 		}
 
@@ -464,24 +577,41 @@ namespace River.OneMoreAddIn.Commands
 		{
 			if (saveAttachments)
 			{
-				var data = element.Element(ns + "Data");
-				var binhex = Convert.FromBase64String(data.Value);
+				imageCounter++;
 
-				using var stream = new MemoryStream(binhex, 0, binhex.Length);
-				using var image = Image.FromStream(stream);
-
-				var name = $"{attachmentFolder}_{++imageCounter}.png";
-				var filename = Path.Combine(attachmentPath, name);
-#if WriteToDisk
-				if (!Directory.Exists(attachmentPath))
+				try
 				{
-					Directory.CreateDirectory(attachmentPath);
-				}
+					var data = element.Element(ns + "Data");
+					var binhex = Convert.FromBase64String(data.Value);
 
-				image.Save(filename, ImageFormat.Png);
+					using var stream = new MemoryStream(binhex, 0, binhex.Length);
+					using var source = Image.FromStream(stream);
+
+					// non-raster images (e.g. Metafile/EMF) cannot be re-encoded directly
+					// as PNG through GDI+ and must first be rendered onto a real bitmap
+					using var image = source is Bitmap ? source : new Bitmap(source);
+
+					var name = $"{attachmentFolder}_{imageCounter}.png";
+					var filename = Path.Combine(attachmentPath, name);
+#if WriteToDisk
+					if (!Directory.Exists(attachmentPath))
+					{
+						Directory.CreateDirectory(attachmentPath);
+					}
+
+					image.Save(filename, ImageFormat.Png);
 #endif
-				var imgPath = Path.Combine(attachmentFolder, name);
-				writer.Write($"![Image-{imageCounter}]({imgPath})");
+					var imgPath = Path.Combine(attachmentFolder, name);
+					writer.Write($"![Image-{imageCounter}]({imgPath})");
+				}
+				catch (Exception exc)
+				{
+					element.GetAttributeValue("format", out var format, "?");
+					logger.WriteLine(
+						$"error saving image {imageCounter} (format:{format})", exc);
+
+					writer.Write($"(*Image:{imageCounter} could not be exported*)");
+				}
 			}
 			else
 			{
@@ -512,6 +642,8 @@ namespace River.OneMoreAddIn.Commands
 				return;
 			}
 
+			name = PathHelper.CleanFileName(name);
+
 			if (saveAttachments)
 			{
 				var target = Path.Combine(attachmentPath, name);
@@ -534,9 +666,9 @@ namespace River.OneMoreAddIn.Commands
 					return;
 				}
 
-				// this is a relative path that allows us to move the folder around
-				var uri = new Uri(target).AbsoluteUri;
-				writer.WriteLine($"[{name}]({uri})");
+				// use relative path (portable) to match image link behavior
+				var relPath = Path.Combine(attachmentFolder, name);
+				writer.WriteLine($"[{name}]({relPath})");
 			}
 			else
 			{

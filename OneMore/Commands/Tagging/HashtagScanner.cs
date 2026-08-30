@@ -1,6 +1,8 @@
-﻿//************************************************************************************************
+//************************************************************************************************
 // Copyright © 2023 Steven M Cohn. All rights reserved.
 //************************************************************************************************
+
+#pragma warning disable S125
 
 namespace River.OneMoreAddIn.Commands
 {
@@ -11,6 +13,7 @@ namespace River.OneMoreAddIn.Commands
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Linq;
+	using System.Threading;
 	using System.Threading.Tasks;
 	using System.Xml.Linq;
 
@@ -30,38 +33,57 @@ namespace River.OneMoreAddIn.Commands
 			public int DirtyPages;
 			public int Tags;
 			public long Time;
+			public long FetchTime;
+			public long ThrottleTime;
 		}
 
 		public const int DefaultThrottle = 20;
 		private const int MaxPagesThreshold = 100;
 
 		private readonly string lastTime;
+		private readonly string startTime;
 		private readonly HashtagPageSannerFactory factory;
 		private readonly SettingsCollection settings;
 		private readonly int throttle;
+		private readonly bool ownsProvider;
 		private HashtagProvider provider;
 		private string[] notebookFilters;
 		private bool disposed;
 
 
 		/// <summary>
-		/// 
+		/// Initialize a new instance, creating and owning its own HashtagProvider
 		/// </summary>
-		public HashtagScanner()
+		public HashtagScanner() : this(new HashtagProvider())
+		{
+			ownsProvider = true;
+		}
+
+
+		/// <summary>
+		/// Initialize a new instance using the given HashtagProvider, whose lifetime remains
+		/// the responsibility of the caller (used by HashtagService to reuse one connection
+		/// across many scans instead of opening/closing one every cycle)
+		/// </summary>
+		/// <param name="provider">A provider owned and disposed by the caller</param>
+		public HashtagScanner(HashtagProvider provider)
 		{
 			settings = new SettingsProvider().GetCollection("HashtagSheet");
 			throttle = settings.Get("delay", DefaultThrottle);
 
-			provider = new HashtagProvider();
+			this.provider = provider;
 
 			factory = new HashtagPageSannerFactory(
 				GetStyleTemplate(),
-				settings.Get<bool>("unfiltered"));
+				settings.Get<bool>("unfiltered"),
+				settings.Get<bool>("doubled"));
 
 			Stats = new Statistics();
 
 			lastTime = provider.ReadScanTime();
 			//logger.Verbose($"HashtagScanner lastTime {lastTime}");
+
+			startTime = DateTime.Now.ToZuluString();
 		}
 
 
@@ -119,7 +141,11 @@ namespace River.OneMoreAddIn.Commands
 			{
 				if (disposing)
 				{
-					provider.Dispose();
+					if (ownsProvider)
+					{
+						provider.Dispose();
+					}
+
 					provider = null;
 				}
 
@@ -135,11 +161,16 @@ namespace River.OneMoreAddIn.Commands
 		}
 
 
+		// extended delay used when a foreground command holds a HashtagServicePause token
+		private const int PausedThrottle = 500;
+
+
 		/// <summary>
 		/// Scan all notebooks for all hashtags
 		/// </summary>
+		/// <param name="token">Optional token to cancel the scan between pages</param>
 		/// <returns></returns>
-		public async Task Scan()
+		public async Task Scan(CancellationToken token = default)
 		{
 			var clock = new Stopwatch();
 			clock.Start();
@@ -172,6 +203,12 @@ namespace River.OneMoreAddIn.Commands
 
 					var known = knownNotebooks.Find(n => n.NotebookID == notebookID);
 
+					if (known is not null && !known.Included)
+					{
+						logger.Verbose($"skipping excluded notebook {notebookID} \"{name}\"");
+						continue;
+					}
+
 					// Filter on three levels...
 					//
 					// knownNotebooks
@@ -197,6 +234,7 @@ namespace River.OneMoreAddIn.Commands
 					var accepted = knownNotebooks.Count == 0;
 
 					var forceThru = true;
+					XElement prefetched = null; // set when we already fetched the notebook
 
 					if (accepted)
 					{
@@ -217,10 +255,16 @@ namespace River.OneMoreAddIn.Commands
 							else
 							{
 								// notebook size is within threshold?
-								// this may load the notebook twice, but small cost
-								var populated = await one.GetNotebook(notebookID, OneNote.Scope.Pages);
-								accepted = populated.Descendants(ns + "Page")
+								// Scope.Pages is a superset of section metadata so we can reuse
+								// this result below instead of fetching the notebook a second time
+								prefetched = await one.GetNotebook(notebookID, OneNote.Scope.Pages);
+								accepted = prefetched.Descendants(ns + "Page")
 									.Count(e => e.Attribute("isInRecycleBin") is null) < MaxPagesThreshold;
+
+								if (!accepted)
+								{
+									prefetched = null; // not scanning, don't hold the reference
+								}
 							}
 						}
 						else
@@ -232,16 +276,18 @@ namespace River.OneMoreAddIn.Commands
 					if (accepted)
 					{
 						logger.Verbose(
-							$"scanning notebook {notebookID} \"{name}\", forceThru={forceThru}");
+							$"scanning notebook {notebookID} \"{name}\"" +
+							(forceThru ? " (forceThru)" : ""));
 
 						var dp = 0;
 
-						var sections = await one.GetNotebook(notebookID);
+						// reuse prefetched data when available to avoid a second COM call
+						var sections = prefetched ?? await one.GetNotebook(notebookID);
 						if (sections is not null)
 						{
 							int tp;
 
-							(dp, tp) = await Scan(one, sections, notebookID, $"/{name}", forceThru);
+							(dp, tp) = await Scan(one, sections, notebookID, $"/{name}", forceThru, token);
 
 							Stats.DirtyPages += dp;
 							Stats.TotalPages += tp;
@@ -258,7 +304,7 @@ namespace River.OneMoreAddIn.Commands
 				}
 			}
 
-			provider.WriteScanTime();
+			provider.WriteScanTime(startTime);
 
 			clock.Stop();
 			Stats.Time = clock.ElapsedMilliseconds;
@@ -266,8 +312,10 @@ namespace River.OneMoreAddIn.Commands
 
 
 		private async Task<(int, int)> Scan(
-			OneNote one, XElement parent, string notebookID, string path, bool forceThru)
+			OneNote one, XElement parent, string notebookID, string path, bool forceThru,
+			CancellationToken token = default)
 		{
+
 			//logger.Verbose($"scanning parent {path}, forceThru={forceThru}");
 
 			int dirtyPages = 0;
@@ -306,25 +354,62 @@ namespace River.OneMoreAddIn.Commands
 							var sectionPath = $"{path}/{section.Attribute("name").Value}";
 							//logger.Verbose($"scanning section {sectionPath} ({pages.Count()} pages)");
 
+							var clock = new Stopwatch();
+							var canceled = false;
+
 							foreach (var page in pages)
 							{
+								if (token.IsCancellationRequested)
+								{
+									break;
+								}
+
 								var pid = page.Attribute("ID").Value;
 								pids.Add(pid);
 
 								if (forceThru ||
 									page.Attribute("lastModifiedTime").Value.CompareTo(lastTime) > 0)
 								{
-									if (await ScanPage(one,
-										pid, notebookID, sectionID, sectionPath, forceThru))
+									// only pages that are actually fetched via COM incur any real
+									// cost, so only these are timed and throttled; unmodified pages
+									// are skipped entirely and shouldn't pay an idle delay - this
+									// used to run for every page walked, adding ~(pageCount * delay)
+									// dead time to every scan regardless of how much had changed
+
+									clock.Restart();
+									var dirty = await ScanPage(
+										one, pid, notebookID, sectionID, sectionPath, forceThru);
+
+									clock.Stop();
+									Stats.FetchTime += clock.ElapsedMilliseconds;
+
+									if (dirty)
 									{
 										dirtyPages++;
 									}
+
+									// throttle the workload to give breathing room to OneNote UI;
+									// use an extended delay when a foreground command is active
+									if (throttle > 0)
+									{
+										var delay = HashtagServicePause.IsPaused ? PausedThrottle : throttle;
+										try
+										{
+											clock.Restart();
+											await Task.Delay(delay, token);
+											clock.Stop();
+											Stats.ThrottleTime += clock.ElapsedMilliseconds;
+										}
+										catch (OperationCanceledException)
+										{
+											canceled = true;
+										}
+									}
 								}
 
-								// throttle the workload to give breathing room to OneNote UI
-								if (throttle > 0)
+								if (canceled)
 								{
-									await Task.Delay(throttle);
+									break;
 								}
 							}
 
@@ -347,7 +432,7 @@ namespace River.OneMoreAddIn.Commands
 				foreach (var group in groups)
 				{
 					var (dp, tp) = await Scan(
-						one, group, notebookID, $"{path}/{group.Attribute("name").Value}", forceThru);
+						one, group, notebookID, $"{path}/{group.Attribute("name").Value}", forceThru, token);
 
 					dirtyPages += dp;
 					totalPages += tp;
@@ -374,8 +459,7 @@ namespace River.OneMoreAddIn.Commands
 				return false;
 			}
 
-			// avoid defect https://github.com/stevencohn/OneMore/issues/1268
-			// GetPage throws generic COM exception and returns null...
+			// avoids defect #1268: GetPage throws generic COM exception and returns null...
 			if (page is null)
 			{
 				logger.WriteLine($"skipping null page {pageID} '{path}'");
@@ -429,8 +513,7 @@ namespace River.OneMoreAddIn.Commands
 			{
 				// much simpler to purge old and rewrite new, even if that means recreating a
 				// few copied records. should scale without issue into the many tens-of-tags
-				provider.WriteTags(pageID, candidates);
-				dirtyPage = true;
+				dirtyPage = provider.WriteTags(pageID, candidates);
 
 				Stats.Tags += updated.Count + discovered.Count;
 			}
@@ -448,8 +531,6 @@ namespace River.OneMoreAddIn.Commands
 
 				// TODO: could track moreID+pageID to determine if REPLACE is needed; but then
 				// need to read that info first as well; see where the design goes...
-
-				// TODO: should this be wrapped in a tx along with the above statements?
 
 				provider.WritePageInfo(
 					scanner.MoreID, pageID, titleID, notebookID, sectionID, path, title);
@@ -470,9 +551,10 @@ namespace River.OneMoreAddIn.Commands
 			}
 
 			logger.WriteLine($"scanned {Stats.TotalPages} pages, " +
-				$"{Stats.KnownNotebooks}/{Stats.Notebooks} notebooks, " +
+				$"{Stats.Notebooks} notebooks ({Stats.KnownNotebooks} known), " +
 				$"{Stats.Sections} sections, updating {Stats.DirtyPages} pages, " +
-				$"saving {Stats.Tags} tags, in {Stats.Time}ms");
+				$"saving {Stats.Tags} tags, in {Stats.Time}ms " +
+				$"(fetch {Stats.FetchTime}ms, throttle {Stats.ThrottleTime}ms)");
 		}
 	}
 }

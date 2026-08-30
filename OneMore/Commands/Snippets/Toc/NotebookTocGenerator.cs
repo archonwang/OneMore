@@ -1,0 +1,213 @@
+﻿//************************************************************************************************
+// Copyright © 2016 Steven M Cohn. All rights reserved.
+//************************************************************************************************
+
+namespace River.OneMoreAddIn.Commands.Snippets.Toc
+{
+	using River.OneMoreAddIn.Models;
+	using River.OneMoreAddIn.Styles;
+	using System.Collections.Generic;
+	using System.Linq;
+	using System.Threading.Tasks;
+	using System.Xml.Linq;
+	using Resx = Properties.Resources;
+
+
+	/// <summary>
+	/// Builds or refreshes a hierarchy TOC for the current notebook
+	/// </summary>
+	internal class NotebookTocGenerator : HierarchyTocGenerator
+	{
+		public const string RefreshNotebookCmd = "refreshn";
+
+
+		public NotebookTocGenerator(TocParameters parameters)
+			: base(parameters)
+		{
+		}
+
+
+		protected override string RefreshCmd => RefreshNotebookCmd;
+
+
+		public override async Task<RefreshOption> RefreshExistingPage()
+		{
+			await using var one = new OneNote();
+			var notebook = await one.GetNotebook(OneNote.Scope.Pages);
+			var ns = notebook.GetNamespaceOfPrefix(OneNote.Prefix);
+
+			var pageID = notebook.Descendants(ns + "Page")
+				.Where(e => e.Attribute("isInRecycleBin") is null)
+				.Elements(ns + "Meta")
+				.Where(e =>
+					e.Attribute("name").Value == MetaNames.TableOfContents &&
+					e.Attribute("content").Value == "notebook")
+				.Select(e => e.Parent.Attribute("ID").Value)
+				.FirstOrDefault();
+
+			if (pageID is null)
+			{
+				return RefreshOption.Build;
+			}
+
+			var result = UI.MoreMessageBox.ShowQuestion(
+				one.OwnerWindow, Resx.InsertTocForNotebook_RefreshQuestion, true);
+
+			if (result == System.Windows.Forms.DialogResult.Cancel)
+			{
+				return RefreshOption.Cancel;
+			}
+
+			if (result == System.Windows.Forms.DialogResult.No)
+			{
+				return RefreshOption.Build;
+			}
+
+			await one.NavigateTo(pageID);
+
+			return RefreshOption.Refresh;
+		}
+
+
+		protected override async Task BuildContents(
+			Page page, XElement container, XElement section)
+		{
+			var ns = page.Namespace;
+			PageNamespace.Set(ns);
+
+			var scope = withPages ? OneNote.Scope.Pages : OneNote.Scope.Sections;
+			var notebook = await one.GetNotebook(scope);
+
+			// seeds the PrimaryTitle property
+			primaryTitle = notebook.Attribute("name").Value.Trim();
+			ownerPageId = page.PageId;
+
+			page.Title = string.Format(Resx.InsertTocCommand_TOCNotebook, primaryTitle);
+			cite = page.GetQuickStyle(StandardStyles.Citation);
+
+			page.SetMeta(MetaNames.TableOfContents, "notebook");
+
+			// TOC Title...
+
+			var segments = string.Empty;
+			if (parameters.Contains("pages")) segments = $"{segments}/pages";
+			if (parameters.Contains("preview")) segments = $"{segments}/preview";
+
+			if (parameters.Contains("time"))
+			{
+				page.Root.SetAttributeValue("dateTime", System.DateTime.Now.ToZuluString());
+				segments = $"{segments}/time";
+			}
+
+			var titleElement = MakeTitle(page, segments);
+
+			// add meta to title OE
+			if (!parameters.Contains("notebook")) parameters.Insert(0, "notebook");
+			var segs = parameters.Aggregate((a, b) => $"{a}/{b}");
+			titleElement.AddFirst(new Meta(Toc.MetaName, segs));
+
+			container.Add(titleElement);
+			container.Add(new Paragraph(string.Empty));
+
+			// TOC contents...
+
+			var pageCount = notebook.Descendants(ns + "Page")
+				.Count(e => e.Attribute("isInRecycleBin") is null);
+
+			if (pageCount > MinProgress)
+			{
+				progress = new UI.ProgressDialog();
+				progress.SetMaximum(pageCount);
+				progress.Show();
+			}
+
+			try
+			{
+				await BuildSectionTree(one, ns, container, notebook.Elements(), 1);
+			}
+			finally
+			{
+				if (progress is not null)
+				{
+					progress.Close();
+					progress.Dispose();
+				}
+			}
+
+			await one.UpdateWithProgress(page);
+		}
+
+
+		private async Task BuildSectionTree(
+		OneNote one, XNamespace ns, XElement container,
+		IEnumerable<XElement> elements, int level)
+		{
+			foreach (var element in elements)
+			{
+				var notBin = element.Attribute("isRecycleBin") is null &&
+					element.Attribute("isInRecycleBin") is null;
+
+				if (element.Name.LocalName == "SectionGroup" && notBin)
+				{
+					// SectionGroup
+
+					var name = element.Attribute("name").Value;
+
+					var titleParagraph = new Paragraph(
+						new XElement(ns + "T",
+							// this is a Folder icon... but doesn't look great
+							// <span style='font-family:Segoe UI Emoji'>&#128194; </span>
+							new XCData($"<span style='font-weight:bold'>{name}</span>")));
+
+					var indent = new XElement(ns + "OEChildren");
+					await BuildSectionTree(one, ns, indent, element.Elements(), level + 1);
+
+					if (indent.HasElements)
+					{
+						titleParagraph.Add(indent);
+					}
+
+					// blank spacer and the group title are plain sibling OEs in the same
+					// container, so both sit at whatever indent level this recursion is at
+					container.Add(new Paragraph(string.Empty));
+					container.Add(titleParagraph);
+				}
+				else if (element.Name.LocalName == "Section" && notBin)
+				{
+					// Section
+
+					var link = one.GetHyperlink(element.Attribute("ID").Value, string.Empty);
+					var name = element.Attribute("name").Value;
+					var pages = element.Elements(ns + "Page")
+						.Where(e => e.Attribute("isInRecycleBin") is null);
+
+					XElement indent = null;
+					if (withPages && pages.Any())
+					{
+						indent = new XElement(ns + "OEChildren");
+						_ = await BuildSection(one, indent, pages.ToArray(), 0, 1);
+
+						// BuildSection skips the TOC's own page, so if this section contains
+						// only that page, indent ends up empty; OneNote's schema rejects an
+						// empty OEChildren, so fall back to the plain paragraph form below
+						if (!indent.HasElements)
+						{
+							indent = null;
+						}
+					}
+
+					if (indent is not null)
+					{
+						container.Add(new Paragraph(
+							new XElement(ns + "T", new XCData($"§ <a href=\"{link}\">{name}</a>")),
+							indent));
+					}
+					else
+					{
+						container.Add(new Paragraph($"§ <a href=\"{link}\">{name}</a>"));
+					}
+				}
+			}
+		}
+	}
+}

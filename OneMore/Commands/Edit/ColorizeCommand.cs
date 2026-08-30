@@ -1,5 +1,5 @@
 ﻿//************************************************************************************************
-// Copyright © 2020 Steven M Cohn.  All rights reserved.
+// Copyright © 2020 Steven M Cohn. All rights reserved.
 //************************************************************************************************
 
 namespace River.OneMoreAddIn.Commands
@@ -12,6 +12,7 @@ namespace River.OneMoreAddIn.Commands
 	using System.Text.RegularExpressions;
 	using System.Threading.Tasks;
 	using System.Xml.Linq;
+	using Resx = Properties.Resources;
 
 
 	internal class ColorizeCommand : Command
@@ -44,24 +45,38 @@ namespace River.OneMoreAddIn.Commands
 		/// <returns></returns>
 		public override async Task Execute(params object[] args)
 		{
-			await using var one = new OneNote(out page, out ns);
+			using var guard = EnterOnce();
+			if (guard is null) { return; }
 
-			AddDepth(page.Root);
-
-			var runs = page.Root.Descendants(ns + "T")
-				.Where(e => e.Attributes().Any(a => a.Name == "selected" && a.Value == "all"));
-
-			if (!runs.Any())
+			try
 			{
-				return;
+				await using var one = new OneNote(out page, out ns);
+
+				AddDepth(page.Root);
+
+				var runs = page.Root.Descendants(ns + "T")
+					.Where(e => e.Attributes().Any(a => a.Name == "selected" && a.Value == "all"));
+
+				if (!runs.Any())
+				{
+					return;
+				}
+
+				var updated = Colorize(args[0] as string, runs);
+
+				if (updated)
+				{
+					RemoveDepth(page.Root);
+					await one.Update(page);
+				}
 			}
-
-			var updated = Colorize(args[0] as string, runs);
-
-			if (updated)
+			catch (LanguageException exc)
 			{
-				RemoveDepth(page.Root);
-				await one.Update(page);
+				// surfaces a malformed/unreadable language definition file (e.g. a user
+				// edited Colorizer\Languages\{lang}.json and broke its JSON) so the user
+				// gets an actionable message instead of CommandFactory's generic toast
+				logger.WriteLine(exc);
+				ShowError(string.Format(Resx.ColorizeCommand_LanguageError, exc.Name));
 			}
 		}
 

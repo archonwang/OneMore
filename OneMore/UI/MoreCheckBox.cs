@@ -47,6 +47,19 @@ namespace River.OneMoreAddIn.UI
 		}
 
 
+		protected override void Dispose(bool disposing)
+		{
+			if (disposing)
+			{
+				if (hcursor != IntPtr.Zero)
+				{
+					Native.DestroyCursor(hcursor);
+				}
+			}
+			base.Dispose(disposing);
+		}
+
+
 		/// <summary>
 		/// Gets the state indicating normal, hover, or pressed.
 		/// </summary>
@@ -123,7 +136,7 @@ namespace River.OneMoreAddIn.UI
 			var g = pevent.Graphics;
 
 			var clip = pevent.ClipRectangle;
-			var radius = g.DpiX == 96f ? 2 : 4;
+			var radius = g.DpiX.EstEquals(96f) ? 2 : 4;
 
 			if (Enabled && (MouseState != MouseState.None || Checked))
 			{
@@ -257,10 +270,18 @@ namespace River.OneMoreAddIn.UI
 			var boxY = (Size.Height - boxSize) / 2;
 
 			using var boxPen = new Pen(boxColor);
-			var radius = g.DpiX == 96 ? 2 : 4;
+			var radius = g.DpiX.EstEquals(96) ? 2 : 4;
 			g.DrawRoundedRectangle(boxPen, new Rectangle(0, boxY, boxSize, boxSize), radius);
 
-			if (Checked)
+			if (CheckState == CheckState.Indeterminate)
+			{
+				// "some but not all" - a dash rather than a full check-fill
+				using var fillBrush = new SolidBrush(boxColor);
+				var dashHeight = Math.Max(2, boxSize / 6);
+				g.FillRoundedRectangle(fillBrush,
+					new Rectangle(3, boxY + ((boxSize - dashHeight) / 2), boxSize - 6, dashHeight), 1);
+			}
+			else if (Checked)
 			{
 				using var fillBrush = new SolidBrush(boxColor);
 				g.FillRoundedRectangle(fillBrush,
@@ -270,16 +291,29 @@ namespace River.OneMoreAddIn.UI
 			using var brush = new SolidBrush(color);
 			var textsize = g.MeasureString(Text, Font);
 
-			pevent.Graphics.DrawString(Text, Font, brush,
-				new Rectangle(boxSize + Spacing,
-					(int)((pevent.ClipRectangle.Height - textsize.Height) / 2),
-					pevent.ClipRectangle.Width - (boxSize + Spacing),
-					Size.Height),
+			var bounds = new Rectangle(boxSize + Spacing,
+				(int)((pevent.ClipRectangle.Height - textsize.Height) / 2),
+				pevent.ClipRectangle.Width - (boxSize + Spacing),
+				Size.Height);
+
+			pevent.Graphics.DrawString(Text, Font, brush, bounds,
 				new StringFormat
 				{
 					Trimming = StringTrimming.None,
 					FormatFlags = StringFormatFlags.NoWrap
 				});
+
+			if (Focused)
+			{
+				using var focusPen = new Pen(manager.GetColor("GrayText"))
+				{
+					DashStyle = DashStyle.Dash
+				};
+
+				bounds.Offset(-1, -1);
+				bounds.Inflate(-2, -2);
+				g.DrawRectangle(focusPen, bounds);
+			}
 		}
 
 
